@@ -1,0 +1,367 @@
+# pyproject.toml Configuration Schema
+
+**Purpose**: 定义 Python 项目配置、依赖、工具配置的统一文件结构
+**Format**: TOML
+**Location**: 项目根目录 `/pyproject.toml`
+
+---
+
+## Schema Structure
+
+```toml
+# ============================================================================
+# Project Metadata (PEP 621)
+# ============================================================================
+[project]
+name = "diting"
+version = "0.1.0"
+description = "个人知识库助手 - 从微信、飞书、邮箱等提取数据,构建知识图谱,生成 AI 洞察"
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.13"
+keywords = ["knowledge-graph", "llm", "personal-assistant"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
+
+# ============================================================================
+# Dependencies (PEP 621)
+# ============================================================================
+[project.dependencies]
+# 运行时依赖(目前为空,后续功能添加)
+# 示例:
+# neo4j = ">=5.0.0,<6.0.0"
+# openai = ">=1.0.0,<2.0.0"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0,<0.2.0",        # 代码格式化和 linting
+    "mypy>=1.7.0,<2.0.0",        # 类型检查
+    "pytest>=7.4.0,<8.0.0",      # 测试框架
+    "pytest-cov>=4.1.0,<5.0.0",  # 测试覆盖率
+    "pre-commit>=3.5.0,<4.0.0",  # Pre-commit 钩子管理
+]
+
+# ============================================================================
+# uv Configuration
+# ============================================================================
+[tool.uv]
+# uv 依赖管理配置(可选,uv 默认配置通常足够)
+# index-url = "https://pypi.org/simple"  # PyPI 源(可配置镜像)
+# dev-dependencies = true  # 启用开发依赖
+
+# ============================================================================
+# Ruff Configuration
+# ============================================================================
+[tool.ruff]
+# 基础配置
+line-length = 100          # 最大行长度(平衡可读性和屏幕利用率)
+target-version = "py312"   # 目标 Python 版本
+indent-width = 4           # 缩进宽度(空格数)
+
+# 排除路径
+exclude = [
+    ".venv",
+    "__pycache__",
+    "*.egg-info",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+]
+
+[tool.ruff.format]
+# 格式化配置
+quote-style = "double"              # 引号风格: "double" | "single"
+indent-style = "space"              # 缩进风格: "space" | "tab"
+skip-magic-trailing-comma = false   # 保留魔术尾随逗号
+line-ending = "auto"                # 行尾符: "auto" | "lf" | "crlf"
+
+[tool.ruff.lint]
+# Linting 配置
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "I",    # isort (import 排序)
+    "UP",   # pyupgrade (Python 版本升级建议)
+    "B",    # flake8-bugbear (常见 bug 检测)
+    "SIM",  # flake8-simplify (代码简化建议)
+]
+
+ignore = [
+    # 可根据项目需求添加忽略规则
+    # "E501",  # 行长度(已在 line-length 配置)
+]
+
+# 每个文件特定忽略(可选)
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # __init__.py 允许未使用的 import
+
+[tool.ruff.lint.isort]
+# Import 排序配置
+known-first-party = ["diting"]  # 第一方包(项目本身)
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+# ============================================================================
+# Mypy Configuration
+# ============================================================================
+[tool.mypy]
+# 基础配置
+python_version = "3.12"
+
+# 类型检查严格度(初期中等,逐步提升)
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# 未来逐步启用:
+# strict = true
+# disallow_untyped_defs = true
+# disallow_any_generics = true
+
+# 第三方库处理
+ignore_missing_imports = true  # 忽略无 type stub 的第三方库
+
+# 排除路径
+exclude = [
+    "tests/",
+    ".venv/",
+]
+
+# ============================================================================
+# Pytest Configuration
+# ============================================================================
+[tool.pytest.ini_options]
+# 测试发现
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+# 输出配置
+addopts = [
+    "-v",                           # 详细输出
+    "--strict-markers",             # 严格标记检查
+    "--tb=short",                   # 简短 traceback
+    "--cov=src",                    # 覆盖率检查(指向 src/)
+    "--cov-report=term-missing",    # 终端显示未覆盖行
+    "--cov-report=html",            # 生成 HTML 报告
+]
+
+# 标记定义(可选,用于分类测试)
+markers = [
+    "unit: 单元测试",
+    "integration: 集成测试",
+    "contract: 契约测试",
+    "slow: 慢速测试(需要较长运行时间)",
+]
+
+# ============================================================================
+# Coverage Configuration
+# ============================================================================
+[tool.coverage.run]
+# 覆盖率检查配置
+source = ["src"]  # 检查源码目录
+omit = [
+    "tests/*",
+    "*/__init__.py",
+    ".venv/*",
+]
+
+[tool.coverage.report]
+# 覆盖率报告配置
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+fail_under = 80  # 最低覆盖率要求: 80%
+
+[tool.coverage.html]
+directory = "htmlcov"  # HTML 报告输出目录
+```
+
+---
+
+## Field Descriptions
+
+### [project] - 项目元数据
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `str` | ✅ | 项目名称(小写,连字符分隔) |
+| `version` | `str` | ✅ | 项目版本(语义化版本) |
+| `description` | `str` | ✅ | 项目简短描述(一句话) |
+| `authors` | `array[object]` | ✅ | 作者列表 `{name, email}` |
+| `readme` | `str` | ✅ | README 文件路径 |
+| `license` | `object` | ❌ | 许可证 `{text}` 或 `{file}` |
+| `requires-python` | `str` | ✅ | Python 版本约束 |
+| `keywords` | `array[str]` | ❌ | 关键词列表 |
+| `classifiers` | `array[str]` | ❌ | PyPI 分类器 |
+
+### [project.dependencies] - 运行时依赖
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| 包名约束 | `"neo4j>=5.0.0,<6.0.0"` | 主版本范围约束 |
+
+### [project.optional-dependencies.dev] - 开发依赖
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `ruff` | `>=0.1.0,<0.2.0` | 格式化和 linting |
+| `mypy` | `>=1.7.0,<2.0.0` | 类型检查 |
+| `pytest` | `>=7.4.0,<8.0.0` | 测试框架 |
+| `pytest-cov` | `>=4.1.0,<5.0.0` | 覆盖率 |
+| `pre-commit` | `>=3.5.0,<4.0.0` | Pre-commit 钩子 |
+
+### [tool.ruff] - Ruff 基础配置
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `line-length` | `int` | `100` | 最大行长度 |
+| `target-version` | `str` | `"py312"` | 目标 Python 版本 |
+| `indent-width` | `int` | `4` | 缩进宽度 |
+| `exclude` | `array[str]` | - | 排除路径列表 |
+
+### [tool.ruff.format] - Ruff 格式化配置
+
+| Field | Type | Options | Default | Description |
+|-------|------|---------|---------|-------------|
+| `quote-style` | `str` | `"double"`, `"single"` | `"double"` | 引号风格 |
+| `indent-style` | `str` | `"space"`, `"tab"` | `"space"` | 缩进风格 |
+| `line-ending` | `str` | `"auto"`, `"lf"`, `"crlf"` | `"auto"` | 行尾符 |
+
+### [tool.ruff.lint] - Ruff Linting 配置
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `select` | `array[str]` | 启用的规则集代码 |
+| `ignore` | `array[str]` | 忽略的规则代码 |
+
+**规则集代码**:
+- `E`, `W`: pycodestyle
+- `F`: Pyflakes
+- `I`: isort
+- `UP`: pyupgrade
+- `B`: flake8-bugbear
+- `SIM`: flake8-simplify
+
+### [tool.mypy] - Mypy 配置
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `python_version` | `str` | `"3.12"` | 检查的 Python 版本 |
+| `warn_return_any` | `bool` | `false` | 警告返回 Any 类型 |
+| `warn_unused_configs` | `bool` | `false` | 警告未使用配置 |
+| `ignore_missing_imports` | `bool` | `false` | 忽略无 stub 的库 |
+| `exclude` | `array[str]` | - | 排除路径 |
+
+### [tool.pytest.ini_options] - Pytest 配置
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `testpaths` | `array[str]` | 测试目录路径 |
+| `python_files` | `str` | 测试文件命名模式 |
+| `python_classes` | `str` | 测试类命名模式 |
+| `python_functions` | `str` | 测试函数命名模式 |
+| `addopts` | `array[str]` | 额外命令行选项 |
+| `markers` | `array[str]` | 测试标记定义 |
+
+### [tool.coverage] - Coverage 配置
+
+| Section | Field | Type | Description |
+|---------|-------|------|-------------|
+| `run` | `source` | `array[str]` | 检查源码目录 |
+| `run` | `omit` | `array[str]` | 忽略路径 |
+| `report` | `exclude_lines` | `array[str]` | 排除代码行模式 |
+| `report` | `fail_under` | `int` | 最低覆盖率(%) |
+| `html` | `directory` | `str` | HTML 报告目录 |
+
+---
+
+## Validation Rules
+
+### 必需字段验证
+- ✅ `[project]` 节必须包含: `name`, `version`, `requires-python`
+- ✅ `[project.optional-dependencies.dev]` 必须包含: ruff, mypy, pytest, pytest-cov, pre-commit
+- ✅ `[tool.ruff]` 必须指定 `target-version = "py312"`
+- ✅ `[tool.mypy]` 必须指定 `python_version = "3.12"`
+- ✅ `[tool.coverage.report]` 必须设置 `fail_under >= 80`
+
+### 版本约束验证
+- ✅ `requires-python` 必须为 `">=3.12,<3.13"`
+- ✅ 所有依赖必须使用范围约束(不得使用精确版本如 `==1.0.0`)
+
+### 路径验证
+- ✅ 排除路径必须包含: `.venv`, `__pycache__`, `.git`
+- ✅ Pytest `testpaths` 必须指向存在的目录
+
+---
+
+## Examples
+
+### 最小化配置示例
+
+```toml
+[project]
+name = "diting"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0,<0.2.0",
+    "mypy>=1.7.0,<2.0.0",
+    "pytest>=7.4.0,<8.0.0",
+    "pytest-cov>=4.1.0,<5.0.0",
+    "pre-commit>=3.5.0,<4.0.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.report]
+fail_under = 80
+```
+
+---
+
+## References
+
+- PEP 621: Storing project metadata in pyproject.toml - https://peps.python.org/pep-0621/
+- PEP 518: Specifying build system requirements - https://peps.python.org/pep-0518/
+- Ruff Configuration: https://docs.astral.sh/ruff/configuration/
+- Mypy Configuration: https://mypy.readthedocs.io/en/stable/config_file.html
+- Pytest Configuration: https://docs.pytest.org/en/stable/reference/customize.html
+- Coverage Configuration: https://coverage.readthedocs.io/en/stable/config.html
+
+---
+
+**Schema Version**: 1.0.0
+**Last Updated**: 2025-11-01

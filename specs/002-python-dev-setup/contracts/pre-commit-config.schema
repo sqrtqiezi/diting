@@ -1,0 +1,420 @@
+# .pre-commit-config.yaml Configuration Schema
+
+**Purpose**: 定义 Git pre-commit 钩子配置,自动化代码质量检查
+**Format**: YAML
+**Location**: 项目根目录 `/.pre-commit-config.yaml`
+
+---
+
+## Schema Structure
+
+```yaml
+# Pre-commit 框架配置
+# 文档: https://pre-commit.com/
+
+# ============================================================================
+# Global Configuration
+# ============================================================================
+# 失败时停止运行后续 hooks
+fail_fast: false
+
+# 默认语言版本(可选,优先使用项目 .python-version)
+default_language_version:
+  python: python3.12
+
+# 默认阶段(可选)
+default_stages: [commit]
+
+# ============================================================================
+# Repositories and Hooks
+# ============================================================================
+repos:
+  # --------------------------------------------------------------------------
+  # Pre-commit 官方 hooks
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        description: 移除行尾空白字符
+
+      - id: end-of-file-fixer
+        name: Fix end of files
+        description: 确保文件以换行符结尾
+
+      - id: check-yaml
+        name: Check YAML syntax
+        description: 检查 YAML 文件语法
+
+      - id: check-toml
+        name: Check TOML syntax
+        description: 检查 TOML 文件语法
+
+      - id: check-json
+        name: Check JSON syntax
+        description: 检查 JSON 文件语法
+
+      - id: check-added-large-files
+        name: Check for large files
+        description: 防止提交大文件(默认 500KB)
+        args: ['--maxkb=500']
+
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        description: 检查是否有未解决的合并冲突
+
+      - id: detect-private-key
+        name: Detect private keys
+        description: 检测私钥文件(防止泄露)
+
+  # --------------------------------------------------------------------------
+  # Ruff - 代码格式化和 Linting
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      # Ruff Linter
+      - id: ruff
+        name: Ruff linter
+        description: 快速 Python linting(Flake8, isort 等)
+        args:
+          - --fix           # 自动修复可修复的问题
+          - --exit-non-zero-on-fix  # 修复后返回非零退出码(触发 git add)
+
+      # Ruff Formatter
+      - id: ruff-format
+        name: Ruff formatter
+        description: 快速 Python 代码格式化(Black 兼容)
+
+  # --------------------------------------------------------------------------
+  # Mypy - 类型检查
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        name: Mypy type checker
+        description: 静态类型检查
+        additional_dependencies:
+          # 如果使用了带类型 stub 的第三方库,在此添加:
+          # - types-requests
+          # - types-redis
+        args:
+          - --config-file=pyproject.toml  # 使用 pyproject.toml 配置
+        exclude: ^tests/  # 排除测试文件(初期,后续可移除)
+
+# ============================================================================
+# CI Configuration (可选)
+# ============================================================================
+# 在 CI 环境运行时的配置
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
+```
+
+---
+
+## Field Descriptions
+
+### Global Configuration
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `fail_fast` | `bool` | `false` | ❌ | 首个 hook 失败时立即停止 |
+| `default_language_version` | `object` | - | ❌ | 默认语言版本映射 |
+| `default_stages` | `array[str]` | `[commit]` | ❌ | 默认执行阶段 |
+| `repos` | `array[object]` | - | ✅ | Hook 仓库列表 |
+
+### Repository Object
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `repo` | `str` (URL) | ✅ | Hook 仓库 URL |
+| `rev` | `str` | ✅ | Hook 版本(tag/commit) |
+| `hooks` | `array[object]` | ✅ | Hook 配置列表 |
+
+### Hook Object
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `str` | ✅ | Hook 唯一标识符 |
+| `name` | `str` | ❌ | Hook 显示名称(覆盖默认) |
+| `description` | `str` | ❌ | Hook 描述(文档用) |
+| `args` | `array[str]` | ❌ | 传递给 hook 的参数 |
+| `exclude` | `str` (regex) | ❌ | 排除文件路径正则 |
+| `files` | `str` (regex) | ❌ | 仅包含文件路径正则 |
+| `additional_dependencies` | `array[str]` | ❌ | 额外 Python 依赖 |
+| `stages` | `array[str]` | ❌ | 执行阶段(覆盖默认) |
+
+### Stage Options
+
+| Stage | Description |
+|-------|-------------|
+| `commit` | Pre-commit 阶段(默认) |
+| `merge-commit` | Merge commit 阶段 |
+| `push` | Pre-push 阶段 |
+| `prepare-commit-msg` | 准备 commit message 阶段 |
+| `commit-msg` | Commit message 验证阶段 |
+| `post-checkout` | Post-checkout 阶段 |
+| `post-commit` | Post-commit 阶段 |
+| `post-merge` | Post-merge 阶段 |
+| `manual` | 仅手动运行 |
+
+---
+
+## Configured Hooks
+
+### Pre-commit Official Hooks
+
+| Hook ID | Purpose | Auto-fix |
+|---------|---------|----------|
+| `trailing-whitespace` | 移除行尾空白 | ✅ |
+| `end-of-file-fixer` | 文件末尾换行 | ✅ |
+| `check-yaml` | YAML 语法检查 | ❌ |
+| `check-toml` | TOML 语法检查 | ❌ |
+| `check-json` | JSON 语法检查 | ❌ |
+| `check-added-large-files` | 大文件检测(>500KB) | ❌ |
+| `check-merge-conflict` | 合并冲突检测 | ❌ |
+| `detect-private-key` | 私钥检测 | ❌ |
+
+### Ruff Hooks
+
+| Hook ID | Purpose | Auto-fix |
+|---------|---------|----------|
+| `ruff` | Linting(Flake8, isort 等) | ✅ (--fix) |
+| `ruff-format` | 代码格式化(Black 兼容) | ✅ |
+
+**Ruff 配置**:
+- 读取 `pyproject.toml` 中的 `[tool.ruff]` 配置
+- `--fix`: 自动修复可修复的问题(如 import 排序)
+- `--exit-non-zero-on-fix`: 修复后返回非零退出码,触发 git 重新添加
+
+### Mypy Hook
+
+| Hook ID | Purpose | Auto-fix |
+|---------|---------|----------|
+| `mypy` | 静态类型检查 | ❌ |
+
+**Mypy 配置**:
+- 读取 `pyproject.toml` 中的 `[tool.mypy]` 配置
+- `additional_dependencies`: 第三方库类型 stub(如 `types-requests`)
+- `exclude`: 初期排除测试文件,后续移除此排除规则
+
+---
+
+## Validation Rules
+
+### 必需字段验证
+- ✅ `repos` 数组必须至少包含 Ruff 和 Mypy hooks
+- ✅ Ruff hook 必须包含 `--fix` 参数
+- ✅ Mypy hook 必须指定 `--config-file=pyproject.toml`
+
+### 版本验证
+- ✅ `default_language_version.python` 应为 `python3.12`
+- ✅ Hook `rev` 应使用稳定版本 tag(不使用 `HEAD` 或 branch)
+
+### 安全验证
+- ✅ 必须包含 `detect-private-key` hook(防止私钥泄露)
+- ✅ 必须包含 `check-added-large-files` hook(防止大文件)
+
+---
+
+## Usage Examples
+
+### 安装 pre-commit 钩子
+
+```bash
+# 安装 pre-commit 到 .git/hooks/
+pre-commit install
+
+# 验证配置
+pre-commit validate-config
+
+# 手动运行所有 hooks(测试配置)
+pre-commit run --all-files
+```
+
+### 手动运行特定 hook
+
+```bash
+# 仅运行 Ruff linter
+pre-commit run ruff --all-files
+
+# 仅运行 Ruff formatter
+pre-commit run ruff-format --all-files
+
+# 仅运行 Mypy
+pre-commit run mypy --all-files
+```
+
+### 跳过 pre-commit 检查(不推荐)
+
+```bash
+# 跳过所有 hooks(紧急情况使用)
+git commit --no-verify -m "message"
+
+# 跳过特定 hook(通过环境变量)
+SKIP=mypy git commit -m "message"
+```
+
+### 更新 hook 版本
+
+```bash
+# 自动更新所有 hooks 到最新版本
+pre-commit autoupdate
+
+# 查看可更新的 hooks
+pre-commit autoupdate --repo https://github.com/astral-sh/ruff-pre-commit
+```
+
+---
+
+## Execution Flow
+
+```
+Git commit 触发
+    ↓
+Pre-commit 框架启动
+    ↓
+┌─────────────────────────────────────┐
+│ Phase 1: 基础检查                    │
+├─────────────────────────────────────┤
+│ ✓ trailing-whitespace               │
+│ ✓ end-of-file-fixer                 │
+│ ✓ check-yaml/toml/json              │
+│ ✓ check-added-large-files           │
+│ ✓ check-merge-conflict              │
+│ ✓ detect-private-key                │
+└─────────────────────────────────────┘
+    ↓ (全部通过)
+┌─────────────────────────────────────┐
+│ Phase 2: Ruff 检查和格式化           │
+├─────────────────────────────────────┤
+│ ✓ ruff (linting + auto-fix)        │
+│ ✓ ruff-format (formatting)         │
+└─────────────────────────────────────┘
+    ↓ (全部通过)
+┌─────────────────────────────────────┐
+│ Phase 3: Mypy 类型检查               │
+├─────────────────────────────────────┤
+│ ✓ mypy (type checking)             │
+└─────────────────────────────────────┘
+    ↓ (全部通过)
+Commit 成功 ✅
+```
+
+---
+
+## Troubleshooting
+
+### 常见问题
+
+**问题 1**: Hook 执行失败,无法提交代码
+```bash
+# 解决方案 1: 查看详细错误信息
+pre-commit run --all-files --verbose
+
+# 解决方案 2: 手动修复错误后重新提交
+# (Ruff 和格式化问题会自动修复,重新 git add 即可)
+git add .
+git commit -m "message"
+
+# 解决方案 3: 紧急情况跳过检查(不推荐)
+git commit --no-verify -m "message"
+```
+
+**问题 2**: Mypy 找不到第三方库类型
+```yaml
+# 解决方案: 在 additional_dependencies 中添加类型 stub
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.7.1
+  hooks:
+    - id: mypy
+      additional_dependencies:
+        - types-requests  # 添加 requests 库的类型 stub
+        - types-redis     # 添加 redis 库的类型 stub
+```
+
+**问题 3**: Hook 执行过慢
+```yaml
+# 解决方案 1: 减少检查范围(仅检查暂存文件,默认行为)
+# Pre-commit 默认仅检查 git add 的文件,无需配置
+
+# 解决方案 2: 移除慢速 hook 到 CI
+# 例如,将 Mypy 移到 CI,pre-commit 仅保留快速检查
+```
+
+---
+
+## Advanced Configuration
+
+### 仅在特定文件类型运行 hook
+
+```yaml
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.1.6
+  hooks:
+    - id: ruff
+      files: \.py$  # 仅检查 .py 文件(默认行为)
+```
+
+### 排除特定文件
+
+```yaml
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.7.1
+  hooks:
+    - id: mypy
+      exclude: ^(tests/|migrations/)  # 排除测试和迁移文件
+```
+
+### Pre-push 阶段运行测试(可选)
+
+```yaml
+- repo: local
+  hooks:
+    - id: pytest
+      name: Run pytest
+      entry: pytest
+      language: system
+      types: [python]
+      stages: [push]  # 仅在 git push 时运行
+      pass_filenames: false
+```
+
+**注意**: Pre-push 测试可能过慢,建议仅在 CI 运行完整测试。
+
+---
+
+## Constitution Compliance
+
+### Privacy First (原则 I) - ✅
+- 所有 hooks 本地运行,不上传代码到外部服务
+- `detect-private-key` hook 防止私钥泄露
+
+### Observability & Testability (原则 V) - ✅
+- Pre-commit 记录所有检查结果,可追溯代码质量历史
+- 支持手动运行 hooks,便于调试和验证
+
+---
+
+## References
+
+- Pre-commit 官方文档: https://pre-commit.com/
+- Pre-commit Hooks 仓库: https://github.com/pre-commit/pre-commit-hooks
+- Ruff Pre-commit: https://github.com/astral-sh/ruff-pre-commit
+- Mypy Pre-commit: https://github.com/pre-commit/mirrors-mypy
+
+---
+
+**Schema Version**: 1.0.0
+**Last Updated**: 2025-11-01

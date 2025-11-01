@@ -1,0 +1,494 @@
+# VS Code Settings Configuration Schema
+
+**Purpose**: 定义 VS Code 项目设置,集成 Python 工具链
+**Format**: JSON
+**Location**: `.vscode/settings.json`, `.vscode/extensions.json`, `.vscode/launch.json`
+
+---
+
+## 1. settings.json - 项目设置
+
+**Location**: `.vscode/settings.json`
+
+### Schema Structure
+
+```json
+{
+  // =========================================================================
+  // Python Interpreter Configuration
+  // =========================================================================
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+
+  // =========================================================================
+  // Formatting Configuration
+  // =========================================================================
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true,
+      "source.fixAll": true
+    }
+  },
+
+  // =========================================================================
+  // Linting Configuration
+  // =========================================================================
+  "python.linting.enabled": true,
+  "python.linting.ruffEnabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false,
+
+  // =========================================================================
+  // Type Checking Configuration
+  // =========================================================================
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "mypy-type-checker.args": [
+    "--config-file=${workspaceFolder}/pyproject.toml"
+  ],
+
+  // =========================================================================
+  // Testing Configuration
+  // =========================================================================
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests",
+    "-v"
+  ],
+
+  // =========================================================================
+  // Editor Configuration
+  // =========================================================================
+  "editor.rulers": [100],
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "editor.trimAutoWhitespace": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // =========================================================================
+  // File Associations
+  // =========================================================================
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/*.egg-info": true
+  },
+
+  // =========================================================================
+  // Search Configuration
+  // =========================================================================
+  "search.exclude": {
+    "**/.venv": true,
+    "**/htmlcov": true,
+    "**/.coverage": true
+  }
+}
+```
+
+### Field Descriptions
+
+#### Python Interpreter
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `python.defaultInterpreterPath` | `str` | Python 解释器路径(虚拟环境) |
+
+**值**: `"${workspaceFolder}/.venv/bin/python"` (macOS/Linux) 或 `"${workspaceFolder}/.venv/Scripts/python.exe"` (Windows)
+
+**注意**: VS Code 会自动检测虚拟环境,此设置确保优先使用项目虚拟环境。
+
+#### Formatting Configuration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `[python].editor.defaultFormatter` | `str` | 格式化工具(Ruff) |
+| `[python].editor.formatOnSave` | `bool` | 保存时自动格式化 |
+| `[python].editor.codeActionsOnSave` | `object` | 保存时代码操作 |
+
+**Code Actions**:
+- `source.organizeImports`: 自动整理 imports(Ruff)
+- `source.fixAll`: 自动修复所有可修复问题
+
+#### Linting Configuration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `python.linting.enabled` | `bool` | 启用 linting |
+| `python.linting.ruffEnabled` | `bool` | 启用 Ruff linter |
+| `python.linting.pylintEnabled` | `bool` | 禁用 Pylint(使用 Ruff) |
+| `python.linting.flake8Enabled` | `bool` | 禁用 Flake8(使用 Ruff) |
+
+#### Type Checking Configuration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mypy-type-checker.importStrategy` | `str` | Mypy 导入策略 |
+| `mypy-type-checker.args` | `array[str]` | Mypy 命令行参数 |
+
+**Import Strategy**:
+- `fromEnvironment`: 从虚拟环境导入 mypy(推荐)
+- `useBundled`: 使用插件内置 mypy
+
+#### Testing Configuration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `python.testing.pytestEnabled` | `bool` | 启用 Pytest |
+| `python.testing.unittestEnabled` | `bool` | 禁用 unittest |
+| `python.testing.pytestArgs` | `array[str]` | Pytest 参数 |
+
+#### Editor Configuration
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `editor.rulers` | `array[int]` | `[100]` | 行宽标尺(垂直线) |
+| `editor.tabSize` | `int` | `4` | Tab 大小 |
+| `editor.insertSpaces` | `bool` | `true` | 插入空格而非 tab |
+| `editor.trimAutoWhitespace` | `bool` | `true` | 自动修剪空白 |
+| `files.trimTrailingWhitespace` | `bool` | `true` | 保存时移除行尾空白 |
+| `files.insertFinalNewline` | `bool` | `true` | 文件末尾插入换行 |
+
+---
+
+## 2. extensions.json - 推荐插件
+
+**Location**: `.vscode/extensions.json`
+
+### Schema Structure
+
+```json
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "ms-python.mypy-type-checker"
+  ]
+}
+```
+
+### Recommended Extensions
+
+| Extension ID | Name | Purpose |
+|-------------|------|---------|
+| `ms-python.python` | Python | Python 官方插件(基础功能) |
+| `ms-python.vscode-pylance` | Pylance | 快速语言服务器(代码补全、类型提示) |
+| `charliermarsh.ruff` | Ruff | Ruff 官方插件(格式化和 linting) |
+| `ms-python.mypy-type-checker` | Mypy Type Checker | Mypy 类型检查集成 |
+
+**可选插件**:
+- `GitHub.copilot`: GitHub Copilot(AI 代码补全,需订阅)
+- `ms-azuretools.vscode-docker`: Docker(容器化开发)
+- `eamodio.gitlens`: GitLens(增强 Git 功能)
+
+---
+
+## 3. launch.json - 调试配置
+
+**Location**: `.vscode/launch.json`
+
+### Schema Structure
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: Pytest",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "-v",
+        "${file}"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Pytest (All Tests)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "-v",
+        "tests/"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Pytest (Current Test)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "-v",
+        "${file}::${selectedText}"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}
+```
+
+### Configuration Object
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `str` | ✅ | 配置显示名称 |
+| `type` | `str` | ✅ | 调试器类型(`"python"`) |
+| `request` | `str` | ✅ | 请求类型(`"launch"` / `"attach"`) |
+| `program` | `str` | ❌ | 运行的程序文件路径 |
+| `module` | `str` | ❌ | 运行的 Python 模块(如 `"pytest"`) |
+| `args` | `array[str]` | ❌ | 命令行参数 |
+| `console` | `str` | ❌ | 控制台类型 |
+| `justMyCode` | `bool` | ❌ | 仅调试用户代码 |
+
+### Console Options
+
+| Value | Description |
+|-------|-------------|
+| `"integratedTerminal"` | VS Code 集成终端(推荐) |
+| `"internalConsole"` | VS Code 内部调试控制台 |
+| `"externalTerminal"` | 外部终端窗口 |
+
+### Variable Substitution
+
+| Variable | Description |
+|----------|-------------|
+| `${workspaceFolder}` | 工作区根目录 |
+| `${file}` | 当前打开文件路径 |
+| `${fileBasename}` | 当前文件名 |
+| `${fileDirname}` | 当前文件所在目录 |
+| `${selectedText}` | 当前选中文本 |
+
+### Debug Configurations
+
+#### 1. Python: Current File
+- **用途**: 调试当前打开的 Python 文件
+- **使用场景**: 快速调试单个脚本
+- **快捷键**: `F5` (开始调试)
+
+#### 2. Python: Pytest
+- **用途**: 调试当前打开的测试文件
+- **使用场景**: 调试单个测试文件
+- **参数**: `-v ${file}` (详细输出,运行当前文件)
+
+#### 3. Python: Pytest (All Tests)
+- **用途**: 调试所有测试
+- **使用场景**: 运行完整测试套件并调试失败测试
+- **参数**: `-v tests/` (详细输出,运行 tests/ 目录所有测试)
+
+#### 4. Python: Pytest (Current Test)
+- **用途**: 调试当前选中的单个测试函数
+- **使用场景**: 调试特定测试函数(需先选中测试函数名)
+- **参数**: `-v ${file}::${selectedText}` (运行选中的测试函数)
+
+---
+
+## Usage Examples
+
+### 安装推荐插件
+
+1. 打开项目文件夹
+2. VS Code 自动读取 `.vscode/extensions.json`
+3. 右下角弹出推荐插件通知,点击"安装全部"
+
+**或手动安装**:
+```bash
+# 命令行安装推荐插件
+code --install-extension ms-python.python
+code --install-extension ms-python.vscode-pylance
+code --install-extension charliermarsh.ruff
+code --install-extension ms-python.mypy-type-checker
+```
+
+### 验证 Python 解释器
+
+1. 打开 VS Code
+2. 按 `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
+3. 输入 "Python: Select Interpreter"
+4. 选择 `.venv/bin/python`
+
+**或查看状态栏**:
+- 左下角显示当前 Python 解释器
+- 点击可切换解释器
+
+### 使用调试功能
+
+**调试当前文件**:
+1. 打开 Python 文件
+2. 设置断点(点击行号左侧)
+3. 按 `F5` 开始调试
+4. 使用调试工具栏(继续/单步/跳过/进入/退出)
+
+**调试测试**:
+1. 打开测试文件(如 `tests/test_example.py`)
+2. 按 `F5`,选择 "Python: Pytest"
+3. 设置断点,调试测试代码
+
+**调试单个测试函数**:
+1. 选中测试函数名(如 `test_example`)
+2. 按 `F5`,选择 "Python: Pytest (Current Test)"
+3. 仅运行选中的测试函数
+
+---
+
+## Validation Rules
+
+### 必需配置验证
+- ✅ `settings.json` 必须指定 `python.defaultInterpreterPath`
+- ✅ `settings.json` 必须启用 Ruff 格式化和 linting
+- ✅ `extensions.json` 必须推荐 Python, Pylance, Ruff 插件
+- ✅ `launch.json` 必须包含至少一个 Python 调试配置
+
+### 路径验证
+- ✅ `python.defaultInterpreterPath` 必须指向 `.venv` 虚拟环境
+- ✅ `files.exclude` 必须排除 `__pycache__`, `.pytest_cache` 等
+
+### 一致性验证
+- ✅ `editor.rulers` 行宽必须与 `pyproject.toml` 中 `ruff.line-length` 一致(100)
+- ✅ `editor.tabSize` 必须与 `ruff.indent-width` 一致(4)
+
+---
+
+## Troubleshooting
+
+### 问题 1: VS Code 未识别虚拟环境
+
+**症状**: 导入错误,代码补全不工作
+
+**解决方案**:
+1. 按 `Cmd+Shift+P`,输入 "Python: Select Interpreter"
+2. 选择 `.venv/bin/python`
+3. 重启 VS Code
+
+### 问题 2: Ruff 格式化不生效
+
+**症状**: 保存文件时未自动格式化
+
+**解决方案**:
+1. 确认已安装 Ruff 插件(`charliermarsh.ruff`)
+2. 检查 `settings.json` 中 `editor.defaultFormatter` 为 `"charliermarsh.ruff"`
+3. 确认 `editor.formatOnSave` 为 `true`
+
+### 问题 3: Mypy 类型检查不显示错误
+
+**症状**: 类型错误未在编辑器中高亮
+
+**解决方案**:
+1. 确认已安装 Mypy 插件(`ms-python.mypy-type-checker`)
+2. 检查虚拟环境中已安装 mypy: `uv pip list | grep mypy`
+3. 检查 `mypy-type-checker.importStrategy` 为 `"fromEnvironment"`
+
+### 问题 4: 测试发现失败
+
+**症状**: VS Code 测试面板未显示测试
+
+**解决方案**:
+1. 确认 `python.testing.pytestEnabled` 为 `true`
+2. 确认 `tests/` 目录存在且包含 `test_*.py` 文件
+3. 按 `Cmd+Shift+P`,输入 "Python: Discover Tests"
+4. 查看输出面板(Output > Python Test Log)排查错误
+
+---
+
+## Platform-Specific Settings
+
+### macOS / Linux
+
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+}
+```
+
+### Windows
+
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe"
+}
+```
+
+**建议**: 使用 `${workspaceFolder}/.venv/bin/python`,VS Code 会自动处理跨平台路径。
+
+---
+
+## Advanced Configuration
+
+### 多 Python 版本支持
+
+```json
+{
+  "python.pythonPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src"
+  ]
+}
+```
+
+### 自定义 Ruff 配置路径
+
+```json
+{
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+  "ruff.args": ["--config=${workspaceFolder}/pyproject.toml"]
+}
+```
+
+### 性能优化
+
+```json
+{
+  "python.analysis.indexing": true,
+  "python.analysis.packageIndexDepths": [
+    { "name": "diting", "depth": 10 }
+  ],
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/htmlcov/**": true
+  }
+}
+```
+
+---
+
+## Constitution Compliance
+
+### Privacy First (原则 I) - ✅
+- 所有工具本地运行,无代码上传外部服务
+- 配置文件版本控制,确保团队一致性
+
+### Observability & Testability (原则 V) - ✅
+- 调试配置支持单元测试、集成测试调试
+- 类型检查和 linting 在编辑器中实时反馈
+
+---
+
+## References
+
+- VS Code Python 文档: https://code.visualstudio.com/docs/python/python-tutorial
+- VS Code Debugging: https://code.visualstudio.com/docs/editor/debugging
+- VS Code Variables: https://code.visualstudio.com/docs/editor/variables-reference
+- Ruff VS Code 插件: https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff
+
+---
+
+**Schema Version**: 1.0.0
+**Last Updated**: 2025-11-01
