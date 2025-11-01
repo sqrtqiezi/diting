@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User Info Response Data",
+  "description": "获取登录账号信息接口的响应数据格式",
+  "type": "object",
+  "required": ["wechat_id", "nickname"],
+  "properties": {
+    "wechat_id": {
+      "type": "string",
+      "description": "微信号",
+      "minLength": 1,
+      "example": "test_user_123"
+    },
+    "nickname": {
+      "type": "string",
+      "description": "昵称",
+      "minLength": 1,
+      "example": "测试用户"
+    },
+    "avatar": {
+      "type": "string",
+      "format": "uri",
+      "description": "头像 URL(可选)",
+      "example": "https://example.com/avatar.jpg"
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "wechat_id": "test_user_123",
+      "nickname": "测试用户",
+      "avatar": "https://example.com/avatar.jpg"
+    },
+    {
+      "wechat_id": "another_user",
+      "nickname": "另一个用户"
+    }
+  ]
+}

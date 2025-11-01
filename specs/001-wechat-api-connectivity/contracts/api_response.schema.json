@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WeChat API Response",
+  "description": "微信 API 响应格式契约",
+  "type": "object",
+  "required": ["success"],
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "请求是否成功"
+    },
+    "data": {
+      "type": ["object", "null"],
+      "description": "业务数据(成功时返回)",
+      "additionalProperties": true
+    },
+    "error_code": {
+      "type": "integer",
+      "description": "错误代码(失败时返回,成功时为 0)",
+      "default": 0,
+      "examples": [0, 400, 401, 404, 500]
+    },
+    "error_msg": {
+      "type": "string",
+      "description": "错误信息(失败时返回)",
+      "default": ""
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "success": true,
+      "data": {
+        "wechat_id": "test_user_123",
+        "nickname": "测试用户",
+        "avatar": "https://example.com/avatar.jpg"
+      },
+      "error_code": 0,
+      "error_msg": ""
+    },
+    {
+      "success": false,
+      "data": null,
+      "error_code": 401,
+      "error_msg": "认证失败:无效的 app_secret"
+    }
+  ]
+}

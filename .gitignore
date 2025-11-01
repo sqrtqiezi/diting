@@ -157,3 +157,22 @@ Thumbs.db
 
 # Project specific
 uv.lock
+
+# Configuration files (contains sensitive information)
+config/wechat.yaml
+config/*.yaml
+!config/*.yaml.example
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.secret
+*.private
+
+# Log files
+logs/
+*.log
+
+# Claude Code
+.claude/settings.local.json

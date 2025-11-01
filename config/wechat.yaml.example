@@ -1,0 +1,29 @@
+# 微信 API 配置模板
+# 使用方法: 复制此文件为 config/wechat.yaml,然后填入真实凭证
+
+api:
+  base_url: "https://chat-api.juhebot.com/open/GuidRequest"
+  app_key: "YOUR_APP_KEY_HERE"
+  app_secret: "YOUR_APP_SECRET_HERE"
+
+  # 超时配置(秒)
+  timeout:
+    connect: 10
+    read: 30
+
+  # 重试配置
+  retry:
+    max_attempts: 3
+    backoff_factor: 0.5
+    status_codes: [502, 503, 504]
+
+# 测试设备
+devices:
+  - guid: "YOUR_DEVICE_GUID_HERE"
+    name: "设备 1"
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "json"
+  output: "logs/wechat_api.log"

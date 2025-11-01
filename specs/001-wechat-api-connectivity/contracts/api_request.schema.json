@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WeChat API Request",
+  "description": "微信 API 请求格式契约",
+  "type": "object",
+  "required": ["app_key", "app_secret", "path", "data"],
+  "properties": {
+    "app_key": {
+      "type": "string",
+      "minLength": 10,
+      "description": "API 密钥,标识应用身份",
+      "example": "YOUR_APP_KEY_HERE"
+    },
+    "app_secret": {
+      "type": "string",
+      "minLength": 20,
+      "description": "API 密钥,用于签名认证",
+      "example": "YOUR_APP_SECRET_HERE"
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^/[\\w/]+$",
+      "description": "API 路径",
+      "examples": [
+        "/user/get_info",
+        "/msg/send_text",
+        "/contact/list"
+      ]
+    },
+    "data": {
+      "type": "object",
+      "required": ["guid"],
+      "description": "业务参数,必须包含 guid(设备 ID)",
+      "properties": {
+        "guid": {
+          "type": "string",
+          "format": "uuid",
+          "description": "设备唯一标识符",
+          "example": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "app_key": "YOUR_APP_KEY_HERE",
+      "app_secret": "YOUR_APP_SECRET_HERE",
+      "path": "/user/get_info",
+      "data": {
+        "guid": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+      }
+    }
+  ]
+}
