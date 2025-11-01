@@ -1,50 +1,172 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: Initial → 1.0.0
+- Modified principles: N/A (Initial creation)
+- Added sections:
+  * Core Principles (5 principles)
+  * Security & Privacy Requirements
+  * Data Architecture Constraints
+  * Governance
+- Removed sections: N/A
+- Templates status:
+  ✅ plan-template.md reviewed - constitution check section present
+  ✅ spec-template.md reviewed - compatible with privacy-first requirements
+  ✅ tasks-template.md reviewed - supports test-driven and security tasks
+- Follow-up TODOs: None
+-->
+
+# Diting (谛听) Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Privacy First (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+所有个人数据处理必须遵循最高隐私标准:
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- **本地优先**: 所有敏感数据默认存储在本地,除非用户明确授权云同步
+- **端到端加密**: 传输和存储的个人数据必须加密,密钥由用户控制
+- **最小权限**: 每个数据源(微信/飞书/邮箱)仅请求完成功能所需的最小权限
+- **数据隔离**: 不同数据源的数据在逻辑上隔离,防止交叉污染
+- **可撤销性**: 用户可随时撤销任何数据源的访问权限并删除相关数据
+- **审计日志**: 所有数据访问和处理操作必须记录可审计日志
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**理由**: 处理微信、飞书、邮箱等个人隐私数据,隐私保护是项目的生命线,任何隐私泄露都会导致用户信任崩溃。
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. Endpoint Modularity (NON-NEGOTIABLE)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+每个数据源端点(微信/飞书/邮箱等)必须作为独立模块开发:
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- **独立部署**: 每个端点适配器可独立启用/禁用
+- **统一接口**: 所有端点适配器实现相同的数据提取接口契约
+- **容错隔离**: 单个端点失败不应影响其他端点或核心系统
+- **可扩展性**: 新增数据源不应修改核心逻辑,仅需添加新适配器
+- **插件化**: 端点适配器以插件形式加载,支持第三方扩展
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**理由**: 不同数据源(微信、飞书、邮箱)有不同的 API、认证方式和数据格式,模块化设计确保系统可维护性和可扩展性。
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### III. Knowledge Graph Core
+
+个人知识库的核心是知识图谱,而非单纯的文档存储:
+
+- **实体提取**: 自动从数据中提取人物、事件、任务、概念等实体
+- **关系建模**: 构建实体间的关系网络(如人物关系、事件时间线)
+- **知识增强**: 自动补充外部知识背景(如人物背景、概念解释)
+- **语义搜索**: 支持基于语义而非关键词的知识检索
+- **时间维度**: 所有数据保留时间戳,支持时间线追溯
+- **关联发现**: 自动发现数据间的隐藏关联
+
+**理由**: 简单的文档存储无法支持复杂的洞察分析,知识图谱提供了结构化的知识表示,是 AI 分析的基础。
+
+### IV. LLM-Powered Insights
+
+系统的核心价值在于 AI 驱动的洞察生成:
+
+- **上下文感知**: LLM 分析必须基于完整的用户上下文和历史数据
+- **主动推荐**: 系统主动生成洞察和行动建议,而非仅被动回答
+- **可解释性**: 所有 AI 生成的洞察必须提供推理依据和数据来源
+- **多模型支持**: 支持切换不同 LLM 提供商(OpenAI/Claude/本地模型)
+- **成本控制**: 实施 Token 使用监控和成本优化策略
+- **隐私保护**: 调用外部 LLM API 时,敏感信息必须脱敏或使用本地模型
+
+**理由**: LLM 是将原始数据转化为可操作洞察的关键,但必须在隐私、成本和效果间取得平衡。
+
+### V. Observability & Testability
+
+系统必须是可观测和可测试的:
+
+- **结构化日志**: 所有组件输出结构化日志(JSON 格式)
+- **性能监控**: 监控数据提取、知识增强、LLM 调用的性能指标
+- **错误追踪**: 详细的错误堆栈和上下文信息
+- **测试覆盖**:
+  - 单元测试: 核心逻辑和数据转换
+  - 集成测试: 端点适配器和知识图谱集成
+  - 契约测试: API 接口和数据模型契约
+- **本地调试**: 支持完全离线的开发和测试环境
+- **数据模拟**: 提供脱敏的测试数据集用于开发
+
+**理由**: 处理个人隐私数据的系统必须高度可靠,可观测性和测试是保证质量的基础。
+
+## Security & Privacy Requirements
+
+### 数据安全
+
+- **加密标准**: 使用 AES-256 加密存储,TLS 1.3 加密传输
+- **密钥管理**: 使用操作系统密钥链(Keychain/Credential Manager)存储密钥
+- **访问控制**: 实施基于角色的访问控制(RBAC)
+- **安全审计**: 定期进行安全审计和渗透测试
+
+### 合规性
+
+- **数据保护法规**: 遵循 GDPR/PIPL 等数据保护法规
+- **用户同意**: 所有数据收集必须获得明确的用户同意
+- **数据导出**: 支持用户导出所有个人数据(数据可携带权)
+- **被遗忘权**: 支持用户永久删除所有数据的请求
+
+### API 安全
+
+- **微信协议**: 严格遵循微信官方 API 使用条款,避免违规操作
+- **飞书 API**: 使用官方 OAuth 2.0 认证,保护 access token
+- **邮箱协议**: 支持 OAuth 2.0(Gmail)和应用专用密码,避免明文密码
+- **频率限制**: 实施 API 调用频率限制,避免触发第三方平台风控
+
+## Data Architecture Constraints
+
+### 数据流
+
+```
+数据源 → 端点适配器 → 原始数据存储 → 知识提取 → 知识图谱 → LLM 分析 → 洞察展示
+         (微信/飞书/邮箱)  (加密本地存储)  (实体/关系)  (Neo4j/本地)  (GPT/Claude)  (用户界面)
+```
+
+### 存储策略
+
+- **原始数据**: 保留原始数据用于审计和重新处理
+- **知识图谱**: 使用图数据库(Neo4j/本地图库)存储实体关系
+- **向量数据库**: 使用向量数据库(Qdrant/Chroma)支持语义搜索
+- **缓存策略**: 实施多层缓存(内存/磁盘)提升性能
+- **数据归档**: 提供数据归档功能,冷数据压缩存储
+
+### 性能目标
+
+- **数据提取**: 支持增量同步,单次同步时间 < 5分钟
+- **知识提取**: 新消息处理延迟 < 10秒
+- **语义搜索**: 查询响应时间 < 2秒
+- **LLM 分析**: 洞察生成时间 < 30秒(取决于 LLM API)
+- **内存占用**: 空闲状态 < 500MB,运行峰值 < 2GB
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### 宪章权威
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+本宪章定义了 Diting 项目的核心原则和约束,优先级高于所有其他开发文档和实践。
+
+### 修订流程
+
+- **提案**: 任何核心原则的修改必须先提交提案,说明修改理由
+- **审查**: 提案必须经过技术审查和隐私影响评估
+- **版本控制**: 宪章遵循语义化版本控制:
+  - MAJOR: 移除或重新定义核心原则(向后不兼容)
+  - MINOR: 新增原则或实质性扩展(向后兼容)
+  - PATCH: 文字澄清、错误修正(非语义变更)
+- **迁移计划**: MAJOR 版本更新必须包含迁移指南
+
+### 合规检查
+
+- **代码审查**: 所有 PR 必须验证是否符合宪章原则
+- **自动化检查**: 实施自动化工具检查隐私和安全规范
+- **定期审计**: 每季度审查系统是否持续符合宪章要求
+
+### 复杂度豁免
+
+如果某个设计决策违反了宪章原则,必须:
+
+1. 在实施计划(plan.md)的"Complexity Tracking"表格中明确记录
+2. 说明为什么需要该违规设计
+3. 解释为什么更简单的符合宪章的替代方案不可行
+4. 获得项目维护者批准
+
+### 运行时指导
+
+开发过程中遇到设计决策时,参考本宪章作为最高指导原则。当宪章与其他文档冲突时,以宪章为准。
+
+**Version**: 1.0.0 | **Ratified**: 2025-11-01 | **Last Amended**: 2025-11-01
