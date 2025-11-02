@@ -23,7 +23,7 @@
 
 ### 云端资源
 - ✅ GitHub 仓库(已创建)
-- ✅ 阿里云 ECS 实例(Ubuntu 22.04+)
+- ✅ 阿里云 ECS 实例(Rocky Linux 9.6)
 - ✅ ECS 公网 IP 地址
 
 ### 权限
@@ -127,12 +127,16 @@ sudo chmod 440 /etc/sudoers.d/deploy
 
 ```bash
 # 更新系统
-sudo apt update && sudo apt upgrade -y
+sudo dnf update -y
 
-# 安装 Python 3.12
-sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt update
-sudo apt install python3.12 python3.12-venv -y
+# 安装常用工具与仓库插件
+sudo dnf install -y dnf-plugins-core git curl
+
+# 启用 CRB 仓库(首次执行)
+sudo dnf config-manager --set-enabled crb
+
+# 安装 Python 3.12 及依赖
+sudo dnf install -y python3.12 python3.12-devel
 
 # 安装 uv(切换到 deploy 用户)
 sudo su - deploy
@@ -207,16 +211,17 @@ sudo systemctl enable diting
 
 ```bash
 # 允许必要端口
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 443/tcp   # HTTPS
-sudo ufw allow 8000/tcp  # 应用端口(可选,用于测试)
+sudo systemctl enable --now firewalld
+sudo firewall-cmd --permanent --add-service=ssh
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --permanent --add-port=8000/tcp  # 应用端口(可选,用于测试)
 
-# 启用防火墙
-sudo ufw --force enable
+# 应用变更
+sudo firewall-cmd --reload
 
 # 查看状态
-sudo ufw status
+sudo firewall-cmd --list-all
 ```
 
 ## 第三步: 配置 GitHub
