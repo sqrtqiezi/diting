@@ -1,177 +1,177 @@
-# Feature Specification: GitHub CI/CD with Aliyun ECS Deployment
+# 功能规范: GitHub CI/CD 与阿里云 ECS 部署
 
-**Feature Branch**: `ci/005-setup-alicloud-deployment`
-**Created**: 2025-11-02
-**Status**: Draft
-**Input**: User description: "为项目新增 github ci 配置,我们需要将项目发布并部署在 aliyun ecs 上"
+**功能分支**: `ci/005-setup-alicloud-deployment`
+**创建时间**: 2025-11-02
+**状态**: 草稿
+**输入**: 用户描述: "为项目新增 github ci 配置,我们需要将项目发布并部署在 aliyun ecs 上"
 
-## User Scenarios & Testing *(mandatory)*
+## 用户场景与测试 *(必填)*
 
-### User Story 1 - Automated Testing on Code Changes (Priority: P1)
+### 用户故事 1 - 代码变更时自动化测试 (优先级: P1)
 
-When a developer pushes code changes to the repository, the system automatically runs all quality checks and tests to ensure code meets quality standards before it can be merged.
+当开发者推送代码变更到仓库时,系统自动运行所有质量检查和测试,确保代码在合并前符合质量标准。
 
-**Why this priority**: Essential foundation for CI/CD - prevents broken code from entering the codebase and ensures consistent quality standards across all contributions.
+**为什么是这个优先级**: CI/CD 的基础核心 - 防止有问题的代码进入代码库,确保所有贡献都符合一致的质量标准。
 
-**Independent Test**: Can be fully tested by pushing a code change to a feature branch and verifying that all tests, linting, and type checking run automatically. Delivers immediate value by catching errors before code review.
+**独立测试**: 可以通过推送代码变更到功能分支并验证所有测试、代码检查和类型检查自动运行来完整测试。通过在代码审查前捕获错误来立即交付价值。
 
-**Acceptance Scenarios**:
+**验收场景**:
 
-1. **Given** a developer has committed code changes to a feature branch, **When** they push the branch to GitHub, **Then** automated tests run within 2 minutes
-2. **Given** automated tests are running, **When** all tests pass, **Then** the pull request shows a green checkmark indicating it's safe to merge
-3. **Given** automated tests are running, **When** any test fails, **Then** the pull request is blocked from merging and shows specific failure details
-4. **Given** code doesn't meet quality standards (linting/formatting failures), **When** automated checks run, **Then** the pull request is blocked with clear error messages
-
----
-
-### User Story 2 - Automated Deployment to Aliyun ECS (Priority: P2)
-
-When code is merged to the master branch, the system automatically deploys the updated application to the Aliyun ECS server without manual intervention.
-
-**Why this priority**: Automates the deployment process, reducing human error and enabling frequent releases. Depends on P1 (testing) being in place first.
-
-**Independent Test**: Can be fully tested by merging a PR to master and verifying the application updates on the Aliyun ECS server within 10 minutes. Delivers value by eliminating manual deployment steps.
-
-**Acceptance Scenarios**:
-
-1. **Given** a pull request has been merged to master, **When** the merge completes, **Then** deployment process starts automatically within 1 minute
-2. **Given** deployment is in progress, **When** deployment succeeds, **Then** the new version is running on Aliyun ECS and responding to health checks
-3. **Given** deployment is in progress, **When** deployment fails, **Then** the system maintains the previous working version and alerts the team
-4. **Given** the application is running on Aliyun ECS, **When** users access the service, **Then** they receive responses from the newly deployed version
+1. **假设** 开发者已将代码变更提交到功能分支, **当** 他们将分支推送到 GitHub, **那么** 自动化测试在 2 分钟内运行
+2. **假设** 自动化测试正在运行, **当** 所有测试通过, **那么** Pull Request 显示绿色勾选标记,表明可以安全合并
+3. **假设** 自动化测试正在运行, **当** 任何测试失败, **那么** Pull Request 被阻止合并并显示具体的失败详情
+4. **假设** 代码不符合质量标准(代码检查/格式化失败), **当** 自动化检查运行, **那么** Pull Request 被阻止并显示清晰的错误信息
 
 ---
 
-### User Story 3 - Deployment Status Visibility (Priority: P3)
+### 用户故事 2 - 自动化部署到阿里云 ECS (优先级: P2)
 
-Team members can view the current deployment status, deployment history, and quickly identify if a deployment failed or succeeded.
+当代码合并到 master 分支时,系统自动将更新的应用程序部署到阿里云 ECS 服务器,无需人工干预。
 
-**Why this priority**: Improves team awareness and debugging capability. While useful, it's not critical for basic CI/CD functionality.
+**为什么是这个优先级**: 自动化部署流程,减少人为错误并支持频繁发布。依赖于 P1(测试)首先就位。
 
-**Independent Test**: Can be tested by checking GitHub Actions interface shows deployment status, logs, and history. Delivers value by making deployment process transparent.
+**独立测试**: 可以通过合并 PR 到 master 并验证应用程序在 10 分钟内在阿里云 ECS 服务器上更新来完整测试。通过消除手动部署步骤来交付价值。
 
-**Acceptance Scenarios**:
+**验收场景**:
 
-1. **Given** a deployment has completed, **When** a team member views the GitHub Actions page, **Then** they see whether deployment succeeded or failed
-2. **Given** a deployment failed, **When** a team member views the logs, **Then** they can identify the specific error that caused the failure
-3. **Given** multiple deployments have occurred, **When** a team member views deployment history, **Then** they see timestamps, versions, and outcomes of recent deployments
+1. **假设** Pull Request 已合并到 master, **当** 合并完成, **那么** 部署流程在 1 分钟内自动开始
+2. **假设** 部署正在进行, **当** 部署成功, **那么** 新版本在阿里云 ECS 上运行并响应健康检查
+3. **假设** 部署正在进行, **当** 部署失败, **那么** 系统维持之前的工作版本并提醒团队
+4. **假设** 应用程序在阿里云 ECS 上运行, **当** 用户访问服务, **那么** 他们收到来自新部署版本的响应
 
 ---
 
-### Edge Cases
+### 用户故事 3 - 部署状态可见性 (优先级: P3)
 
-- What happens when deployment to Aliyun ECS fails mid-process (network timeout, server unavailable)?
-- How does the system handle concurrent merges to master (multiple deployments triggered simultaneously)?
-- What happens if tests pass locally but fail in CI environment due to environment differences?
-- How does the system handle secrets and credentials securely (Aliyun access keys, SSH keys)?
-- What happens when the Aliyun ECS server runs out of disk space or memory during deployment?
-- How does the system handle rollback if the deployed version has critical bugs discovered after deployment?
+团队成员可以查看当前部署状态、部署历史,并快速识别部署是失败还是成功。
 
-## Requirements *(mandatory)*
+**为什么是这个优先级**: 提高团队意识和调试能力。虽然有用,但对基本 CI/CD 功能不是关键。
 
-### Functional Requirements
+**独立测试**: 可以通过检查 GitHub Actions 界面显示部署状态、日志和历史来测试。通过使部署过程透明来交付价值。
 
-- **FR-001**: System MUST automatically trigger test execution when code is pushed to any branch
-- **FR-002**: System MUST run code quality checks including linting (ruff), formatting (ruff format), and type checking (mypy)
-- **FR-003**: System MUST run the complete test suite (unit, integration, contract tests) with coverage reporting
-- **FR-004**: System MUST block pull request merging when any automated check fails
-- **FR-005**: System MUST automatically trigger deployment when code is merged to master branch
-- **FR-006**: System MUST securely connect to Aliyun ECS server for deployment
-- **FR-007**: System MUST verify application health after deployment completes
-- **FR-008**: System MUST maintain the previous version if deployment fails (rollback capability)
-- **FR-009**: System MUST provide visible status indicators for test and deployment progress
-- **FR-010**: System MUST log all deployment activities for audit and debugging purposes
-- **FR-011**: System MUST handle deployment credentials securely without exposing them in logs or code
-- **FR-012**: System MUST notify team members when deployment succeeds or fails
+**验收场景**:
 
-### Key Entities
+1. **假设** 部署已完成, **当** 团队成员查看 GitHub Actions 页面, **那么** 他们看到部署成功或失败
+2. **假设** 部署失败, **当** 团队成员查看日志, **那么** 他们可以识别导致失败的具体错误
+3. **假设** 发生了多次部署, **当** 团队成员查看部署历史, **那么** 他们看到最近部署的时间戳、版本和结果
 
-- **Deployment Pipeline**: Represents the automated workflow from code push to production deployment
-  - Attributes: pipeline status (running/success/failure), start time, end time, triggered by (user/merge), target environment
-  - Relationships: Contains multiple stages (test, build, deploy), linked to specific code commits
+---
 
-- **Test Execution Record**: Represents a single test run
-  - Attributes: test results (pass/fail counts), coverage percentage, execution time, failure details
-  - Relationships: Belongs to a specific commit, triggers or blocks deployment
+### 边界情况
 
-- **Deployment Record**: Represents a single deployment attempt
-  - Attributes: deployment status, version deployed, deployment time, server endpoint, health check results
-  - Relationships: Linked to specific commit, follows successful test execution
+- 当部署到阿里云 ECS 中途失败时会发生什么(网络超时、服务器不可用)?
+- 系统如何处理并发合并到 master(同时触发多个部署)?
+- 如果测试在本地通过但由于环境差异在 CI 环境中失败会发生什么?
+- 系统如何安全处理秘密和凭证(阿里云访问密钥、SSH 密钥)?
+- 当阿里云 ECS 服务器在部署期间磁盘空间或内存不足时会发生什么?
+- 如果部署版本在部署后发现关键错误,系统如何处理回滚?
 
-## Success Criteria *(mandatory)*
+## 需求 *(必填)*
 
-### Measurable Outcomes
+### 功能需求
 
-- **SC-001**: Developers receive test results within 5 minutes of pushing code
-- **SC-002**: Code with failing tests cannot be merged to master (100% enforcement)
-- **SC-003**: Successful master merges result in production deployment within 10 minutes
-- **SC-004**: Deployment success rate is above 95% (excluding intentional failures from bad code)
-- **SC-005**: Zero manual deployment steps required for routine releases
-- **SC-006**: Failed deployments automatically maintain the previous working version (zero downtime)
-- **SC-007**: Team members can identify deployment status within 30 seconds of checking GitHub Actions
-- **SC-008**: All deployment credentials are stored securely with zero exposure in logs or repositories
+- **FR-001**: 系统必须在代码推送到任何分支时自动触发测试执行
+- **FR-002**: 系统必须运行代码质量检查,包括代码检查(ruff)、格式化(ruff format)和类型检查(mypy)
+- **FR-003**: 系统必须运行完整的测试套件(单元测试、集成测试、契约测试)并生成覆盖率报告
+- **FR-004**: 系统必须在任何自动化检查失败时阻止 Pull Request 合并
+- **FR-005**: 系统必须在代码合并到 master 分支时自动触发部署
+- **FR-006**: 系统必须安全连接到阿里云 ECS 服务器进行部署
+- **FR-007**: 系统必须在部署完成后验证应用程序健康状态
+- **FR-008**: 系统必须在部署失败时维持之前的版本(回滚能力)
+- **FR-009**: 系统必须为测试和部署进度提供可见的状态指示器
+- **FR-010**: 系统必须记录所有部署活动以供审计和调试
+- **FR-011**: 系统必须安全处理部署凭证,不在日志或代码中暴露
+- **FR-012**: 系统必须在部署成功或失败时通知团队成员
 
-## Scope & Boundaries *(mandatory)*
+### 关键实体
 
-### In Scope
+- **部署流水线**: 表示从代码推送到生产部署的自动化工作流
+  - 属性: 流水线状态(运行中/成功/失败)、开始时间、结束时间、触发者(用户/合并)、目标环境
+  - 关系: 包含多个阶段(测试、构建、部署),链接到特定代码提交
 
-- GitHub Actions workflow configuration for automated testing
-- Automated deployment to single Aliyun ECS instance
-- Health check verification after deployment
-- Basic rollback mechanism (maintain previous version on failure)
-- Secure credential management using GitHub Secrets
-- Deployment status visibility in GitHub Actions interface
-- Integration with existing test suite (pytest, ruff, mypy)
+- **测试执行记录**: 表示单次测试运行
+  - 属性: 测试结果(通过/失败计数)、覆盖率百分比、执行时间、失败详情
+  - 关系: 属于特定提交,触发或阻止部署
 
-### Out of Scope
+- **部署记录**: 表示单次部署尝试
+  - 属性: 部署状态、已部署版本、部署时间、服务器端点、健康检查结果
+  - 关系: 链接到特定提交,跟随成功的测试执行
 
-- Multi-environment deployments (staging, production) - future enhancement
-- Blue-green or canary deployment strategies - future enhancement
-- Automatic rollback based on runtime metrics - future enhancement
-- Deployment to multiple servers or load balancer management - future enhancement
-- Custom notification channels (Slack, email) beyond GitHub interface - future enhancement
-- Automated database migrations - future enhancement
-- Container orchestration (Docker Swarm, Kubernetes) - future enhancement
+## 成功标准 *(必填)*
 
-## Assumptions *(mandatory)*
+### 可衡量的结果
 
-- Aliyun ECS server is already provisioned and accessible
-- Server has necessary runtime dependencies installed (Python 3.12, required system packages)
-- GitHub repository has access to add GitHub Actions workflows
-- Team has Aliyun ECS access credentials (SSH keys, access keys) available
-- Current application can be deployed by replacing files and restarting a service
-- Application uses systemd or similar service manager on the server
-- Server has sufficient resources (CPU, memory, disk) to run the application
-- Network connectivity between GitHub Actions runners and Aliyun ECS is reliable
-- No database schema changes requiring manual intervention during deployment
+- **SC-001**: 开发者在推送代码后 5 分钟内收到测试结果
+- **SC-002**: 测试失败的代码无法合并到 master(100% 强制执行)
+- **SC-003**: 成功的 master 合并在 10 分钟内完成生产部署
+- **SC-004**: 部署成功率高于 95%(不包括因错误代码导致的故意失败)
+- **SC-005**: 常规发布不需要任何手动部署步骤
+- **SC-006**: 失败的部署自动维持之前的工作版本(零停机时间)
+- **SC-007**: 团队成员在检查 GitHub Actions 后 30 秒内可以识别部署状态
+- **SC-008**: 所有部署凭证安全存储,日志或仓库中零暴露
 
-## Dependencies *(mandatory)*
+## 范围与边界 *(必填)*
 
-### External Dependencies
+### 范围内
 
-- **GitHub Actions**: Required for running CI/CD workflows
-- **Aliyun ECS**: Target deployment server must be operational and accessible
-- **GitHub Secrets**: Required for secure credential storage
-- **SSH Access**: Required for deploying to Aliyun ECS server
+- GitHub Actions 工作流配置用于自动化测试
+- 自动化部署到单个阿里云 ECS 实例
+- 部署后健康检查验证
+- 基本回滚机制(失败时维持之前版本)
+- 使用 GitHub Secrets 的安全凭证管理
+- GitHub Actions 界面中的部署状态可见性
+- 与现有测试套件的集成(pytest、ruff、mypy)
 
-### Internal Dependencies
+### 范围外
 
-- **Existing Test Suite**: Must have functional tests (pytest) that can run in CI environment
-- **Code Quality Tools**: Must have ruff and mypy configured
-- **Application Structure**: Application must support being stopped and started via service manager
+- 多环境部署(预发布、生产) - 未来增强
+- 蓝绿或金丝雀部署策略 - 未来增强
+- 基于运行时指标的自动回滚 - 未来增强
+- 多服务器部署或负载均衡器管理 - 未来增强
+- GitHub 界面之外的自定义通知渠道(Slack、邮件) - 未来增强
+- 自动化数据库迁移 - 未来增强
+- 容器编排(Docker Swarm、Kubernetes) - 未来增强
 
-### Feature Dependencies
+## 假设 *(必填)*
 
-- This feature builds upon:
-  - 002-python-dev-setup (requires Python 3.12 environment)
-  - 003-wechat-notification-webhook (requires deployable application)
+- 阿里云 ECS 服务器已经配置并可访问
+- 服务器已安装必要的运行时依赖(Python 3.12、所需系统包)
+- GitHub 仓库有权限添加 GitHub Actions 工作流
+- 团队拥有阿里云 ECS 访问凭证(SSH 密钥、访问密钥)
+- 当前应用程序可以通过替换文件和重启服务来部署
+- 应用程序在服务器上使用 systemd 或类似的服务管理器
+- 服务器有足够的资源(CPU、内存、磁盘)来运行应用程序
+- GitHub Actions 运行器和阿里云 ECS 之间的网络连接可靠
+- 部署期间不需要手动干预的数据库架构变更
 
-## Related Features
+## 依赖 *(必填)*
 
-- **002-python-dev-setup**: Establishes Python environment and tooling that CI will use
-- **003-wechat-notification-webhook**: The application being deployed
+### 外部依赖
 
-## Version History
+- **GitHub Actions**: 运行 CI/CD 工作流所需
+- **阿里云 ECS**: 目标部署服务器必须运行并可访问
+- **GitHub Secrets**: 安全凭证存储所需
+- **SSH 访问**: 部署到阿里云 ECS 服务器所需
 
-| Version | Date       | Changes                        | Author |
-|---------|------------|--------------------------------|--------|
-| 0.1.0   | 2025-11-02 | Initial specification created  | AI     |
+### 内部依赖
+
+- **现有测试套件**: 必须有可以在 CI 环境中运行的功能测试(pytest)
+- **代码质量工具**: 必须配置 ruff 和 mypy
+- **应用程序结构**: 应用程序必须支持通过服务管理器停止和启动
+
+### 功能依赖
+
+- 此功能基于:
+  - 002-python-dev-setup (需要 Python 3.12 环境)
+  - 003-wechat-notification-webhook (需要可部署的应用程序)
+
+## 相关功能
+
+- **002-python-dev-setup**: 建立 CI 将使用的 Python 环境和工具
+- **003-wechat-notification-webhook**: 正在部署的应用程序
+
+## 版本历史
+
+| 版本  | 日期       | 变更                    | 作者 |
+|-------|------------|-------------------------|------|
+| 0.1.0 | 2025-11-02 | 初始规范创建            | AI   |
