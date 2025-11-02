@@ -156,7 +156,7 @@ Thumbs.db
 *.tmp
 
 # Project specific
-uv.lock
+# uv.lock should be committed to ensure reproducible builds
 
 # Configuration files (contains sensitive information)
 config/wechat.yaml
