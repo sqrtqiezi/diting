@@ -75,6 +75,47 @@ diting/
 
 ## 开发工作流
 
+### 分支管理策略
+
+Diting 项目采用 **GitHub Flow** 分支管理策略:
+
+1. **Master 分支始终可部署** - master 分支上的代码始终处于稳定状态
+2. **功能分支开发** - 所有新功能和修复都在独立分支上进行
+3. **Pull Request 审查** - 通过 PR 进行代码审查和 CI 验证
+4. **快速合并** - 功能完成后尽快合并,避免长期分支
+
+**详细文档**:
+- 📖 [贡献指南](CONTRIBUTING.md) - 完整开发流程说明
+- 📖 [GitHub Flow 详解](docs/workflow/github-flow.md) - 分支策略详解
+- 📖 [Commit 规范](docs/workflow/commit-convention.md) - 提交信息规范
+
+### 开发流程(6步)
+
+```bash
+# 1. 从 master 创建功能分支
+git checkout master
+git pull origin master
+git checkout -b 003-your-feature-name
+
+# 2. 本地开发和提交(遵循 Conventional Commits 规范)
+git add src/your_changes.py
+git commit -m "feat(scope): implement your feature"
+
+# 3. 本地测试验证
+pytest tests/ -v --cov=src
+ruff check . --fix
+mypy src/
+
+# 4. 推送功能分支
+git push origin 003-your-feature-name
+
+# 5. 创建 Pull Request
+# 访问 GitHub 仓库,填写 PR 模板
+
+# 6. 合并到 Master (CI 通过后)
+# 使用 "Squash and merge" → 自动删除功能分支
+```
+
 ### 代码质量检查
 
 ```bash
@@ -103,17 +144,34 @@ open htmlcov/index.html  # 查看详细报告
 
 # 运行特定测试
 pytest tests/unit/test_example.py -v
+
+# 检查覆盖率阈值(≥ 80%)
+coverage report --fail-under=80
 ```
 
-### 提交代码
+### 提交信息规范
 
-Pre-commit 钩子会在提交前自动运行代码质量检查:
+遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范:
 
 ```bash
-git add .
-git commit -m "feat: your feature description"
-# Pre-commit 自动运行 ruff format, ruff check, mypy
+# 格式: <type>(<scope>): <subject>
+
+# 新功能
+git commit -m "feat(webhook): implement message retry logic"
+
+# Bug 修复
+git commit -m "fix(wechat): handle API timeout gracefully"
+
+# 文档更新
+git commit -m "docs: update README installation guide"
+
+# 测试代码
+git commit -m "test(webhook): add integration tests"
 ```
+
+**常用 Type**: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `chore`, `style`, `ci`
+
+**常用 Scope**: `wechat`, `webhook`, `kg`, `llm`, `cli`, `config`, `logger`
 
 ## 贡献
 
