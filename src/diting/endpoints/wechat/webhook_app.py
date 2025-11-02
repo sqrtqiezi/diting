@@ -6,6 +6,7 @@ FastAPI Webhook Application
 
 import time
 from contextlib import asynccontextmanager
+from typing import Any
 
 import structlog
 from fastapi import BackgroundTasks, FastAPI, Request
@@ -17,7 +18,7 @@ from .webhook_handler import WebhookRequest, log_webhook_request
 from .webhook_logger import check_log_writable, setup_webhook_logger
 
 # 全局状态
-app_state = {"start_time": 0.0, "message_count": 0, "config": None}
+app_state: dict[str, Any] = {"start_time": 0.0, "message_count": 0, "config": None}
 
 
 class HealthStatus(BaseModel):

@@ -123,13 +123,13 @@ def configure_logging(
         logging.root.addHandler(file_handler)
 
 
-def get_logger(name: str | None = None) -> structlog.BoundLogger:
+def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """获取结构化日志记录器
 
     Args:
         name: 日志记录器名称(可选),通常使用模块名 __name__
 
     Returns:
-        structlog.BoundLogger: 结构化日志记录器
+        structlog.stdlib.BoundLogger: 结构化日志记录器
     """
-    return structlog.get_logger(name)
+    return structlog.get_logger(name)  # type: ignore[no-any-return]
