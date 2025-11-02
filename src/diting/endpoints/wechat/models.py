@@ -164,9 +164,7 @@ class RequestLog(BaseModel):
     """
 
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="请求 ID")
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(UTC), description="请求时间"
-    )
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC), description="请求时间")
     endpoint: str = Field(..., description="API 路径")
     request_params: dict[str, Any] = Field(..., description="脱敏后的请求参数")
     response_status: int = Field(..., description="HTTP 状态码")

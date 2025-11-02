@@ -5,7 +5,6 @@ from pathlib import Path
 
 import jsonschema
 import pytest
-
 from diting.endpoints.wechat.models import APIRequest
 
 

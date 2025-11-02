@@ -8,7 +8,6 @@ from typing import Any
 
 from structlog.types import EventDict
 
-
 # 需要脱敏的敏感字段名称
 SENSITIVE_FIELDS = {
     "app_secret",

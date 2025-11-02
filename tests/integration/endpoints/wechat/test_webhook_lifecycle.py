@@ -5,9 +5,8 @@ Webhook 服务生命周期集成测试
 import time
 
 import pytest
-from fastapi.testclient import TestClient
-
 from diting.endpoints.wechat.webhook_app import app, app_state
+from fastapi.testclient import TestClient
 
 
 class TestWebhookLifecycle:

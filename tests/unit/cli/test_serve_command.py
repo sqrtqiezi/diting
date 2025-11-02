@@ -2,19 +2,18 @@
 CLI serve 命令单元测试
 """
 
-from unittest.mock import MagicMock, patch
+import sys
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
 # 从项目根目录的 cli.py 导入
-import sys
-from pathlib import Path
-
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cli import cli
+from cli import cli  # noqa: E402
 
 
 class TestServeCommand:
@@ -34,7 +33,7 @@ class TestServeCommand:
     @patch("cli.uvicorn.run")
     def test_serve_command_starts_uvicorn(self, mock_uvicorn_run, runner):
         """测试 serve 命令启动 uvicorn"""
-        result = runner.invoke(cli, ["serve"])
+        _ = runner.invoke(cli, ["serve"])
 
         # 验证 uvicorn.run 被调用
         assert mock_uvicorn_run.called
@@ -51,7 +50,7 @@ class TestServeCommand:
     @patch("cli.uvicorn.run")
     def test_serve_command_with_custom_port(self, mock_uvicorn_run, runner):
         """测试自定义端口"""
-        result = runner.invoke(cli, ["serve", "--port", "9000"])
+        _ = runner.invoke(cli, ["serve", "--port", "9000"])
 
         assert mock_uvicorn_run.called
         call_kwargs = mock_uvicorn_run.call_args[1]
@@ -60,7 +59,7 @@ class TestServeCommand:
     @patch("cli.uvicorn.run")
     def test_serve_command_with_custom_host(self, mock_uvicorn_run, runner):
         """测试自定义主机"""
-        result = runner.invoke(cli, ["serve", "--host", "127.0.0.1"])
+        _ = runner.invoke(cli, ["serve", "--host", "127.0.0.1"])
 
         assert mock_uvicorn_run.called
         call_kwargs = mock_uvicorn_run.call_args[1]
@@ -69,7 +68,7 @@ class TestServeCommand:
     @patch("cli.uvicorn.run")
     def test_serve_command_with_log_level(self, mock_uvicorn_run, runner):
         """测试自定义日志级别"""
-        result = runner.invoke(cli, ["serve", "--log-level", "DEBUG"])
+        _ = runner.invoke(cli, ["serve", "--log-level", "DEBUG"])
 
         assert mock_uvicorn_run.called
         call_kwargs = mock_uvicorn_run.call_args[1]

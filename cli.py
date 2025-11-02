@@ -203,7 +203,11 @@ def serve(config, host, port, log_level):
 
     # 显示启动信息
     click.secho("=" * 60, fg="cyan")
-    click.secho(f"🚀 {webhook_config.service_name} v{webhook_config.service_version}", fg="cyan", bold=True)
+    click.secho(
+        f"🚀 {webhook_config.service_name} v{webhook_config.service_version}",
+        fg="cyan",
+        bold=True,
+    )
     click.secho("=" * 60, fg="cyan")
     click.echo()
     click.echo(f"📡 Host:          {webhook_config.host}")

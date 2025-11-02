@@ -17,7 +17,7 @@ from .webhook_logger import get_webhook_logger
 @dataclass
 class WebhookRequest:
     """Webhook raw request record
-    
+
     Records complete HTTP request information without format assumptions.
     """
 
