@@ -1,0 +1,77 @@
+# Diting WeChat Webhook Service - Systemd Unit File
+# 位置: /etc/systemd/system/diting.service
+
+[Unit]
+Description=Diting WeChat Webhook Service
+Documentation=https://github.com/your-org/diting
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+
+# 工作目录(指向当前激活的版本)
+WorkingDirectory=/opt/diting/current
+
+# 启动命令
+ExecStart=/opt/diting/current/.venv/bin/uvicorn \
+    src.endpoints.wechat.webhook_app:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --log-level info \
+    --access-log
+
+# 环境变量(可选,也可以使用 .env 文件)
+Environment="PYTHONUNBUFFERED=1"
+Environment="WEBHOOK_SERVICE_NAME=diting"
+Environment="WEBHOOK_SERVICE_VERSION=1.0.0"
+
+# 重启策略
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# 资源限制
+LimitNOFILE=65536
+MemoryMax=1G
+CPUQuota=100%
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/diting/current/logs
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=diting
+
+[Install]
+WantedBy=multi-user.target
+
+# 安装和管理命令:
+#
+# 安装服务:
+#   sudo cp diting.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable diting
+#
+# 启动服务:
+#   sudo systemctl start diting
+#
+# 查看状态:
+#   sudo systemctl status diting
+#
+# 查看日志:
+#   journalctl -u diting -f
+#
+# 重启服务:
+#   sudo systemctl restart diting
+#
+# 停止服务:
+#   sudo systemctl stop diting

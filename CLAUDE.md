@@ -1,31 +1,68 @@
 # diting Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-11-01
+Auto-generated from all feature plans. Last updated: 2025-11-02
 
 ## Active Technologies
 - Python 3.12.6 (项目已安装并配置虚拟环境) + FastAPI (web框架), httpx (已有,用于调用微信API), pydantic (已有,数据验证), structlog (已有,结构化日志), uvicorn (ASGI服务器) + click (已有,CLI框架) (003-wechat-notification-webhook)
 - 结构化日志文件(JSON格式),不涉及数据库存储 (003-wechat-notification-webhook)
-
 - Python 3.12.6 (已安装并配置虚拟环境) + httpx (异步 HTTP 客户端), pydantic (数据验证), structlog (结构化日志) (001-wechat-api-connectivity)
+- GitHub Actions (CI/CD 平台) + SSH + rsync (部署工具) + systemd (服务管理) + Ubuntu 22.04 on 阿里云 ECS (部署目标) (004-github-ci-aliyun-deploy)
 
 ## Project Structure
 
 ```text
+.github/
+└── workflows/          # GitHub Actions CI/CD 配置
+    ├── test.yml        # 自动化测试工作流
+    └── deploy.yml      # 自动化部署工作流
+
 src/
+├── endpoints/
+│   └── wechat/
+│       └── webhook_app.py  # FastAPI 应用,包含 /health 端点
+├── models/
+├── services/
+└── cli/
+
 tests/
+├── unit/
+├── integration/
+└── contract/
+
+deploy/
+└── diting.service      # Systemd 服务配置
 ```
 
 ## Commands
 
-cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] pytest [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] ruff check .
+```bash
+# 开发环境
+uv sync --frozen           # 安装依赖
+
+# 代码质量检查
+uv run ruff check .        # 代码检查
+uv run ruff format .       # 代码格式化
+uv run mypy src            # 类型检查
+
+# 测试
+uv run pytest              # 运行所有测试
+uv run pytest --cov=src --cov-report=term-missing  # 带覆盖率
+
+# CI/CD(自动执行)
+# 推送代码 → GitHub Actions 自动运行测试
+# 合并 master → GitHub Actions 自动部署到阿里云 ECS
+
+# 手动部署(仅用于调试)
+ssh deploy@ECS_IP "systemctl status diting"
+```
 
 ## Code Style
 
 Python 3.12.6 (已安装并配置虚拟环境): Follow standard conventions
 
 ## Recent Changes
+- 004-github-ci-aliyun-deploy: Added GitHub Actions (CI/CD 平台) + SSH + rsync (部署工具) + systemd (服务管理) + Ubuntu 22.04 on 阿里云 ECS (部署目标)
 - 003-wechat-notification-webhook: Added Python 3.12.6 (项目已安装并配置虚拟环境) + FastAPI (web框架), httpx (已有,用于调用微信API), pydantic (已有,数据验证), structlog (已有,结构化日志), uvicorn (ASGI服务器) + click (已有,CLI框架)
-
 - 001-wechat-api-connectivity: Added Python 3.12.6 (已安装并配置虚拟环境) + httpx (异步 HTTP 客户端), pydantic (数据验证), structlog (结构化日志)
 
 <!-- MANUAL ADDITIONS START -->
