@@ -4,14 +4,11 @@ Webhook 应用集成测试
 端到端测试 webhook 消息接收流程。
 """
 
-import json
 import time
-from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-
 from diting.endpoints.wechat.webhook_app import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

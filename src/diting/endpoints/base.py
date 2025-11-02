@@ -4,7 +4,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class BaseEndpointError(Exception):
@@ -46,7 +46,7 @@ class EndpointAdapter(ABC):
         pass
 
     @abstractmethod
-    def fetch_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def fetch_data(self, **kwargs: Any) -> dict[str, Any]:
         """从端点获取数据
 
         Args:

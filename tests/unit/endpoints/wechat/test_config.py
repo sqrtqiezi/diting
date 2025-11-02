@@ -1,18 +1,15 @@
 """微信 API 配置加载单元测试"""
 
-import tempfile
 from pathlib import Path
 
 import pytest
 import yaml
-from pydantic import ValidationError
-
 from diting.endpoints.wechat.config import (
-    APIConfig,
     RetryConfig,
     TimeoutConfig,
     WeChatConfig,
 )
+from pydantic import ValidationError
 
 
 class TestTimeoutConfig:

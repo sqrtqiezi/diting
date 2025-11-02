@@ -95,7 +95,7 @@ def test_wechat_api(config_path: Path) -> int:
                 try:
                     user_info = client.get_user_info(device.guid)
 
-                    print_success(f"API 连接测试成功!")
+                    print_success("API 连接测试成功!")
                     print(f"  设备 ID: {device.guid}")
                     print(f"  微信号: {user_info.wechat_id}")
                     print(f"  昵称: {user_info.nickname}")

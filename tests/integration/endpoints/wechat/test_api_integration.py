@@ -13,7 +13,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.exceptions import AuthenticationError, BusinessError
@@ -89,9 +88,11 @@ class TestRealAPIIntegration:
             devices=[{"guid": "12345678-1234-1234-1234-123456789abc"}],
         )
 
-        with WeChatAPIClient(invalid_config) as invalid_client:
-            with pytest.raises((AuthenticationError, BusinessError)):
-                invalid_client.authenticate()
+        with (
+            WeChatAPIClient(invalid_config) as invalid_client,
+            pytest.raises((AuthenticationError, BusinessError)),
+        ):
+            invalid_client.authenticate()
 
         print("\n✅ 无效凭证被正确拒绝")
 
@@ -109,7 +110,7 @@ class TestAPIPerformance:
         device = config.devices[0]
         start_time = time.time()
 
-        user_info = client.get_user_info(device.guid)
+        _ = client.get_user_info(device.guid)  # Test response time only
 
         response_time = time.time() - start_time
 

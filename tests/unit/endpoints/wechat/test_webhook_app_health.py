@@ -5,9 +5,8 @@ Webhook 应用健康检查单元测试
 from unittest.mock import patch
 
 import pytest
+from diting.endpoints.wechat.webhook_app import app
 from fastapi.testclient import TestClient
-
-from diting.endpoints.wechat.webhook_app import app, app_state
 
 
 class TestHealthCheckLogic:
@@ -20,9 +19,7 @@ class TestHealthCheckLogic:
             yield c
 
     @patch("diting.endpoints.wechat.webhook_app.check_log_writable")
-    def test_health_check_returns_healthy_when_log_writable(
-        self, mock_check_log_writable, client
-    ):
+    def test_health_check_returns_healthy_when_log_writable(self, mock_check_log_writable, client):
         """测试当日志可写时返回健康状态"""
         # Mock log_writable 返回 True
         mock_check_log_writable.return_value = (True, None)

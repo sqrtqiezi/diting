@@ -6,8 +6,6 @@ from pathlib import Path
 import jsonschema
 import pytest
 
-from diting.endpoints.wechat.models import APIResponse
-
 
 @pytest.fixture
 def response_schema():

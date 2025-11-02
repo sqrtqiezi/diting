@@ -5,8 +5,9 @@
 
 import logging
 import sys
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import orjson
 import structlog
@@ -39,9 +40,9 @@ def add_timestamp(logger: Any, method_name: str, event_dict: EventDict) -> Event
     Returns:
         EventDict: 添加了 timestamp 字段的事件字典
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    event_dict["timestamp"] = datetime.now(timezone.utc).isoformat()
+    event_dict["timestamp"] = datetime.now(UTC).isoformat()
     return event_dict
 
 
