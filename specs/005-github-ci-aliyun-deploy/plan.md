@@ -1,7 +1,7 @@
 # Implementation Plan: GitHub CI/CD 与阿里云 ECS 部署
 
-**Branch**: `004-github-ci-aliyun-deploy` | **Date**: 2025-11-02 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/004-github-ci-aliyun-deploy/spec.md`
+**Branch**: `005-github-ci-aliyun-deploy` | **Date**: 2025-11-02 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/005-github-ci-aliyun-deploy/spec.md`
 
 ## Summary
 
@@ -47,7 +47,7 @@
 ### Documentation (this feature)
 
 ```text
-specs/004-github-ci-aliyun-deploy/
+specs/005-github-ci-aliyun-deploy/
 ├── spec.md              # 功能规范(已完成)
 ├── plan.md              # 本文件 - 实施计划
 ├── research.md          # 技术研究和选型(已完成)

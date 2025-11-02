@@ -1,6 +1,6 @@
 # 数据模型设计: GitHub CI/CD 与阿里云 ECS 部署
 
-**功能分支**: `004-github-ci-aliyun-deploy`
+**功能分支**: `005-github-ci-aliyun-deploy`
 **日期**: 2025-11-02
 **输入**: [spec.md](./spec.md) + [research.md](./research.md)
 

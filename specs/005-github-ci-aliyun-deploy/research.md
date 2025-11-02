@@ -1,6 +1,6 @@
 # 技术研究: GitHub CI/CD 与阿里云 ECS 部署
 
-**功能分支**: `004-github-ci-aliyun-deploy`
+**功能分支**: `005-github-ci-aliyun-deploy`
 **日期**: 2025-11-02
 **研究目标**: 确定 CI/CD 工具链、部署策略和安全最佳实践
 

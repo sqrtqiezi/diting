@@ -1,6 +1,6 @@
 # 快速上手: GitHub CI/CD 与阿里云 ECS 部署
 
-**功能分支**: `004-github-ci-aliyun-deploy`
+**功能分支**: `005-github-ci-aliyun-deploy`
 **目标读者**: 开发者、DevOps 工程师
 **预计时间**: 30-60 分钟
 
@@ -61,8 +61,8 @@ uv run pytest --cov=src --cov-report=term-missing --cov-fail-under=80 -v
 brew install actionlint
 
 # 验证 workflow 文件
-actionlint specs/004-github-ci-aliyun-deploy/contracts/test-workflow.yml
-actionlint specs/004-github-ci-aliyun-deploy/contracts/deploy-workflow.yml
+actionlint specs/005-github-ci-aliyun-deploy/contracts/test-workflow.yml
+actionlint specs/005-github-ci-aliyun-deploy/contracts/deploy-workflow.yml
 ```
 
 ## 第二步: 准备阿里云 ECS 服务器
@@ -252,13 +252,13 @@ gh secret set ALIYUN_SSH_PRIVATE_KEY < ~/.ssh/diting-deploy
 mkdir -p .github/workflows
 
 # 复制 workflow 文件
-cp specs/004-github-ci-aliyun-deploy/contracts/test-workflow.yml .github/workflows/test.yml
-cp specs/004-github-ci-aliyun-deploy/contracts/deploy-workflow.yml .github/workflows/deploy.yml
+cp specs/005-github-ci-aliyun-deploy/contracts/test-workflow.yml .github/workflows/test.yml
+cp specs/005-github-ci-aliyun-deploy/contracts/deploy-workflow.yml .github/workflows/deploy.yml
 
 # 提交到功能分支
 git add .github/workflows/
 git commit -m "ci(004): add GitHub Actions workflows for test and deploy"
-git push origin 004-github-ci-aliyun-deploy
+git push origin 005-github-ci-aliyun-deploy
 ```
 
 ### 3.3 配置分支保护(可选但推荐)
@@ -374,7 +374,7 @@ sudo netstat -tlnp | grep 8000
 echo "# Test CI" >> README.md
 git add README.md
 git commit -m "test(004): trigger test workflow"
-git push origin 004-github-ci-aliyun-deploy
+git push origin 005-github-ci-aliyun-deploy
 ```
 
 **验证**:
