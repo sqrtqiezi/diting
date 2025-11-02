@@ -1,5 +1,7 @@
 # Diting (谛听)
 
+[![Test](https://github.com/diting/diting/workflows/Test/badge.svg)](https://github.com/diting/diting/actions/workflows/test.yml)
+[![Deploy](https://github.com/diting/diting/workflows/Deploy%20to%20Aliyun%20ECS/badge.svg)](https://github.com/diting/diting/actions/workflows/deploy.yml)
 [![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
@@ -72,6 +74,37 @@ diting/
 ├── .python-version        # Python 版本固定
 └── .pre-commit-config.yaml # Pre-commit 钩子配置
 ```
+
+## CI/CD 和部署
+
+Diting 项目实现了完整的自动化 CI/CD 流程:
+
+### 🧪 自动化测试 (User Story 1)
+
+每次代码推送时,GitHub Actions 自动运行:
+- **代码质量检查**: Ruff linter + formatter
+- **类型检查**: Mypy 类型验证
+- **测试套件**: Pytest with 80% 覆盖率要求
+- **覆盖率报告**: 自动生成并上传
+
+### 🚀 自动化部署 (User Story 2)
+
+合并到 master 分支后,自动部署到阿里云 ECS:
+- **零停机部署**: 基于符号链接的版本切换
+- **健康检查**: 部署后自动验证服务状态
+- **自动回滚**: 健康检查失败时回滚到上一个版本
+- **版本管理**: 保留最近 3 个版本,自动清理旧版本
+
+### 📊 部署可见性 (User Story 3)
+
+- **状态徽章**: README 顶部显示 workflow 状态
+- **部署历史**: GitHub Actions 界面查看详细日志
+- **失败通知**: 部署失败时自动创建 GitHub Issue
+
+**相关文档**:
+- 📖 [CI/CD 快速上手](specs/005-github-ci-aliyun-deploy/quickstart.md) - 首次部署指南
+- 📖 [环境差异说明](docs/ci-cd/environment-differences.md) - 本地/CI/生产环境差异
+- 📖 [act 本地 CI 工具](docs/ci-cd/act-setup.md) - 本地复现 CI 环境
 
 ## 开发工作流
 
