@@ -13,8 +13,10 @@ import sys
 from pathlib import Path
 
 import click
+import uvicorn
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
+from diting.endpoints.wechat.webhook_config import WebhookConfig
 
 
 @click.group()
@@ -150,6 +152,85 @@ def get_profile(config: Path, device_index: int, json_only: bool):
             click.echo()
 
         sys.exit(1)
+
+
+@cli.command()
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True),
+    help="Configuration file path (YAML)",
+)
+@click.option(
+    "--host",
+    "-h",
+    type=str,
+    help="Host to bind (default: 0.0.0.0)",
+)
+@click.option(
+    "--port",
+    "-p",
+    type=int,
+    help="Port to bind (default: 8000)",
+)
+@click.option(
+    "--log-level",
+    "-l",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
+    help="Log level (default: INFO)",
+)
+def serve(config, host, port, log_level):
+    """启动 Webhook 服务
+
+    启动 FastAPI webhook 服务,用于接收来自第三方微信转发服务的消息推送。
+
+    示例:
+        python cli.py serve
+        python cli.py serve --port 9000
+        python cli.py serve --host 127.0.0.1 --port 8888
+        python cli.py serve --log-level DEBUG
+    """
+    # 加载配置
+    webhook_config = WebhookConfig()
+
+    # 命令行参数覆盖配置文件
+    if host:
+        webhook_config.host = host
+    if port:
+        webhook_config.port = port
+    if log_level:
+        webhook_config.log_level = log_level.upper()
+
+    # 显示启动信息
+    click.secho("=" * 60, fg="cyan")
+    click.secho(f"🚀 {webhook_config.service_name} v{webhook_config.service_version}", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+    click.echo(f"📡 Host:          {webhook_config.host}")
+    click.echo(f"🔌 Port:          {webhook_config.port}")
+    click.echo(f"📝 Log Level:     {webhook_config.log_level}")
+    click.echo(f"📄 Log File:      {webhook_config.log_file}")
+    click.echo(f"🎯 Webhook Path:  {webhook_config.webhook_path}")
+    click.echo(f"💚 Health Check:  {webhook_config.health_check_path}")
+    click.echo()
+    click.secho("=" * 60, fg="cyan")
+    click.secho("🏁 Starting server... (Press Ctrl+C to stop)", fg="green")
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+
+    # 启动 uvicorn 服务器
+    try:
+        uvicorn.run(
+            "diting.endpoints.wechat.webhook_app:app",
+            host=webhook_config.host,
+            port=webhook_config.port,
+            log_level=webhook_config.log_level.lower(),
+            access_log=False,  # 我们使用自己的结构化日志
+        )
+    except KeyboardInterrupt:
+        click.echo()
+        click.secho("🛑 Server stopped by user", fg="yellow")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

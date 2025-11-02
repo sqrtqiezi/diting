@@ -1,0 +1,254 @@
+openapi: 3.0.3
+info:
+  title: 微信 Webhook 服务 API (简化版)
+  description: |
+    接收第三方微信消息转发服务推送的通知消息。
+
+    ## 设计原则
+    - **无认证**: 内网环境,无需认证机制
+    - **完整记录**: 记录所有原始请求数据
+    - **格式无关**: 不预设消息格式,接受任意数据
+    - **快速响应**: 立即返回 200,后台异步处理
+
+    ## 功能
+    - 接收任意格式的 webhook 推送
+    - 健康检查端点
+    - 完整的结构化日志记录
+
+  version: 1.0.0
+  contact:
+    name: Diting Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: 本地开发服务器
+  - url: http://192.168.1.100:8000
+    description: 内网部署服务器
+
+tags:
+  - name: webhook
+    description: Webhook 消息接收端点(无认证)
+  - name: health
+    description: 健康检查和监控
+
+paths:
+  /webhook/wechat:
+    post:
+      summary: 接收微信通知消息
+      description: |
+        接收第三方微信转发服务的 webhook 推送消息。
+
+        ## 处理流程
+        1. 读取完整的原始请求(headers + body)
+        2. 立即返回 200 OK
+        3. 后台异步记录到日志
+
+        ## 格式支持
+        - 接受任意 Content-Type
+        - 自动尝试解析 JSON、Form 等格式
+        - 解析失败不影响记录
+        - 不限制请求体大小
+
+        ## 无认证要求
+        - 不需要 token
+        - 不限制 IP
+        - 完全开放接收
+
+      operationId: receiveWeChatMessage
+      tags:
+        - webhook
+      requestBody:
+        required: true
+        description: 任意格式的请求体,将被完整记录
+        content:
+          application/json:
+            schema:
+              type: object
+              description: JSON 格式(如果适用)
+              additionalProperties: true
+            examples:
+              jsonMessage:
+                summary: JSON 格式消息(示例)
+                value:
+                  msg: "hello"
+                  type: 1
+                  from: "user1"
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              description: Form 格式(如果适用)
+              additionalProperties: true
+          text/plain:
+            schema:
+              type: string
+              description: 纯文本格式(如果适用)
+          '*/*':
+            schema:
+              type: string
+              format: binary
+              description: 任意其他格式
+      responses:
+        '200':
+          description: 成功接收消息(立即响应,后台处理)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+              examples:
+                success:
+                  summary: 成功响应
+                  value:
+                    status: "ok"
+                    request_id: "550e8400-e29b-41d4-a716-446655440000"
+        '500':
+          description: 服务器内部错误(罕见)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internalError:
+                  summary: 内部错误
+                  value:
+                    status: "error"
+                    message: "Internal server error"
+
+  /health:
+    get:
+      summary: 健康检查
+      description: |
+        检查服务健康状态。
+
+        ## 返回信息
+        - 服务状态(healthy/unhealthy)
+        - 版本信息
+        - 运行时间
+        - 已处理消息数量
+
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        '200':
+          description: 服务健康
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: 健康状态
+                  value:
+                    status: "healthy"
+                    version: "1.0.0"
+                    uptime_seconds: 3600
+                    message_count: 1234
+                    log_writable: true
+        '503':
+          description: 服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                unhealthy:
+                  summary: 不健康状态
+                  value:
+                    status: "unhealthy"
+                    version: "1.0.0"
+                    log_writable: false
+                    error: "Log file write failed"
+
+components:
+  schemas:
+    WebhookResponse:
+      type: object
+      required:
+        - status
+        - request_id
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+          description: 处理状态(固定为 ok)
+        request_id:
+          type: string
+          format: uuid
+          description: 请求唯一标识,用于日志追踪
+          examples:
+            - 550e8400-e29b-41d4-a716-446655440000
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum:
+            - error
+          description: 错误状态
+        message:
+          type: string
+          description: 错误描述
+          examples:
+            - Internal server error
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - unhealthy
+          description: 健康状态
+        version:
+          type: string
+          description: 服务版本
+          examples:
+            - 1.0.0
+        uptime_seconds:
+          type: integer
+          description: 运行时间(秒)
+          minimum: 0
+          examples:
+            - 3600
+        message_count:
+          type: integer
+          description: 已处理的消息数量
+          minimum: 0
+          examples:
+            - 1234
+        log_writable:
+          type: boolean
+          description: 日志文件是否可写
+          examples:
+            - true
+        error:
+          type: string
+          description: 错误信息(状态为 unhealthy 时)
+          examples:
+            - Log file write failed
+
+  examples:
+    anyFormatRequest:
+      summary: 任意格式请求(都会被记录)
+      value:
+        # 任意数据
+        key: value
+        nested:
+          data: [1, 2, 3]
+
+    successResponse:
+      summary: 成功响应
+      value:
+        status: "ok"
+        request_id: "550e8400-e29b-41d4-a716-446655440000"

@@ -26,6 +26,8 @@ dependencies = [
     "pydantic-settings>=2.1.0,<3.0.0",
     "pyyaml>=6.0,<7.0",
     "click>=8.1.0,<9.0.0",
+    "fastapi>=0.104.0,<1.0.0",
+    "uvicorn[standard]>=0.24.0,<1.0.0",
 ]
 
 # 开发依赖
