@@ -19,7 +19,7 @@
 **Primary Dependencies**: GitHub Actions, rsync, SSH, systemd, uv
 **Storage**: 文件系统(版本目录 /opt/diting/releases/)+ GitHub Actions 元数据 + journald 日志
 **Testing**: pytest(单元/集成测试), ruff(代码检查), mypy(类型检查)
-**Target Platform**: Ubuntu 22.04 LTS on 阿里云 ECS + GitHub Actions Runner(ubuntu-latest)
+**Target Platform**: Rocky Linux 9.6 on 阿里云 ECS + GitHub Actions Runner(ubuntu-latest)
 **Project Type**: Single project(DevOps 基础设施,不涉及应用代码结构变更)
 **Performance Goals**:
 - 测试反馈 < 5 分钟

@@ -15,9 +15,9 @@
 
 **Purpose**: 项目初始化和基础配置
 
-- [ ] T001 创建 .github/workflows/ 目录结构
-- [ ] T002 创建 deploy/ 目录用于部署配置文件
-- [ ] T003 创建 docs/ci-cd/ 目录用于 CI/CD 文档
+- [X] T001 创建 .github/workflows/ 目录结构
+- [X] T002 创建 deploy/ 目录用于部署配置文件
+- [X] T003 创建 docs/ci-cd/ 目录用于 CI/CD 文档
 
 ---
 
@@ -27,13 +27,13 @@
 
 **⚠️ CRITICAL**: 所有用户故事工作必须等待此阶段完成
 
-- [ ] T004 在 src/endpoints/wechat/webhook_app.py 中实现 /health 健康检查端点
-- [ ] T005 [P] 创建 tests/unit/endpoints/wechat/test_health.py 健康检查单元测试
-- [ ] T006 [P] 创建 deploy/diting.service systemd 服务配置文件(参考 contracts/systemd-service.service)
-- [ ] T007 [P] 创建 docs/ci-cd/environment-differences.md 环境差异文档
-- [ ] T008 [P] 创建 docs/ci-cd/act-setup.md 本地 CI 复现工具 act 使用指南
+- [X] T004 在 src/diting/endpoints/wechat/webhook_app.py 中实现 /health 健康检查端点 (已存在)
+- [X] T005 [P] 创建 tests/unit/endpoints/wechat/test_webhook_app_health.py 健康检查单元测试 (已存在)
+- [X] T006 [P] 创建 deploy/diting.service systemd 服务配置文件(参考 contracts/systemd-service.service)
+- [X] T007 [P] 创建 docs/ci-cd/environment-differences.md 环境差异文档
+- [X] T008 [P] 创建 docs/ci-cd/act-setup.md 本地 CI 复现工具 act 使用指南
 
-**Checkpoint**: 基础设施就绪 - 用户故事实施可以并行开始
+**Checkpoint**: ✅ 基础设施就绪 - 用户故事实施可以并行开始
 
 ---
 
@@ -45,25 +45,25 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] 创建 .github/workflows/test.yml 测试工作流(参考 contracts/test-workflow.yml)
-- [ ] T010 [US1] 配置 test.yml 的触发条件(push 到所有分支,PR 事件)
-- [ ] T011 [US1] 在 test.yml 中添加 Python 3.12 和 uv 设置步骤
-- [ ] T012 [US1] 在 test.yml 中添加依赖安装步骤(uv sync --frozen)
-- [ ] T013 [US1] 在 test.yml 中添加 ruff linter 检查步骤
-- [ ] T014 [US1] 在 test.yml 中添加 ruff format 检查步骤
-- [ ] T015 [US1] 在 test.yml 中添加 mypy 类型检查步骤
-- [ ] T016 [US1] 在 test.yml 中添加 pytest 测试步骤(包含覆盖率 ≥80% 要求)
-- [ ] T017 [US1] 在 test.yml 中添加覆盖率报告上传步骤(artifact)
-- [ ] T018 [US1] 在 test.yml 中添加 PR 评论步骤(测试失败时)
-- [ ] T019 [US1] 配置 GitHub 分支保护规则要求 test workflow 通过
+- [X] T009 [US1] 创建 .github/workflows/test.yml 测试工作流(参考 contracts/test-workflow.yml)
+- [X] T010 [US1] 配置 test.yml 的触发条件(push 到所有分支,PR 事件)
+- [X] T011 [US1] 在 test.yml 中添加 Python 3.12 和 uv 设置步骤
+- [X] T012 [US1] 在 test.yml 中添加依赖安装步骤(uv sync --frozen)
+- [X] T013 [US1] 在 test.yml 中添加 ruff linter 检查步骤
+- [X] T014 [US1] 在 test.yml 中添加 ruff format 检查步骤
+- [X] T015 [US1] 在 test.yml 中添加 mypy 类型检查步骤
+- [X] T016 [US1] 在 test.yml 中添加 pytest 测试步骤(包含覆盖率 ≥80% 要求)
+- [X] T017 [US1] 在 test.yml 中添加覆盖率报告上传步骤(artifact)
+- [X] T018 [US1] 在 test.yml 中添加 PR 评论步骤(测试失败时)
+- [ ] T019 [US1] 配置 GitHub 分支保护规则要求 test workflow 通过 (需要在 GitHub 上手动配置)
 
 **Test Validation for US1**:
-- [ ] T020 [US1] 推送代码到测试分支验证 workflow 触发
-- [ ] T021 [US1] 验证所有质量检查步骤按预期执行
-- [ ] T022 [US1] 验证测试失败时 PR 被阻止合并
-- [ ] T023 [US1] 验证覆盖率低于 80% 时构建失败
+- [ ] T020 [US1] 推送代码到测试分支验证 workflow 触发 (待 PR 创建后验证)
+- [ ] T021 [US1] 验证所有质量检查步骤按预期执行 (待 PR 创建后验证)
+- [ ] T022 [US1] 验证测试失败时 PR 被阻止合并 (需要分支保护规则配置)
+- [ ] T023 [US1] 验证覆盖率低于 80% 时构建失败 (待 PR 创建后验证)
 
-**Checkpoint**: 用户故事 1 完成 - 自动化测试流程完全可用
+**Checkpoint**: ✅ 用户故事 1 代码实现完成 - 等待推送验证
 
 ---
 
@@ -75,30 +75,30 @@
 
 ### Prerequisites for User Story 2
 
-- [ ] T024 [US2] 配置 GitHub Secrets: ALIYUN_ECS_HOST
-- [ ] T025 [US2] 配置 GitHub Secrets: ALIYUN_SSH_USER
-- [ ] T026 [US2] 配置 GitHub Secrets: ALIYUN_SSH_PRIVATE_KEY
-- [ ] T027 [US2] 在 ECS 上创建 deploy 用户并配置 SSH 密钥
-- [ ] T028 [US2] 在 ECS 上配置 sudo 权限(仅限 systemctl restart diting)
-- [ ] T029 [US2] 在 ECS 上创建 /opt/diting/releases 目录结构
-- [ ] T030 [US2] 在 ECS 上安装 diting.service 到 /etc/systemd/system/
+- [ ] T024 [US2] 配置 GitHub Secrets: ALIYUN_ECS_HOST (需要在 GitHub 上手动配置)
+- [ ] T025 [US2] 配置 GitHub Secrets: ALIYUN_SSH_USER (需要在 GitHub 上手动配置)
+- [ ] T026 [US2] 配置 GitHub Secrets: ALIYUN_SSH_PRIVATE_KEY (需要在 GitHub 上手动配置)
+- [ ] T027 [US2] 在 ECS 上创建 deploy 用户并配置 SSH 密钥 (需要 ECS 服务器访问)
+- [ ] T028 [US2] 在 ECS 上配置 sudo 权限(仅限 systemctl restart diting) (需要 ECS 服务器访问)
+- [ ] T029 [US2] 在 ECS 上创建 /opt/diting/releases 目录结构 (需要 ECS 服务器访问)
+- [ ] T030 [US2] 在 ECS 上安装 diting.service 到 /etc/systemd/system/ (需要 ECS 服务器访问)
 
 ### Implementation for User Story 2
 
-- [ ] T031 [US2] 创建 .github/workflows/deploy.yml 部署工作流(参考 contracts/deploy-workflow.yml)
-- [ ] T032 [US2] 配置 deploy.yml 触发条件(仅 push 到 master 分支)
-- [ ] T033 [US2] 配置 deploy.yml concurrency 设置(group: production-deploy, cancel-in-progress: false)实现串行执行
-- [ ] T034 [US2] 在 deploy.yml 中添加 SSH 密钥配置步骤(webfactory/ssh-agent)
-- [ ] T035 [US2] 在 deploy.yml 中添加 known_hosts 配置步骤
-- [ ] T036 [US2] 在 deploy.yml 中添加创建版本目录步骤(timestamp-based release ID)
-- [ ] T037 [US2] 在 deploy.yml 中添加代码上传步骤(rsync with excludes)
-- [ ] T038 [US2] 在 deploy.yml 中添加依赖安装步骤(uv sync --frozen)
-- [ ] T039 [US2] 在 deploy.yml 中添加符号链接更新步骤(current + previous)
-- [ ] T040 [US2] 在 deploy.yml 中添加服务重启步骤(systemctl restart)
-- [ ] T041 [US2] 在 deploy.yml 中添加健康检查步骤(HTTP /health + JSON验证 + 服务状态)
-- [ ] T042 [US2] 在 deploy.yml 中添加回滚步骤(健康检查失败时)
-- [ ] T043 [US2] 在 deploy.yml 中添加旧版本清理步骤(保留最近3个 + 清理7天前)
-- [ ] T044 [US2] 在 deploy.yml 中添加失败通知步骤(创建 GitHub Issue)
+- [X] T031 [US2] 创建 .github/workflows/deploy.yml 部署工作流(参考 contracts/deploy-workflow.yml)
+- [X] T032 [US2] 配置 deploy.yml 触发条件(仅 push 到 master 分支)
+- [X] T033 [US2] 配置 deploy.yml concurrency 设置(group: production-deploy, cancel-in-progress: false)实现串行执行
+- [X] T034 [US2] 在 deploy.yml 中添加 SSH 密钥配置步骤(webfactory/ssh-agent)
+- [X] T035 [US2] 在 deploy.yml 中添加 known_hosts 配置步骤
+- [X] T036 [US2] 在 deploy.yml 中添加创建版本目录步骤(timestamp-based release ID)
+- [X] T037 [US2] 在 deploy.yml 中添加代码上传步骤(rsync with excludes)
+- [X] T038 [US2] 在 deploy.yml 中添加依赖安装步骤(uv sync --frozen)
+- [X] T039 [US2] 在 deploy.yml 中添加符号链接更新步骤(current + previous)
+- [X] T040 [US2] 在 deploy.yml 中添加服务重启步骤(systemctl restart)
+- [X] T041 [US2] 在 deploy.yml 中添加健康检查步骤(HTTP /health + JSON验证 + 服务状态)
+- [X] T042 [US2] 在 deploy.yml 中添加回滚步骤(健康检查失败时)
+- [X] T043 [US2] 在 deploy.yml 中添加旧版本清理步骤(保留最近3个 + 清理7天前)
+- [X] T044 [US2] 在 deploy.yml 中添加失败通知步骤(创建 GitHub Issue)
 
 **Test Validation for US2**:
 - [ ] T045 [US2] 创建测试 PR 并合并到 master 验证部署触发
