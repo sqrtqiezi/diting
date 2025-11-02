@@ -1,6 +1,6 @@
 # 功能规范: GitHub CI/CD 与阿里云 ECS 部署
 
-**功能分支**: `ci/004-setup-alicloud-deployment`
+**功能分支**: `004-github-ci-aliyun-deploy`
 **创建时间**: 2025-11-02
 **状态**: 草稿
 **输入**: 用户描述: "为项目新增 github ci 配置,我们需要将项目发布并部署在 aliyun ecs 上"
