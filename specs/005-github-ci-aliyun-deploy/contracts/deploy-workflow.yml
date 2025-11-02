@@ -1,0 +1,184 @@
+name: Deploy to Aliyun ECS
+
+# 触发条件: 仅 master 分支的 push 事件
+on:
+  push:
+    branches: [master]
+
+# 权限配置
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # 超时保护
+    environment:
+      name: production
+      url: http://${{ secrets.ALIYUN_ECS_HOST }}:8000
+
+    steps:
+      # Step 1: 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: 配置 SSH 密钥
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_PRIVATE_KEY }}
+
+      # Step 3: 添加 ECS 到 known_hosts(防止中间人攻击)
+      - name: Add ECS to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.ALIYUN_ECS_HOST }} >> ~/.ssh/known_hosts
+
+      # Step 4: 创建部署版本目录
+      - name: Create release directory
+        id: create-release
+        run: |
+          RELEASE_ID=$(date +%s)
+          RELEASE_DIR="/opt/diting/releases/$RELEASE_ID"
+          echo "RELEASE_ID=$RELEASE_ID" >> $GITHUB_OUTPUT
+          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_OUTPUT
+
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} \
+            "mkdir -p $RELEASE_DIR"
+
+          echo "✅ 创建版本目录: $RELEASE_DIR"
+
+      # Step 5: 上传代码到 ECS
+      - name: Upload code to ECS
+        run: |
+          rsync -avz \
+            --exclude='.git' \
+            --exclude='.venv' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.pytest_cache' \
+            --exclude='.ruff_cache' \
+            --exclude='.mypy_cache' \
+            --exclude='coverage.xml' \
+            --exclude='.coverage' \
+            --exclude='logs/' \
+            ./ ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }}:${{ steps.create-release.outputs.RELEASE_DIR }}/
+
+          echo "✅ 代码上传完成"
+
+      # Step 6: 安装依赖
+      - name: Install dependencies on ECS
+        run: |
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+            cd ${{ steps.create-release.outputs.RELEASE_DIR }}
+
+            # 安装依赖
+            /home/${{ secrets.ALIYUN_SSH_USER }}/.local/bin/uv sync --frozen
+
+            echo "✅ 依赖安装完成"
+          EOF
+
+      # Step 7: 原子性激活新版本
+      - name: Activate new release
+        run: |
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+            # 保存当前版本为 previous(用于回滚)
+            if [ -L /opt/diting/current ]; then
+              CURRENT_TARGET=$(readlink /opt/diting/current)
+              ln -sfn "$CURRENT_TARGET" /opt/diting/previous
+            fi
+
+            # 切换到新版本
+            ln -sfn ${{ steps.create-release.outputs.RELEASE_DIR }} /opt/diting/current
+
+            echo "✅ 新版本已激活"
+          EOF
+
+      # Step 8: 重启服务
+      - name: Restart service
+        run: |
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} \
+            "sudo systemctl restart diting"
+
+          echo "✅ 服务已重启"
+
+      # Step 9: 健康检查
+      - name: Health check
+        id: health-check
+        run: |
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+            # 等待服务启动(最多 60 秒)
+            for i in {1..60}; do
+              if systemctl is-active --quiet diting; then
+                echo "✅ 服务已启动"
+                break
+              fi
+              echo "⏳ 等待服务启动... ($i/60)"
+              sleep 1
+            done
+
+            # HTTP 健康检查
+            for i in {1..30}; do
+              if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+                echo "✅ 健康检查通过"
+                exit 0
+              fi
+              echo "⏳ 等待健康检查... ($i/30)"
+              sleep 1
+            done
+
+            echo "❌ 健康检查失败"
+            exit 1
+          EOF
+
+      # Step 10: 回滚(仅在健康检查失败时)
+      - name: Rollback on failure
+        if: failure() && steps.health-check.outcome == 'failure'
+        run: |
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+            echo "⚠️  开始回滚..."
+
+            # 恢复到上一个版本
+            if [ -L /opt/diting/previous ]; then
+              PREVIOUS_TARGET=$(readlink /opt/diting/previous)
+              ln -sfn "$PREVIOUS_TARGET" /opt/diting/current
+              sudo systemctl restart diting
+
+              echo "✅ 已回滚到: $PREVIOUS_TARGET"
+            else
+              echo "❌ 无法回滚: previous 符号链接不存在"
+              exit 1
+            fi
+          EOF
+
+      # Step 11: 清理旧版本(保留最近 3 个)
+      - name: Cleanup old releases
+        if: success()
+        run: |
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+            cd /opt/diting/releases
+
+            # 保留最近 3 个版本
+            ls -t | tail -n +4 | xargs -r rm -rf
+
+            echo "✅ 清理完成"
+          EOF
+
+      # Step 12: 部署成功通知
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "🎉 部署成功!"
+          echo "版本: ${{ steps.create-release.outputs.RELEASE_ID }}"
+          echo "提交: ${{ github.sha }}"
+          echo "作者: ${{ github.actor }}"
+
+# 预期结果:
+# ✅ 成功: 新版本部署并通过健康检查,旧版本已清理
+# ❌ 失败: 自动回滚到上一个版本,服务保持可用
+# ⏱️ 预期时间: 5-10 分钟
+
+# 所需 GitHub Secrets:
+# - ALIYUN_ECS_HOST: ECS 服务器 IP 或域名
+# - ALIYUN_SSH_USER: SSH 用户名(建议: deploy)
+# - ALIYUN_SSH_PRIVATE_KEY: SSH 私钥(ED25519 格式)
