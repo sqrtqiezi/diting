@@ -138,14 +138,20 @@ sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
 ### 2.5 配置 sudo 权限
 
 ```bash
-# 允许 deploy 用户重启服务(无需密码)
-sudo tee /etc/sudoers.d/deploy <<EOF
-deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart diting
-deploy ALL=(ALL) NOPASSWD: /bin/systemctl status diting
-deploy ALL=(ALL) NOPASSWD: /bin/systemctl daemon-reload
+# 允许 deploy 用户无密码操作指定 systemctl 命令
+sudo tee /etc/sudoers.d/deploy <<'EOF'
+Cmnd_Alias DITING_SYSTEMCTL = \
+  /usr/bin/systemctl start diting, \
+  /usr/bin/systemctl stop diting, \
+  /usr/bin/systemctl restart diting, \
+  /usr/bin/systemctl status diting, \
+  /usr/bin/systemctl daemon-reload
+deploy ALL=(ALL) NOPASSWD: DITING_SYSTEMCTL
 EOF
 
 sudo chmod 440 /etc/sudoers.d/deploy
+
+# 可使用 `sudo visudo -f /etc/sudoers.d/deploy` 再次编辑, 避免语法错误导致 sudo 失效。
 ```
 
 ### 2.6 安装依赖
@@ -219,7 +225,7 @@ User=deploy
 Group=deploy
 WorkingDirectory=/opt/diting/current
 ExecStart=/opt/diting/current/.venv/bin/uvicorn \
-    src.endpoints.wechat.webhook_app:app \
+    diting.endpoints.wechat.webhook_app:app \
     --host 0.0.0.0 \
     --port 8000 \
     --log-level info
@@ -586,7 +592,7 @@ sudo journalctl -u diting -n 100 --no-pager
 
 # 常见原因:
 # - WorkingDirectory 不存在 → 检查 /opt/diting/current 符号链接
-# - ExecStart 路径错误 → 检查 .venv/bin/uvicorn 是否存在
+# - ExecStart 路径错误 → 检查 .venv/bin/uvicorn 是否存在, 并确保模块为 diting.endpoints.wechat.webhook_app:app
 # - 端口被占用 → sudo netstat -tlnp | grep 8000
 ```
 
