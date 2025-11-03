@@ -40,11 +40,12 @@ MemoryMax=1G
 CPUQuota=100%
 
 # 安全加固
+# 注意: 某些选项在容器或云环境中可能不兼容,已调整为兼容模式
 NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=full
+# PrivateTmp=true  # 禁用: 在某些环境中导致 exit code 226/NAMESPACE 错误
+# ProtectSystem=full  # 禁用: 可能与云环境不兼容
 ProtectHome=false
-ReadWritePaths=/opt/diting/current/logs
+# ReadWritePaths=/opt/diting/current/logs  # 移除: ProtectSystem 已禁用
 
 # 日志配置
 StandardOutput=journal
