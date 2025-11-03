@@ -56,12 +56,14 @@ jobs:
       # Step 6: 运行测试套件
       - name: Run pytest with coverage
         run: |
+          echo "::group::运行 pytest 测试套件"
           uv run pytest \
             --cov=src \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=80 \
             -v
+          echo "::endgroup::"
 
       # Step 7: 上传覆盖率报告(可选,用于 Codecov 等服务)
       - name: Upload coverage report

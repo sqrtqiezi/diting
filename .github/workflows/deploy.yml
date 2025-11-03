@@ -62,6 +62,7 @@ jobs:
       # Step 5: 上传代码到 ECS
       - name: Upload code to ECS
         run: |
+          echo "::group::上传代码到 ECS"
           rsync -avz \
             --exclude='.git' \
             --exclude='.venv' \
@@ -73,13 +74,15 @@ jobs:
             --exclude='coverage.xml' \
             --exclude='.coverage' \
             --exclude='logs/' \
-            ./ ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }}:${{ steps.create-release.outputs.RELEASE_DIR }}/
+            ./ ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST}}:${{ steps.create-release.outputs.RELEASE_DIR }}/
 
           echo "✅ 代码上传完成"
+          echo "::endgroup::"
 
       # Step 6: 安装依赖
       - name: Install dependencies on ECS
         run: |
+          echo "::group::安装依赖"
           ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
             cd ${{ steps.create-release.outputs.RELEASE_DIR }}
 
@@ -88,6 +91,7 @@ jobs:
 
             echo "✅ 依赖安装完成"
           EOF
+          echo "::endgroup::"
 
       # Step 7: 更新 systemd 服务文件
       - name: Update systemd service file

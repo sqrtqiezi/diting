@@ -141,14 +141,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T067 [P] [US3] 在 README.md 中添加 Test workflow 状态徽章(![Test](https://github.com/.../workflows/test.yml/badge.svg))
-- [ ] T068 [P] [US3] 在 README.md 中添加 Deploy workflow 状态徽章(![Deploy](https://github.com/.../workflows/deploy.yml/badge.svg))
-- [ ] T069 [US3] 在 deploy.yml 部署成功步骤中添加详细总结输出(版本 ID、提交 SHA、提交消息、作者、部署时间)
-- [ ] T070 [US3] 在 deploy.yml 中添加部署时长统计(记录开始时间,计算总时长)
-- [ ] T071 [US3] 在 test.yml 和 deploy.yml 中优化日志输出格式(使用 echo "::group::" 分组)
-- [ ] T072 [US3] 在 deploy.yml 失败时添加创建 GitHub Issue 步骤(actions/github-script@v7)
-- [ ] T073 [US3] 在失败 Issue 中包含部署日志链接和错误摘要
-- [ ] T074 [US3] 创建 docs/ci-cd/troubleshooting.md 故障排查指南(常见错误:SSH 失败、健康检查超时、磁盘空间不足)
+- [x] T067 [P] [US3] 在 README.md 中添加 Test workflow 状态徽章(![Test](https://github.com/.../workflows/test.yml/badge.svg)) ✅
+- [x] T068 [P] [US3] 在 README.md 中添加 Deploy workflow 状态徽章(![Deploy](https://github.com/.../workflows/deploy.yml/badge.svg)) ✅
+- [x] T069 [US3] 在 deploy.yml 部署成功步骤中添加详细总结输出(版本 ID、提交 SHA、提交消息、作者、部署时间) ✅
+- [x] T070 [US3] 在 deploy.yml 中添加部署时长统计(记录开始时间,计算总时长) ✅
+- [x] T071 [US3] 在 test.yml 和 deploy.yml 中优化日志输出格式(使用 echo "::group::" 分组) ✅
+- [x] T072 [US3] 在 deploy.yml 失败时添加创建 GitHub Issue 步骤(actions/github-script@v7) ✅
+- [x] T073 [US3] 在失败 Issue 中包含部署日志链接和错误摘要 ✅
+- [x] T074 [US3] 创建 docs/ci-cd/troubleshooting.md 故障排查指南(常见错误:SSH 失败、健康检查超时、磁盘空间不足) ✅
 
 **Test Validation for US3**:
 - [ ] T075 [US3] 验证 README 徽章正确显示 workflow 状态(绿色=成功,红色=失败)
@@ -165,13 +165,13 @@
 **Purpose**: 最终优化、文档完善和性能调优
 
 - [ ] T079 [P] 更新 specs/005-github-ci-aliyun-deploy/quickstart.md 添加实际部署验证步骤和常见问题解答
-- [ ] T080 [P] 创建 docs/ci-cd/workflows-overview.md 工作流总览文档(说明 test.yml 和 deploy.yml 的设计)
-- [ ] T081 [P] 在 test.yml 中优化 uv 缓存配置(enable-cache: true, cache-dependency-glob: "uv.lock")
-- [ ] T082 [P] 在 deploy.yml 中验证超时保护已配置(timeout-minutes: 15)
+- [x] T080 [P] 创建 docs/ci-cd/workflows-overview.md 工作流总览文档(说明 test.yml 和 deploy.yml 的设计) ✅
+- [x] T081 [P] 在 test.yml 中优化 uv 缓存配置(enable-cache: true, cache-dependency-glob: "uv.lock") ✅
+- [x] T082 [P] 在 deploy.yml 中验证超时保护已配置(timeout-minutes: 15) ✅
 - [ ] T083 [P] 使用 actionlint 验证 .github/workflows/test.yml 语法
 - [ ] T084 [P] 使用 actionlint 验证 .github/workflows/deploy.yml 语法
-- [ ] T085 [P] 在 docs/ci-cd/ 中创建 secrets-management.md 文档(说明所有 GitHub Secrets 的用途和配置方法)
-- [ ] T086 [P] 验证所有 workflow 符合 GitHub Actions 最佳实践(使用固定版本、配置权限、避免凭证泄露)
+- [x] T085 [P] 在 docs/ci-cd/ 中创建 secrets-management.md 文档(说明所有 GitHub Secrets 的用途和配置方法) ✅
+- [x] T086 [P] 验证所有 workflow 符合 GitHub Actions 最佳实践(使用固定版本、配置权限、避免凭证泄露) ✅
 - [ ] T087 测试完整端到端流程:功能分支 → PR → 测试 → 合并 → 部署
 - [ ] T088 验证所有成功标准达成(SC-001 到 SC-009,参考 spec.md)
 - [ ] T089 创建最终 PR 合并到 master 完成此功能
