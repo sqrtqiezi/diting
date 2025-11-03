@@ -84,7 +84,20 @@ jobs:
             echo "✅ 依赖安装完成"
           EOF
 
-      # Step 7: 原子性激活新版本
+      # Step 7: 更新 systemd 服务文件
+      - name: Update systemd service file
+        run: |
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+            # 复制服务文件到系统目录
+            sudo cp ${{ steps.create-release.outputs.RELEASE_DIR }}/deploy/diting.service /etc/systemd/system/diting.service
+
+            # 重新加载 systemd 配置
+            sudo systemctl daemon-reload
+
+            echo "✅ Systemd 服务文件已更新"
+          EOF
+
+      # Step 8: 原子性激活新版本
       - name: Activate new release
         run: |
           ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
@@ -100,7 +113,7 @@ jobs:
             echo "✅ 新版本已激活"
           EOF
 
-      # Step 8: 重启服务
+      # Step 9: 重启服务
       - name: Restart service
         run: |
           ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} \
@@ -108,7 +121,7 @@ jobs:
 
           echo "✅ 服务已重启"
 
-      # Step 9: 健康检查
+      # Step 10: 健康检查
       - name: Health check
         id: health-check
         run: |
@@ -143,7 +156,7 @@ jobs:
             exit 1
           EOF
 
-      # Step 10: 回滚(仅在健康检查失败时)
+      # Step 11: 回滚(仅在健康检查失败时)
       - name: Rollback on failure
         if: failure() && steps.health-check.outcome == 'failure'
         run: |
@@ -163,7 +176,7 @@ jobs:
             fi
           EOF
 
-      # Step 11: 清理旧版本(保留最近 3 个,清理 7 天前的)
+      # Step 12: 清理旧版本(保留最近 3 个,清理 7 天前的)
       - name: Cleanup old releases
         if: success()
         run: |
@@ -180,7 +193,7 @@ jobs:
             echo "✅ 清理完成"
           EOF
 
-      # Step 12: 部署成功总结
+      # Step 13: 部署成功总结
       - name: Deployment summary
         if: success()
         run: |
@@ -192,7 +205,7 @@ jobs:
           echo "- **分支**: ${{ github.ref_name }}"
           echo "- **时间**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-      # Step 13: 创建失败通知 Issue
+      # Step 14: 创建失败通知 Issue
       - name: Create failure issue
         if: failure()
         uses: actions/github-script@v7
