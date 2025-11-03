@@ -138,11 +138,11 @@ jobs:
 
             # HTTP 健康检查
             for i in {1..30}; do
-              if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+              if curl -f http://localhost:17999/health > /dev/null 2>&1; then
                 echo "✅ 健康检查通过"
 
                 # 验证 JSON 响应格式
-                HEALTH_RESPONSE=$(curl -s http://localhost:8000/health)
+                HEALTH_RESPONSE=$(curl -s http://localhost:17999/health)
                 if echo "$HEALTH_RESPONSE" | jq -e '.status == "healthy"' > /dev/null 2>&1; then
                   echo "✅ 健康检查响应格式正确"
                   exit 0
