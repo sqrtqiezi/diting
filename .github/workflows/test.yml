@@ -36,7 +36,7 @@ jobs:
 
       # Step 3: 安装依赖
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --extra dev
 
       # Step 4: 代码质量检查
       - name: Run ruff linter

@@ -23,12 +23,16 @@
 
 ### 云端资源
 - ✅ GitHub 仓库(已创建)
-- ✅ 阿里云 ECS 实例(Ubuntu 22.04+)
+- ✅ 阿里云 ECS 实例(Rocky Linux 9.6)
 - ✅ ECS 公网 IP 地址
 
 ### 权限
 - ✅ GitHub 仓库管理员权限(配置 Secrets 和 Actions)
 - ✅ ECS root 或 sudo 权限(初始配置)
+
+### 网络环境提示
+- ✅ 如果处于中国大陆网络, 建议预先准备企业代理/VPN 或参考下文的镜像与替代方案, 避免下载或认证失败
+- ✅ 尽量使用国内镜像源(如阿里云、清华、浙大等) 获取 Python 包与工具, 无法直连 GitHub 时改用 Web UI 或跳板机完成操作
 
 ## 第一步: 本地验证 CI 配置
 
@@ -40,17 +44,25 @@
 # 1. 确保在项目根目录
 cd /Users/niujin/develop/diting
 
-# 2. 同步依赖
+# 2. 为 uv 配置国内镜像(推荐)
+mkdir -p ~/.config/uv
+cat <<'EOF' > ~/.config/uv/uv.toml
+index-url = "https://mirrors.aliyun.com/pypi/simple"
+EOF
+
+# 3. 同步依赖
 uv sync --frozen
 
-# 3. 运行代码检查(模拟 CI 环境)
+# 4. 运行代码检查(模拟 CI 环境)
 uv run ruff check .
 uv run ruff format --check .
 uv run mypy src
 
-# 4. 运行测试套件
+# 5. 运行测试套件
 uv run pytest --cov=src --cov-report=term-missing --cov-fail-under=80 -v
 ```
+
+> **提示**: 若阿里云镜像不可用, 可将 `~/.config/uv/uv.toml` 中的 `index-url` 替换为清华(`https://pypi.tuna.tsinghua.edu.cn/simple`)、浙大等其它国内 PyPI 镜像地址。
 
 **预期结果**: 所有检查通过,无错误输出
 
@@ -58,12 +70,25 @@ uv run pytest --cov=src --cov-report=term-missing --cov-fail-under=80 -v
 
 ```bash
 # 安装 actionlint(可选,用于验证 workflow 语法)
-brew install actionlint
+
+# (推荐) 使用 Go 模块并启用中国大陆镜像
+GOPROXY=https://goproxy.cn,direct go install github.com/rhysd/actionlint/cmd/actionlint@latest
+
+# (可选) 如果已配置稳定的 Homebrew 代理
+# brew install actionlint
+
+# 若 actionlint 不在 PATH, 手动加入:
+# export PATH="$(go env GOPATH)/bin:$PATH"
 
 # 验证 workflow 文件
 actionlint specs/005-github-ci-aliyun-deploy/contracts/test-workflow.yml
 actionlint specs/005-github-ci-aliyun-deploy/contracts/deploy-workflow.yml
+
 ```
+
+安装完成后, 确保 `$(go env GOPATH)/bin` 已加入 PATH, 以便直接调用 `actionlint`。
+
+如果无法使用 Go 或 Homebrew, 也可以从镜像站下载二进制发布包(例如 `https://mirror.ghproxy.com/https://github.com/rhysd/actionlint/releases/latest/download/actionlint_darwin_arm64.tar.gz`), 在本地解压后将可执行文件放入 PATH。
 
 ## 第二步: 准备阿里云 ECS 服务器
 
@@ -113,36 +138,60 @@ sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
 ### 2.5 配置 sudo 权限
 
 ```bash
-# 允许 deploy 用户重启服务(无需密码)
-sudo tee /etc/sudoers.d/deploy <<EOF
-deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart diting
-deploy ALL=(ALL) NOPASSWD: /bin/systemctl status diting
-deploy ALL=(ALL) NOPASSWD: /bin/systemctl daemon-reload
+# 允许 deploy 用户无密码操作指定 systemctl 命令
+sudo tee /etc/sudoers.d/deploy <<'EOF'
+Cmnd_Alias DITING_SYSTEMCTL = \
+  /usr/bin/systemctl start diting, \
+  /usr/bin/systemctl stop diting, \
+  /usr/bin/systemctl restart diting, \
+  /usr/bin/systemctl status diting, \
+  /usr/bin/systemctl daemon-reload
+deploy ALL=(ALL) NOPASSWD: DITING_SYSTEMCTL
 EOF
 
 sudo chmod 440 /etc/sudoers.d/deploy
+
+# 可使用 `sudo visudo -f /etc/sudoers.d/deploy` 再次编辑, 避免语法错误导致 sudo 失效。
 ```
 
 ### 2.6 安装依赖
 
 ```bash
 # 更新系统
-sudo apt update && sudo apt upgrade -y
+sudo dnf update -y
 
-# 安装 Python 3.12
-sudo add-apt-repository ppa:deadsnakes/ppa -y
-sudo apt update
-sudo apt install python3.12 python3.12-venv -y
+# 安装常用工具与仓库插件
+sudo dnf install -y dnf-plugins-core git curl
+
+# 启用 CRB 仓库(首次执行)
+sudo dnf config-manager --set-enabled crb
+
+# 安装 Python 3.12 及依赖
+sudo dnf install -y python3.12 python3.12-devel
 
 # 安装 uv(切换到 deploy 用户)
 sudo su - deploy
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.cargo/env
+# (推荐) 使用国内镜像通过 pip 安装 uv
+python3.12 -m ensurepip --upgrade  # 如提示缺少 ensurepip, 先执行: sudo dnf install -y python3-pip
+python3.12 -m pip install --upgrade pip
+python3.12 -m pip install --index-url https://mirrors.aliyun.com/pypi/simple uv
+
+# 为 uv 配置默认镜像
+mkdir -p ~/.config/uv
+cat <<'EOF' > ~/.config/uv/uv.toml
+index-url = "https://mirrors.aliyun.com/pypi/simple"
+EOF
+
+# 确保本地 bin 目录在 PATH 中
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 
 # 验证安装
 uv --version
 python3.12 --version
 ```
+
+如仍无法访问镜像, 可在具备外网访问的环境提前下载 `uv` 对应的 wheel/压缩包后通过 `scp` 上传, 再使用 `python3.12 -m pip install <文件名>` 离线安装。
 
 ### 2.7 创建部署目录
 
@@ -176,7 +225,7 @@ User=deploy
 Group=deploy
 WorkingDirectory=/opt/diting/current
 ExecStart=/opt/diting/current/.venv/bin/uvicorn \
-    src.endpoints.wechat.webhook_app:app \
+    diting.endpoints.wechat.webhook_app:app \
     --host 0.0.0.0 \
     --port 8000 \
     --log-level info
@@ -207,25 +256,32 @@ sudo systemctl enable diting
 
 ```bash
 # 允许必要端口
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 443/tcp   # HTTPS
-sudo ufw allow 8000/tcp  # 应用端口(可选,用于测试)
+sudo systemctl enable --now firewalld
+sudo firewall-cmd --permanent --add-service=ssh
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --permanent --add-port=8000/tcp  # 应用端口(可选,用于测试)
 
-# 启用防火墙
-sudo ufw --force enable
+# 应用变更
+sudo firewall-cmd --reload
 
 # 查看状态
-sudo ufw status
+sudo firewall-cmd --list-all
 ```
 
 ## 第三步: 配置 GitHub
+
+> **网络提示**: 以下 `gh` 命令需要稳定访问 GitHub API。若在中国大陆直连失败, 可通过 GitHub Web UI 完成相同步骤, 或在具备代理的跳板机执行 CLI, 也可以预先配置 `HTTPS_PROXY`/`ALL_PROXY`。
 
 ### 3.1 添加 Secrets
 
 ```bash
 # 使用 GitHub CLI 添加 Secrets(推荐)
 # 在本地执行
+
+# 若在中国大陆需代理, 可先设置:
+# export HTTPS_PROXY=http://127.0.0.1:7890
+# export ALL_PROXY=$HTTPS_PROXY
 
 # 1. ECS 主机 IP
 gh secret set ALIYUN_ECS_HOST --body "YOUR_ECS_IP"
@@ -399,6 +455,8 @@ gh pr view
 - PR 页面显示 "Test" 检查通过
 - 如果配置了分支保护,合并按钮应该可用
 
+> **网络提示**: 如果 `gh` CLI 无法访问 GitHub, 请在 Web UI 中创建 PR 并查看状态。
+
 ### 5.3 合并并触发部署
 
 ```bash
@@ -411,6 +469,8 @@ gh pr merge --squash --delete-branch
 2. 应该看到 "Deploy to Aliyun ECS" workflow 正在运行
 3. 等待完成(约 5-10 分钟)
 4. 确认所有步骤通过
+
+> **网络提示**: 无法使用 CLI 时, 请在 GitHub Web UI 中执行 squash merge 并删除分支。
 
 ### 5.4 验证部署结果
 
@@ -467,6 +527,8 @@ gh pr create --title "Test rollback" --body "测试回滚机制"
 gh pr merge --squash --delete-branch
 ```
 
+> **网络提示**: 若 CLI 无法访问, 在 Web UI 中创建 PR、合并并删除分支即可达到相同效果。
+
 ### 6.2 观察部署失败和回滚
 
 1. 打开 GitHub → Actions
@@ -499,6 +561,8 @@ gh pr create --title "Fix rollback test" --body "修复测试错误"
 gh pr merge --squash --delete-branch
 ```
 
+> **网络提示**: 也可以在 Web UI 中直接 revert 并合并, 效果等同。
+
 ## 常见问题
 
 ### Q1: SSH 连接失败
@@ -528,7 +592,7 @@ sudo journalctl -u diting -n 100 --no-pager
 
 # 常见原因:
 # - WorkingDirectory 不存在 → 检查 /opt/diting/current 符号链接
-# - ExecStart 路径错误 → 检查 .venv/bin/uvicorn 是否存在
+# - ExecStart 路径错误 → 检查 .venv/bin/uvicorn 是否存在, 并确保模块为 diting.endpoints.wechat.webhook_app:app
 # - 端口被占用 → sudo netstat -tlnp | grep 8000
 ```
 

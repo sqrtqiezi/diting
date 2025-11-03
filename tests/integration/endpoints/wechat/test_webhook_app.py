@@ -13,8 +13,9 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    """创建测试客户端"""
-    return TestClient(app)
+    """创建测试客户端(触发 lifespan 事件)"""
+    with TestClient(app) as c:
+        yield c
 
 
 @pytest.fixture

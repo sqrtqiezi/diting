@@ -7,6 +7,7 @@ from diting.endpoints.wechat.exceptions import (
     AuthenticationError,
     BusinessError,
     NetworkError,
+    TimeoutError,
 )
 from diting.endpoints.wechat.models import APIRequest, UserInfo
 from pytest_httpx import HTTPXMock
@@ -55,9 +56,9 @@ class TestWeChatAPIClient:
     def test_parse_success_response(self, client):
         """测试解析成功响应"""
         response_data = {
-            "success": True,
+            "err_code": 0,
+            "err_msg": "",
             "data": {"wechat_id": "test_user", "nickname": "测试用户"},
-            "error_code": 0,
         }
 
         response = client._parse_response(response_data)
@@ -69,29 +70,28 @@ class TestWeChatAPIClient:
     def test_parse_error_response(self, client):
         """测试解析错误响应"""
         response_data = {
-            "success": False,
+            "err_code": 401,
+            "err_msg": "认证失败",
             "data": None,
-            "error_code": 401,
-            "error_msg": "认证失败",
         }
 
         response = client._parse_response(response_data)
 
         assert response.is_success() is False
-        assert response.error_code == 401
-        assert response.error_msg == "认证失败"
+        assert response.err_code == 401
+        assert response.err_msg == "认证失败"
 
     def test_get_user_info_success(self, client, httpx_mock: HTTPXMock):
         """测试获取用户信息成功"""
         httpx_mock.add_response(
             json={
-                "success": True,
+                "err_code": 0,
+                "err_msg": "",
                 "data": {
-                    "wechat_id": "test_user_123",
-                    "nickname": "测试用户",
-                    "avatar": "https://example.com/avatar.jpg",
+                    "userName": {"string": "test_user_123"},
+                    "nickName": {"string": "测试用户"},
+                    "smallHeadImgUrl": "https://example.com/avatar.jpg",
                 },
-                "error_code": 0,
             }
         )
 
@@ -105,10 +105,9 @@ class TestWeChatAPIClient:
         """测试获取用户信息业务错误"""
         httpx_mock.add_response(
             json={
-                "success": False,
+                "err_code": 1001,
+                "err_msg": "设备不存在",
                 "data": None,
-                "error_code": 1001,
-                "error_msg": "设备不存在",
             }
         )
 
@@ -121,9 +120,9 @@ class TestWeChatAPIClient:
         """测试获取用户信息返回空数据"""
         httpx_mock.add_response(
             json={
-                "success": True,
+                "err_code": 0,
+                "err_msg": "",
                 "data": None,  # 空数据
-                "error_code": 0,
             }
         )
 
@@ -166,11 +165,10 @@ class TestErrorHandling:
 
         httpx_mock.add_exception(httpx.TimeoutException("Request timeout"))
 
-        with pytest.raises(NetworkError) as exc_info:
+        with pytest.raises(TimeoutError) as exc_info:
             client.get_user_info("test-guid")
 
-        # TimeoutError 是 NetworkError 的子类,但这里我们捕获的是基类
-        assert "超时" in str(exc_info.value) or "网络" in str(exc_info.value)
+        assert "超时" in str(exc_info.value)
 
     def test_connect_error(self, client, httpx_mock: HTTPXMock):
         """测试连接错误"""

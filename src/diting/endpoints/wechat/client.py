@@ -250,6 +250,10 @@ class WeChatAPIClient(EndpointAdapter):
 
             return response_data
 
+        except (AuthenticationError, BusinessError, NetworkError):
+            # 重新抛出业务异常和网络异常(从 _classify_error 抛出的)
+            raise
+
         except httpx.TimeoutException as e:
             response_time_ms = int((time.time() - start_time) * 1000)
             self._log_error(request, response_time_ms, str(e))
