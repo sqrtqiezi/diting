@@ -17,6 +17,83 @@
 - 🤖 **LLM 驱动**: AI 分析生成可操作洞察
 - 🧪 **可观测可测试**: 完整的测试覆盖率和结构化日志
 
+## 功能模块
+
+### 微信 API 集成 ✅
+
+通过第三方微信API服务连接和管理微信设备,获取账号信息和接收消息通知。
+
+**核心功能**:
+- ✅ **API 连通性测试**: 验证 API 凭证和设备连接状态
+- ✅ **账号信息获取**: 获取登录账号的昵称、头像等基本信息
+- ✅ **Webhook 消息接收**: 接收并记录所有微信通知消息
+- ✅ **健康检查端点**: 实时监控服务运行状态
+
+**快速开始**:
+```bash
+# 1. 配置 API 凭证
+cp config/wechat.yaml.example config/wechat.yaml
+# 编辑 config/wechat.yaml,填入你的 app_key, app_secret, guid
+
+# 2. 测试 API 连接
+python cli.py get-profile --device-index 0
+
+# 3. 启动 Webhook 服务
+python cli.py serve --port 8000
+```
+
+**技术特性**:
+- 🔐 **敏感数据脱敏**: 自动脱敏日志中的 app_key/app_secret
+- ⏱️ **超时和重试**: 可配置的连接/读取超时和重试策略
+- 🔍 **结构化日志**: 所有 API 请求/响应完整记录到 JSON 日志
+- 🧪 **完整测试覆盖**: 单元测试、集成测试、契约测试
+- 📝 **类型安全**: 使用 Pydantic 模型验证所有数据
+
+**异常处理**:
+- `AuthenticationError`: API凭证无效或过期
+- `NetworkError`: 网络连接失败
+- `TimeoutError`: 请求超时
+- `BusinessError`: API 业务层面错误(设备不存在等)
+- `InvalidParameterError`: 请求参数格式或值无效
+
+**详细文档**:
+- 📖 [微信 API 快速上手](specs/001-wechat-api-connectivity/quickstart.md) - 10分钟完成配置和测试
+- 📖 [微信 Webhook 服务](specs/003-wechat-notification-webhook/quickstart.md) - Webhook 服务部署指南
+- 📖 [数据模型](specs/001-wechat-api-connectivity/data-model.md) - API 请求/响应数据结构
+- 📖 [API 契约](specs/001-wechat-api-connectivity/contracts/) - OpenAPI 规范和 JSON Schema
+
+**代码示例**:
+```python
+from diting.endpoints.wechat.client import WeChatAPIClient
+from diting.endpoints.wechat.config import load_from_yaml
+from diting.endpoints.wechat.exceptions import WeChatAPIError
+
+# 加载配置
+config = load_from_yaml("config/wechat.yaml")
+client = WeChatAPIClient(config)
+
+try:
+    # 获取用户信息
+    user_info = client.get_profile(device_index=0)
+    print(f"昵称: {user_info.nickname}")
+    print(f"微信号: {user_info.wechat_id}")
+
+except WeChatAPIError as e:
+    print(f"API 错误: {e.message} (code: {e.error_code})")
+```
+
+### 飞书集成 (计划中)
+
+- 📅 消息同步
+- 📅 日历事件提取
+- 📅 文档知识库
+
+### 邮箱集成 (计划中)
+
+- 📅 邮件内容提取
+- 📅 联系人关系图谱
+- 📅 重要邮件标记
+
 ## 环境设置
 
 ### 快速开始
