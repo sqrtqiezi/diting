@@ -17,9 +17,9 @@ WorkingDirectory=/opt/diting/current
 
 # 启动命令
 ExecStart=/opt/diting/current/.venv/bin/uvicorn \
-    src.endpoints.wechat.webhook_app:app \
+    src.diting.endpoints.wechat.webhook_app:app \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port 17999 \
     --log-level info \
     --access-log
 
