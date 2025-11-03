@@ -19,9 +19,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15  # 超时保护
-    environment:
-      name: production
-      url: http://${{ secrets.ALIYUN_ECS_HOST }}:8000
+    # environment:  # 暂时注释，使用 Repository Secrets
+    #   name: production
+    #   url: http://${{ secrets.ALIYUN_ECS_HOST }}:8000
 
     steps:
       # Step 1: 检出代码
