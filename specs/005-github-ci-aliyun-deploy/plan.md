@@ -33,6 +33,12 @@
 - 1 个生产环境
 - 保留最近 3 个部署版本
 - 支持当前项目规模(小型微服务)
+**Deployment Configuration**:
+- ECS 主机: <配置在 ~/.ssh/config 的 diting-server>
+- SSH 用户: deploy
+- SSH 密钥: ~/keys/deploy.pem
+- 部署目录: /opt/diting/releases/
+- 服务管理: systemd (diting.service)
 
 ## Constitution Check
 
