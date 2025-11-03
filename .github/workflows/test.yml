@@ -1,11 +1,12 @@
 name: Test
 
-# 触发条件: 任何分支的 push 和 PR 事件
+# 触发条件: PR 验证 + master 分支保护
+# 避免重复执行: 功能分支只在 PR 时运行,master 分支在 push 时运行
 on:
-  push:
-    branches: ['**']  # 所有分支
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches: [master]  # 仅 master 分支 push 时运行
 
 # 权限配置
 permissions:
