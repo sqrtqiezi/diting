@@ -42,8 +42,8 @@ CPUQuota=100%
 # 安全加固
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
+ProtectSystem=full
+ProtectHome=false
 ReadWritePaths=/opt/diting/current/logs
 
 # 日志配置
