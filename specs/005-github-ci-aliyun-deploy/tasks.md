@@ -122,8 +122,8 @@
 
 **Test Validation for US2**:
 - [x] T060 [US2] 手动执行首次部署验证 ECS 环境配置正确(参考 quickstart.md 第四步) ✅
-- [ ] T061 [US2] 创建测试 PR 并合并到 master 验证自动部署触发
-- [ ] T062 [US2] 验证部署成功并通过健康检查(检查 Actions 日志和 ECS 服务状态)
+- [x] T061 [US2] 创建测试 PR 并合并到 master 验证自动部署触发 ✅ (PR #3 已合并)
+- [ ] T062 [US2] 验证部署成功并通过健康检查(检查 Actions 日志和 ECS 服务状态) ⚠️ 需要修复 deploy.yml 配置
 - [ ] T063 [US2] 验证版本目录和符号链接正确创建(ssh 到 ECS 检查 /opt/diting/)
 - [ ] T064 [US2] 故意引入错误(如语法错误)验证回滚机制工作
 - [ ] T065 [US2] 快速连续合并两个 PR 验证串行执行(concurrency 配置)
