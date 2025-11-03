@@ -383,6 +383,393 @@ uv pip install httpx
 3. **查看实现计划**: 阅读 `specs/001-wechat-api-connectivity/plan.md`
 4. **开始实现任务**: 运行 `/speckit.tasks` 生成任务列表
 
+## 错误处理指南
+
+### 异常类型总览
+
+微信 API客户端定义了以下异常类型,按错误来源分类:
+
+| 异常类型 | 触发场景 | HTTP状态码 | 处理建议 |
+|---------|---------|-----------|---------|
+| `AuthenticationError` | API凭证无效或过期 | 401 | 检查 app_key 和 app_secret,确认凭证未过期 |
+| `NetworkError` | 网络连接失败,服务器不可达 | None | 检查网络连接,确认 API 服务可用 |
+| `TimeoutError` | 请求超时(连接或读取) | None | 增加超时时间或检查网络质量 |
+| `InvalidParameterError` | 请求参数格式或值无效 | 400 | 检查参数格式,确认符合API要求 |
+| `BusinessError` | API业务层面错误(设备不存在等) | 200 | 根据 error_code 和 error_msg 排查具体问题 |
+
+所有异常都继承自 `WeChatAPIError`,可以统一捕获处理。
+
+### 错误处理示例
+
+#### 1. 捕获特定异常类型
+
+```python
+from diting.endpoints.wechat.client import WeChatAPIClient
+from diting.endpoints.wechat.exceptions import (
+    AuthenticationError,
+    NetworkError,
+    TimeoutError,
+    BusinessError
+)
+from diting.endpoints.wechat.config import load_from_yaml
+
+# 加载配置
+config = load_from_yaml("config/wechat.yaml")
+client = WeChatAPIClient(config)
+
+try:
+    # 调用 API
+    user_info = client.get_profile(device_index=0)
+    print(f"✅ 获取用户信息成功: {user_info.nickname}")
+
+except AuthenticationError as e:
+    print(f"❌ 认证失败: {e.message}")
+    print("   解决方法: 检查 app_key 和 app_secret 是否正确")
+    # 通知管理员更新凭证
+
+except NetworkError as e:
+    print(f"❌ 网络错误: {e.message}")
+    print("   解决方法: 检查网络连接或 API 服务状态")
+    # 记录日志,稍后重试
+
+except TimeoutError as e:
+    print(f"⏱️  请求超时: {e.message}")
+    print("   解决方法: 增加超时时间或检查网络质量")
+    # 使用更长的超时时间重试
+
+except BusinessError as e:
+    print(f"❌ 业务错误: {e.message} (code: {e.error_code})")
+    if e.error_code == 5001:
+        print("   设备不存在,请检查 guid 配置")
+    # 根据错误代码进行特定处理
+
+except Exception as e:
+    print(f"❌ 未知错误: {e}")
+    # 记录完整堆栈,报告给开发团队
+```
+
+#### 2. 统一捕获所有微信 API 异常
+
+```python
+from diting.endpoints.wechat.exceptions import WeChatAPIError
+
+try:
+    user_info = client.get_profile(device_index=0)
+    print(f"✅ 成功: {user_info.nickname}")
+
+except WeChatAPIError as e:
+    # 统一处理所有微信 API 错误
+    print(f"❌ API 错误: {e.message}")
+    print(f"   错误代码: {e.error_code}")
+    if e.status_code:
+        print(f"   HTTP 状态码: {e.status_code}")
+
+    # 记录到结构化日志
+    import structlog
+    logger = structlog.get_logger()
+    logger.error(
+        "wechat_api_error",
+        error_type=type(e).__name__,
+        message=e.message,
+        error_code=e.error_code,
+        status_code=e.status_code
+    )
+```
+
+#### 3. 带重试机制的错误处理
+
+```python
+import time
+from diting.endpoints.wechat.exceptions import NetworkError, TimeoutError
+
+def get_user_info_with_retry(client, device_index=0, max_retries=3):
+    """带重试机制的用户信息获取"""
+    for attempt in range(1, max_retries + 1):
+        try:
+            return client.get_profile(device_index=device_index)
+
+        except (NetworkError, TimeoutError) as e:
+            if attempt == max_retries:
+                print(f"❌ 重试 {max_retries} 次后仍然失败: {e.message}")
+                raise  # 重新抛出异常
+
+            wait_time = 2 ** attempt  # 指数退避
+            print(f"⚠️  尝试 {attempt}/{max_retries} 失败: {e.message}")
+            print(f"   等待 {wait_time} 秒后重试...")
+            time.sleep(wait_time)
+
+        except WeChatAPIError as e:
+            # 其他错误不重试,直接抛出
+            print(f"❌ 不可重试的错误: {e.message}")
+            raise
+
+# 使用示例
+try:
+    user_info = get_user_info_with_retry(client, device_index=0)
+    print(f"✅ 获取成功: {user_info.nickname}")
+except WeChatAPIError as e:
+    print(f"❌ 最终失败: {e.message}")
+```
+
+### 错误代码参考
+
+常见 API 错误代码及解决方法:
+
+| 错误代码 | 错误消息 | 解决方法 |
+|---------|---------|---------|
+| `401` | 认证失败 | 检查 app_key 和 app_secret |
+| `400` | 参数无效 | 检查请求参数格式和必填字段 |
+| `5001` | 设备不存在 | 检查 guid 是否正确 |
+| `5002` | 设备离线 | 等待设备上线或选择其他设备 |
+| `5003` | 权限不足 | 确认账号有访问该设备的权限 |
+
+### 调试技巧
+
+#### 1. 启用详细日志
+
+```python
+import structlog
+
+# 配置详细日志级别
+structlog.configure(
+    wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+)
+
+# 所有 API 请求和响应会自动记录到日志
+client = WeChatAPIClient(config)
+```
+
+#### 2. 查看完整错误信息
+
+```python
+try:
+    client.get_profile(device_index=0)
+except WeChatAPIError as e:
+    # 打印所有错误属性
+    print(f"异常类型: {type(e).__name__}")
+    print(f"错误消息: {e.message}")
+    print(f"错误代码: {e.error_code}")
+    print(f"HTTP状态码: {e.status_code}")
+    print(f"完整堆栈:")
+    import traceback
+    traceback.print_exc()
+```
+
+## 参数验证示例
+
+### 必填字段验证
+
+所有请求参数都使用 Pydantic 模型进行验证,确保数据格式正确。
+
+#### 1. APIRequest 验证
+
+```python
+from diting.endpoints.wechat.models import APIRequest
+from pydantic import ValidationError
+
+# ✅ 正确示例:包含所有必填字段
+try:
+    request = APIRequest(
+        app_key="your_app_key",
+        app_secret="your_secret",
+        path="/user/get_profile",
+        data={"guid": "550e8400-e29b-41d4-a716-446655440000"}
+    )
+    print("✅ 参数验证通过")
+except ValidationError as e:
+    print(f"❌ 参数验证失败: {e}")
+
+# ❌ 错误示例:缺少 guid 字段
+try:
+    request = APIRequest(
+        app_key="your_app_key",
+        app_secret="your_secret",
+        path="/user/get_profile",
+        data={}  # 缺少 guid!
+    )
+except ValidationError as e:
+    print(f"❌ 验证失败: {e}")
+    # 输出: data 必须包含 guid 字段
+```
+
+#### 2. APICredentials 验证
+
+```python
+from diting.endpoints.wechat.models import APICredentials
+
+# ✅ 正确示例
+credentials = APICredentials(
+    app_key="1234567890",  # ≥10 字符
+    app_secret="12345678901234567890"  # ≥20 字符
+)
+
+# ❌ 错误示例:app_key 太短
+try:
+    credentials = APICredentials(
+        app_key="123",  # 少于 10 字符
+        app_secret="12345678901234567890"
+    )
+except ValidationError as e:
+    print(f"❌ app_key 长度不足: {e}")
+```
+
+#### 3. Path 格式验证
+
+```python
+from diting.endpoints.wechat.models import APIRequest
+
+# ✅ 正确示例:path 以 / 开头
+request = APIRequest(
+    app_key="key",
+    app_secret="secret",
+    path="/user/get_profile",  # ✅ 以 / 开头
+    data={"guid": "550e8400-e29b-41d4-a716-446655440000"}
+)
+
+# ❌ 错误示例:path 不以 / 开头
+try:
+    request = APIRequest(
+        app_key="key",
+        app_secret="secret",
+        path="user/get_profile",  # ❌ 缺少前导 /
+        data={"guid": "550e8400-e29b-41d4-a716-446655440000"}
+    )
+except ValidationError as e:
+    print(f"❌ path 格式错误: {e}")
+    # 输出: path 必须以 / 开头
+```
+
+#### 4. GUID 格式验证
+
+```python
+from diting.endpoints.wechat.models import WeChatInstance
+
+# ✅ 正确示例:标准 UUID 格式
+instance = WeChatInstance(
+    guid="550e8400-e29b-41d4-a716-446655440000",
+    name="测试设备"
+)
+
+# ❌ 错误示例:无效的 UUID 格式
+try:
+    instance = WeChatInstance(
+        guid="invalid-uuid-format",
+        name="测试设备"
+    )
+except ValidationError as e:
+    print(f"❌ GUID 格式错误: {e}")
+    # 输出: guid 必须是有效的 UUID 格式
+```
+
+### 参数验证最佳实践
+
+#### 1. 在配置加载时验证
+
+```python
+from diting.endpoints.wechat.config import load_from_yaml
+from pydantic import ValidationError
+
+try:
+    # 配置加载时自动验证所有字段
+    config = load_from_yaml("config/wechat.yaml")
+    print("✅ 配置验证通过")
+
+except ValidationError as e:
+    print("❌ 配置文件验证失败:")
+    for error in e.errors():
+        print(f"  - {error['loc']}: {error['msg']}")
+    exit(1)
+```
+
+#### 2. 显式验证用户输入
+
+```python
+from pydantic import BaseModel, field_validator
+
+class UserInput(BaseModel):
+    """用户输入验证模型"""
+    device_guid: str
+
+    @field_validator('device_guid')
+    @classmethod
+    def validate_guid_format(cls, v: str) -> str:
+        """验证 GUID 格式"""
+        if not v.strip():
+            raise ValueError("GUID 不能为空")
+        # 简单验证:36字符,包含4个连字符
+        if len(v) != 36 or v.count('-') != 4:
+            raise ValueError("GUID 格式错误,应为 UUID 标准格式")
+        return v
+
+# 使用示例
+try:
+    user_input = UserInput(device_guid=input("请输入设备 GUID: "))
+    print(f"✅ 输入验证通过: {user_input.device_guid}")
+except ValidationError as e:
+    print(f"❌ 输入验证失败: {e}")
+```
+
+#### 3. 捕获并友好提示验证错误
+
+```python
+from pydantic import ValidationError
+import json
+
+def create_request_with_friendly_errors(app_key, app_secret, path, data):
+    """创建请求,提供友好的错误提示"""
+    try:
+        return APIRequest(
+            app_key=app_key,
+            app_secret=app_secret,
+            path=path,
+            data=data
+        )
+    except ValidationError as e:
+        print("❌ 请求参数验证失败,请检查以下问题:\n")
+        for error in e.errors():
+            field = " → ".join(str(loc) for loc in error['loc'])
+            message = error['msg']
+            print(f"  🔸 字段: {field}")
+            print(f"     问题: {message}")
+            print()
+
+        # 提供修复建议
+        print("💡 修复建议:")
+        if any("app_key" in str(err['loc']) for err in e.errors()):
+            print("  - app_key 应至少 10 个字符")
+        if any("app_secret" in str(err['loc']) for err in e.errors()):
+            print("  - app_secret 应至少 20 个字符")
+        if any("path" in str(err['loc']) for err in e.errors()):
+            print("  - path 必须以 / 开头,如 /user/get_profile")
+        if any("guid" in str(err['loc']) for err in e.errors()):
+            print("  - data 必须包含 guid 字段,格式为 UUID")
+
+        raise
+
+# 使用示例
+try:
+    request = create_request_with_friendly_errors(
+        app_key="123",  # 太短
+        app_secret="secret",  # 太短
+        path="wrong_path",  # 缺少 /
+        data={}  # 缺少 guid
+    )
+except ValidationError:
+    print("\n请修复上述问题后重试")
+```
+
+### 参数验证检查清单
+
+在调用 API 前,确保:
+
+- ✅ `app_key` 长度 ≥ 10 字符
+- ✅ `app_secret` 长度 ≥ 20 字符
+- ✅ `path` 以 `/` 开头(如 `/user/get_profile`)
+- ✅ `data` 字典包含 `guid` 字段
+- ✅ `guid` 是标准 UUID 格式(36字符,4个连字符)
+- ✅ 超时配置为正数(connect > 0, read > 0)
+- ✅ 重试次数 ≥ 0 且为整数
+
 ## 相关文档
 
 - [Feature Specification](./spec.md) - 功能规格
