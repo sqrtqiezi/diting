@@ -126,33 +126,43 @@ jobs:
         id: health-check
         run: |
           ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
-            # 等待服务启动(最多 60 秒)
-            for i in {1..60}; do
-              if systemctl is-active --quiet diting; then
-                echo "✅ 服务已启动"
-                break
-              fi
-              echo "⏳ 等待服务启动... ($i/60)"
-              sleep 1
-            done
+            # 等待 HTTP 健康检查通过(最多 60 秒)
+            echo "🔍 开始健康检查 http://localhost:17999/health"
 
-            # HTTP 健康检查
-            for i in {1..30}; do
+            for i in {1..60}; do
               if curl -f http://localhost:17999/health > /dev/null 2>&1; then
-                echo "✅ 健康检查通过"
+                echo "✅ 健康检查通过 ($i/60)"
 
                 # 验证 JSON 响应格式
                 HEALTH_RESPONSE=$(curl -s http://localhost:17999/health)
                 if echo "$HEALTH_RESPONSE" | jq -e '.status == "healthy"' > /dev/null 2>&1; then
-                  echo "✅ 健康检查响应格式正确"
+                  echo "✅ 健康检查响应格式正确: $HEALTH_RESPONSE"
+
+                  # 验证 systemd 服务状态(仅用于日志,不影响部署)
+                  if sudo systemctl is-active --quiet diting; then
+                    echo "✅ Systemd 服务状态: active"
+                  else
+                    echo "⚠️  Systemd 服务状态: $(sudo systemctl is-active diting 2>&1 || echo 'unknown')"
+                  fi
+
                   exit 0
                 fi
               fi
-              echo "⏳ 等待健康检查... ($i/30)"
+
+              # 每 10 秒输出一次详细诊断信息
+              if [ $((i % 10)) -eq 0 ]; then
+                echo "⏳ 等待健康检查... ($i/60)"
+                echo "   端口检查: $(ss -tlnp | grep 17999 || echo '端口未监听')"
+                echo "   进程检查: $(pgrep -f uvicorn || echo '进程未运行')"
+              fi
+
               sleep 1
             done
 
-            echo "❌ 健康检查失败"
+            echo "❌ 健康检查失败 - 60 秒超时"
+            echo "最后诊断信息:"
+            echo "  systemd 状态: $(sudo systemctl status diting --no-pager -l || echo 'unknown')"
+            echo "  最近日志: $(sudo journalctl -u diting -n 20 --no-pager || echo 'no logs')"
             exit 1
           EOF
 
