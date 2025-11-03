@@ -1,8 +1,11 @@
 name: Deploy to Aliyun ECS
 
-# 触发条件: 仅 master 分支的 push 事件
+# 触发条件: 等待 Test workflow 成功后执行
+# 使用 workflow_run 确保只有测试通过的代码才会部署
 on:
-  push:
+  workflow_run:
+    workflows: ["Test"]  # 等待 Test workflow 完成
+    types: [completed]
     branches: [master]
 
 # 权限配置
@@ -17,6 +20,8 @@ concurrency:
 
 jobs:
   deploy:
+    # 安全检查: 仅在 Test workflow 成功时运行
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15  # 超时保护
     # environment:  # 暂时注释，使用 Repository Secrets
@@ -254,12 +259,23 @@ jobs:
               labels: ['deployment', 'bug']
             });
 
+# 触发流程说明:
+# 1. 代码合并到 master 分支
+# 2. Test workflow 自动运行(2-4 分钟)
+# 3. Test 成功 → 触发 Deploy workflow
+# 4. Test 失败 → Deploy workflow 不会触发(安全保护)
+#
 # 预期结果:
 # ✅ 成功: 新版本部署并通过健康检查,旧版本已清理
 # ❌ 失败: 自动回滚到上一个版本,服务保持可用,创建 Issue 通知
-# ⏱️ 预期时间: 5-10 分钟
+# ⏱️ 预期时间: 7-14 分钟(Test 2-4min + Deploy 5-10min)
 #
 # 所需 GitHub Secrets:
 # - ALIYUN_ECS_HOST: ECS 服务器 IP 或域名
 # - ALIYUN_SSH_USER: SSH 用户名(建议: deploy)
 # - ALIYUN_SSH_PRIVATE_KEY: SSH 私钥(ED25519 格式)
+#
+# 安全保证:
+# - 只有测试通过的代码才会部署到生产环境
+# - workflow_run 触发器确保 Test 和 Deploy 串行执行
+# - if 条件检查确保 Test 状态为 success
