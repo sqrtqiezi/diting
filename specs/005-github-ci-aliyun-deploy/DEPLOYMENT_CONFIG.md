@@ -29,9 +29,9 @@ ssh diting-server
 - ✅ **T034**: 配置 SSH 目录和权限
 - ✅ **T035**: 配置 SSH 密钥认证 (deploy.pem)
 
-### ⏳ 待完成的 GitHub Secrets
+### ✅ 已完成的 GitHub Secrets
 
-需要配置以下 3 个 Secrets:
+已配置以下 3 个 Secrets:
 
 ```bash
 # 方法 1: 使用 GitHub CLI (推荐)
@@ -47,13 +47,13 @@ cat ~/keys/deploy.pem | gh secret set ALIYUN_SSH_PRIVATE_KEY
 
 | Secret Name | Value | Status |
 |-------------|-------|--------|
-| `ALIYUN_ECS_HOST` | <从 ~/.ssh/config 获取> | ⏳ 待配置 |
-| `ALIYUN_SSH_USER` | `deploy` | ⏳ 待配置 |
-| `ALIYUN_SSH_PRIVATE_KEY` | (内容来自 ~/keys/deploy.pem) | ⏳ 待配置 |
+| `ALIYUN_ECS_HOST` | <从 ~/.ssh/config 获取> | ✅ 已配置 |
+| `ALIYUN_SSH_USER` | `deploy` | ✅ 已配置 |
+| `ALIYUN_SSH_PRIVATE_KEY` | (内容来自 ~/keys/deploy.pem) | ✅ 已配置 |
 
-### ⏳ 待完成的 ECS 服务器配置
+### ✅ 已完成的 ECS 服务器配置
 
-剩余任务 (T036-T042):
+所有 ECS 配置任务已完成 (T036-T042):
 
 ```bash
 # 连接到 ECS
@@ -132,21 +132,26 @@ gh secret list  # 应显示 3 个 secrets
 
 ## 下一步操作
 
-1. **配置 GitHub Secrets** (T029-T032)
+### ✅ 已完成
+
+1. **GitHub Secrets 配置** (T029-T032) ✅
+2. **ECS 服务器环境配置** (T036-T042) ✅
+3. **首次手动部署验证** (T060) ✅
+
+### 🚀 待执行
+
+1. **创建 PR 并测试自动化部署** (T061-T063)
    ```bash
-   # 从 ~/.ssh/config 中获取 ECS_IP
-   ECS_IP=$(grep -A 5 "Host diting-server" ~/.ssh/config | grep HostName | awk '{print $2}')
-   gh secret set ALIYUN_ECS_HOST --body "$ECS_IP"
-   gh secret set ALIYUN_SSH_USER --body "deploy"
-   cat ~/keys/deploy.pem | gh secret set ALIYUN_SSH_PRIVATE_KEY
+   # 创建 PR 触发测试工作流
+   gh pr create --title "feat(005): GitHub CI/CD with Aliyun ECS deployment" \
+     --body "完整的自动化测试和部署流程"
+
+   # 合并到 master 触发部署工作流
+   gh pr merge --squash --delete-branch
    ```
 
-2. **完成 ECS 服务器配置** (T036-T042)
-   - 参考上面的"待完成的 ECS 服务器配置"部分
-
-3. **开始实施自动化任务**
-   - 使用 `/speckit.implement` 开始执行自动化任务
-   - 从 Phase 1 (T001-T003) 开始
+2. **验证回滚机制** (T064)
+3. **验证并发控制和版本清理** (T065-T066)
 
 ## 参考文档
 
