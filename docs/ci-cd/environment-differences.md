@@ -8,7 +8,7 @@
 
 | 特性 | 本地开发 | GitHub Actions | 阿里云 ECS 生产 |
 |------|---------|----------------|----------------|
-| **操作系统** | macOS/Linux/Windows | Ubuntu 22.04 (latest) | Ubuntu 22.04 LTS |
+| **操作系统** | macOS/Linux/Windows | Ubuntu 22.04 (latest) | Rocky Linux 9.6 (RHEL) |
 | **Python 版本** | 3.12.6 | 3.12.x | 3.12.x |
 | **包管理器** | uv | uv | uv |
 | **工作目录** | 项目根目录 | `/home/runner/work/diting/diting` | `/opt/diting/current` |
@@ -18,6 +18,74 @@
 | **环境变量** | .env 文件 | GitHub Secrets | systemd Environment |
 | **日志位置** | ./logs/ | GitHub Actions 日志 | /opt/diting/current/logs/ + journald |
 | **服务管理** | 手动启动 | 不适用 | systemd |
+
+## 操作系统差异分析
+
+### Ubuntu (CI) vs Rocky Linux (Production)
+
+**不需要统一操作系统**。原因如下:
+
+#### 1. 职责隔离
+- **GitHub Runner (Ubuntu)**: 仅负责代码质量检查和传输,不运行生产代码
+- **ECS (Rocky Linux)**: 运行生产应用
+
+#### 2. Python 跨平台特性
+我们的技术栈对 OS 差异不敏感:
+- Python 3.12、uv、FastAPI、Uvicorn 都是跨平台的
+- `uv.lock` 确保依赖版本一致性
+
+#### 3. Rocky Linux 生产优势
+| 特性 | Rocky Linux 9.6 | Ubuntu 22.04 |
+|------|----------------|--------------|
+| **长期支持** | 10年 (至2032) | 5年 (至2027) |
+| **稳定性** | 企业级 RHEL 同步 | 良好 |
+| **企业采用** | 银行/政府首选 | 云原生首选 |
+
+#### 4. 需要注意的差异
+
+**包管理器**:
+- Ubuntu: `apt install package-name`
+- Rocky Linux: `dnf install package-name`
+
+**示例** - 安装 Python 开发包:
+```bash
+# Ubuntu (如需在 CI 中安装系统包)
+apt update && apt install -y python3.12-dev gcc
+
+# Rocky Linux (ECS 服务器)
+dnf install -y python3.12-devel gcc
+```
+
+**Python 包名差异**:
+- Ubuntu: `python3.12-dev`
+- Rocky Linux: `python3.12-devel`
+
+**防火墙**:
+- Ubuntu: `ufw` (Uncomplicated Firewall)
+- Rocky Linux: `firewalld`
+
+```bash
+# Ubuntu
+sudo ufw allow 8000/tcp
+
+# Rocky Linux (ECS)
+sudo firewall-cmd --permanent --add-port=8000/tcp
+sudo firewall-cmd --reload
+```
+
+**SELinux** (仅 Rocky Linux):
+- Rocky Linux 默认启用 SELinux,可能影响文件权限
+- 我们的应用运行在 `/opt/diting/` 下,需要正确的 SELinux 上下文
+
+```bash
+# 检查 SELinux 状态
+sestatus
+
+# 如需调整 SELinux 上下文
+sudo chcon -R -t httpd_sys_content_t /opt/diting/
+```
+
+**推荐**: 保持当前配置,在文档中记录这些差异即可。
 
 ## 常见差异问题
 
