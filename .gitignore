@@ -10,7 +10,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -176,3 +176,6 @@ logs/
 
 # Claude Code
 .claude/settings.local.json
+
+
+data/

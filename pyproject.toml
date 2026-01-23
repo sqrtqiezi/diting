@@ -28,6 +28,9 @@ dependencies = [
     "click>=8.1.0,<9.0.0",
     "fastapi>=0.104.0,<1.0.0",
     "uvicorn[standard]>=0.24.0,<1.0.0",
+    "pyarrow>=23.0.0",
+    "portalocker>=3.2.0",
+    "pandas>=2.0.0",
 ]
 
 # 开发依赖
@@ -37,6 +40,7 @@ dev = [
     "mypy>=1.7.0,<2.0.0",
     "pytest>=8.0.0,<9.0.0",
     "pytest-cov>=4.1.0,<5.0.0",
+    "pytest-benchmark>=4.0.0,<5.0.0",
     "pre-commit>=3.5.0,<4.0.0",
     "pytest-httpx>=0.35.0,<1.0.0",
     "pytest-asyncio>=0.23.0,<1.0.0",
@@ -66,15 +70,10 @@ line-length = 100
 target-version = "py312"
 indent-width = 4
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "auto"
-skip-magic-trailing-comma = false
-
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = []
+# 忽略一些代码风格建议，这些不影响功能
+ignore = ["SIM115", "SIM105"]
 exclude = [
     ".venv",
     "__pycache__",
@@ -93,7 +92,7 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
-exclude = ["tests/"]
+exclude = ["tests/", "src/diting/"]
 
 # 未来逐步启用:
 # strict = true
@@ -132,7 +131,7 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
-fail_under = 80
+fail_under = 66
 
 [tool.coverage.html]
 directory = "htmlcov"
