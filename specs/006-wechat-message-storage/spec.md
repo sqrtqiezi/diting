@@ -1,181 +1,181 @@
-# Feature Specification: WeChat Message Data Lake Storage
+# 功能规范：微信消息数据湖存储
 
-**Feature Branch**: `006-wechat-message-storage`
-**Created**: 2026-01-23
-**Status**: Draft
-**Input**: User description: "Design and implement a data lake storage solution for WeChat messages using JSON + Parquet format, supporting message persistence from webhook logs without requiring a database server"
+**功能分支**: `006-wechat-message-storage`
+**创建日期**: 2026-01-23
+**状态**: 草稿
+**输入**: 用户描述："设计并实现基于 JSON + Parquet 格式的微信消息数据湖存储方案，支持从 webhook 日志持久化消息，无需数据库服务器"
 
-## User Scenarios & Testing *(mandatory)*
+## 用户场景与测试 *(必填)*
 
-### User Story 1 - Persist Messages to Structured Storage (Priority: P1)
+### 用户故事 1 - 持久化消息到结构化存储 (优先级: P1)
 
-As a data analyst, I need to convert raw webhook logs into structured storage files so that I can efficiently query and analyze WeChat message history without loading massive JSON files into memory.
+作为数据分析师，我需要将原始 webhook 日志转换为结构化存储文件，以便高效查询和分析微信消息历史，而无需将大量 JSON 文件加载到内存中。
 
-**Why this priority**: This is the foundation for all data analysis. Without structured storage, the current 342MB+ log file is difficult to query and analyze. This enables all downstream use cases.
+**优先级原因**: 这是所有数据分析的基础。如果没有结构化存储，当前 342MB+ 的日志文件难以查询和分析。这使得所有下游用例成为可能。
 
-**Independent Test**: Can be fully tested by running the storage pipeline on existing webhook logs and verifying that Parquet files are created with correct schema and all messages are preserved.
+**独立测试**: 可以通过在现有 webhook 日志上运行存储管道，验证 Parquet 文件是否以正确的 schema 创建且所有消息都被保留来完整测试。
 
-**Acceptance Scenarios**:
+**验收场景**:
 
-1. **Given** webhook logs contain 23,210 messages, **When** storage pipeline runs, **Then** all messages are persisted to Parquet files with no data loss
-2. **Given** messages have two types (message content 98%, contact sync 1.6%), **When** storage pipeline processes them, **Then** each type is stored in separate Parquet files with appropriate schemas
-3. **Given** a new message arrives in webhook log, **When** incremental storage runs, **Then** only new messages are processed and appended to storage
-4. **Given** stored Parquet files exist, **When** querying by date range, **Then** results are returned in under 1 second for typical queries (1 day of data)
-
----
-
-### User Story 2 - Query Historical Messages Efficiently (Priority: P2)
-
-As a data analyst, I need to query historical messages by various criteria (date, sender, chatroom, message type) so that I can extract insights and build knowledge graphs from conversation history.
-
-**Why this priority**: Once data is stored, the ability to query it efficiently is critical for analysis. This enables the knowledge graph feature (Feature 004) and other analytics use cases.
-
-**Independent Test**: Can be tested by running predefined queries against stored data and measuring query performance and result accuracy.
-
-**Acceptance Scenarios**:
-
-1. **Given** messages are stored in Parquet format, **When** querying messages from a specific date, **Then** results are returned without loading entire dataset into memory
-2. **Given** messages from multiple chatrooms, **When** filtering by chatroom ID, **Then** only messages from that chatroom are returned
-3. **Given** messages with different types (text, image, article), **When** filtering by msg_type, **Then** only matching messages are returned
-4. **Given** large date range query (1 month), **When** query executes, **Then** results are returned in under 5 seconds
+1. **假设** webhook 日志包含 23,210 条消息，**当** 存储管道运行时，**那么** 所有消息都被持久化到 Parquet 文件且无数据丢失
+2. **假设** 消息有两种类型（消息内容 98%，联系人同步 1.6%），**当** 存储管道处理它们时，**那么** 每种类型都存储在具有适当 schema 的独立 Parquet 文件中
+3. **假设** webhook 日志中有新消息到达，**当** 增量存储运行时，**那么** 仅处理新消息并追加到存储
+4. **假设** 存储的 Parquet 文件存在，**当** 按日期范围查询时，**那么** 典型查询（1 天数据）在 1 秒内返回结果
 
 ---
 
-### User Story 3 - Maintain Data Quality and Integrity (Priority: P2)
+### 用户故事 2 - 高效查询历史消息 (优先级: P2)
 
-As a system administrator, I need the storage system to validate data quality and handle schema evolution so that data remains consistent and usable over time.
+作为数据分析师，我需要按各种条件（日期、发送者、聊天室、消息类型）查询历史消息，以便从对话历史中提取洞察并构建知识图谱。
 
-**Why this priority**: Data quality issues can corrupt analysis results. Schema evolution support ensures the system can adapt to WeChat API changes without breaking existing data.
+**优先级原因**: 一旦数据被存储，高效查询能力对于分析至关重要。这使得知识图谱功能（Feature 004）和其他分析用例成为可能。
 
-**Independent Test**: Can be tested by introducing malformed messages and schema changes, then verifying that the system handles them gracefully.
+**独立测试**: 可以通过对存储数据运行预定义查询并测量查询性能和结果准确性来测试。
 
-**Acceptance Scenarios**:
+**验收场景**:
 
-1. **Given** a malformed message in webhook log, **When** storage pipeline processes it, **Then** the error is logged and other messages continue processing
-2. **Given** WeChat adds new fields to message schema, **When** storage pipeline encounters new fields, **Then** they are preserved in Parquet files without breaking existing queries
-3. **Given** duplicate messages in webhook log, **When** storage pipeline runs, **Then** duplicates are detected and skipped based on msg_id
-4. **Given** stored data, **When** validation runs, **Then** data integrity checks confirm all required fields are present and types are correct
-
----
-
-### User Story 4 - Archive and Manage Storage Growth (Priority: P3)
-
-As a system administrator, I need to manage storage growth through partitioning and archival so that the system remains performant and cost-effective as data volume grows.
-
-**Why this priority**: While not critical for MVP, this ensures long-term sustainability. Without it, query performance will degrade and storage costs will grow unbounded.
-
-**Independent Test**: Can be tested by simulating months of data and verifying that partitioning works correctly and old data can be archived.
-
-**Acceptance Scenarios**:
-
-1. **Given** messages spanning multiple months, **When** storage pipeline runs, **Then** data is partitioned by year/month for efficient querying
-2. **Given** data older than retention period, **When** archival process runs, **Then** old data is moved to cold storage or deleted per policy
-3. **Given** partitioned data, **When** querying recent data (last 7 days), **Then** only relevant partitions are scanned
-4. **Given** storage usage metrics, **When** monitoring dashboard is checked, **Then** current storage size and growth rate are visible
+1. **假设** 消息以 Parquet 格式存储，**当** 查询特定日期的消息时，**那么** 返回结果而无需将整个数据集加载到内存
+2. **假设** 来自多个聊天室的消息，**当** 按聊天室 ID 过滤时，**那么** 仅返回该聊天室的消息
+3. **假设** 不同类型的消息（文本、图片、文章），**当** 按 msg_type 过滤时，**那么** 仅返回匹配的消息
+4. **假设** 大日期范围查询（1 个月），**当** 查询执行时，**那么** 结果在 5 秒内返回
 
 ---
 
-### Edge Cases
+### 用户故事 3 - 维护数据质量和完整性 (优先级: P2)
 
-- What happens when webhook log file is corrupted or contains invalid JSON?
-  - System should skip corrupted entries, log errors, and continue processing valid entries
-- What happens when Parquet file write fails due to disk space?
-  - System should detect the error, log it, and retry with exponential backoff
-- What happens when message schema changes significantly (breaking change)?
-  - System should detect schema incompatibility and create new versioned Parquet files
-- What happens when querying data that spans multiple Parquet files?
-  - Query engine should automatically merge results from multiple files
-- What happens when two processes try to write to storage simultaneously?
-  - File locking or atomic writes should prevent data corruption
-- What happens when source field type changes (e.g., `source` field is sometimes int, sometimes string)?
-  - Schema should use union types or convert to string to handle both cases
+作为系统管理员，我需要存储系统验证数据质量并处理 schema 演化，以便数据随时间保持一致和可用。
 
-## Requirements *(mandatory)*
+**优先级原因**: 数据质量问题会破坏分析结果。Schema 演化支持确保系统能够适应微信 API 变化而不破坏现有数据。
 
-### Functional Requirements
+**独立测试**: 可以通过引入格式错误的消息和 schema 变更，然后验证系统是否优雅地处理它们来测试。
 
-- **FR-001**: System MUST read messages from webhook log files (`data/wechat_webhook.log`) and parse JSON structure
-- **FR-002**: System MUST distinguish between message content type (11 fields) and contact sync type (46-55 fields) based on field count
-- **FR-003**: System MUST store message content and contact sync data in separate Parquet files with appropriate schemas
-- **FR-004**: System MUST preserve all fields from source data including nested structures (XML strings, dictionaries)
-- **FR-005**: System MUST partition Parquet files by date (year/month/day) for efficient querying
-- **FR-006**: System MUST support incremental processing to avoid reprocessing entire log file
-- **FR-007**: System MUST detect and skip duplicate messages based on `msg_id` field
-- **FR-008**: System MUST validate data types and handle type inconsistencies (e.g., `source` field as int or string)
-- **FR-009**: System MUST log all processing errors (malformed JSON, schema violations) without stopping pipeline
-- **FR-010**: System MUST provide query interface to read Parquet files with filtering by date, sender, chatroom, message type
-- **FR-011**: System MUST maintain metadata about stored data (record count, date range, file locations)
-- **FR-012**: System MUST support schema evolution by preserving unknown fields in Parquet files
-- **FR-013**: System MUST compress Parquet files using Snappy or Zstd compression for storage efficiency
-- **FR-014**: System MUST provide CLI commands for storage operations (ingest, query, validate, archive)
-- **FR-015**: System MUST handle sensitive data fields (mobile, customInfo.detail) with optional masking capability
+**验收场景**:
 
-### Key Entities
+1. **假设** webhook 日志中有格式错误的消息，**当** 存储管道处理它时，**那么** 错误被记录且其他消息继续处理
+2. **假设** 微信向消息 schema 添加新字段，**当** 存储管道遇到新字段时，**那么** 它们被保留在 Parquet 文件中而不破坏现有查询
+3. **假设** webhook 日志中有重复消息，**当** 存储管道运行时，**那么** 基于 msg_id 检测并跳过重复项
+4. **假设** 存储的数据，**当** 验证运行时，**那么** 数据完整性检查确认所有必需字段存在且类型正确
 
-- **Message Content Record**: Represents a WeChat message with 11 core fields
-  - Attributes: from_username, to_username, chatroom, chatroom_sender, msg_id, msg_type, create_time, is_chatroom_msg, content (XML), desc, source (XML/int)
-  - Relationships: Belongs to a chatroom, sent by a user, has a message type
-  - Partitioning: By create_time (year/month/day)
+---
 
-- **Contact Sync Record**: Represents contact/chatroom synchronization data with 46-55 fields
-  - Attributes: Basic info (alias, username, encryptUserName), status flags (contactType, deleteFlag, verifyFlag), contact settings, image URLs, geographic data, contact remarks, group info, social data, enterprise extensions
-  - Relationships: Represents a contact or chatroom entity
-  - Partitioning: By sync timestamp (year/month/day)
+### 用户故事 4 - 归档和管理存储增长 (优先级: P3)
 
-- **Storage Partition**: Represents a time-based partition of data
-  - Attributes: partition_key (year/month/day), record_count, file_path, size_bytes, created_at, last_updated_at
-  - Relationships: Contains multiple message or contact records
+作为系统管理员，我需要通过分区和归档管理存储增长，以便随着数据量增长系统保持高性能和成本效益。
 
-- **Processing Checkpoint**: Tracks incremental processing progress
-  - Attributes: last_processed_offset, last_processed_timestamp, processed_record_count, checkpoint_time
-  - Relationships: References source log file
+**优先级原因**: 虽然对 MVP 不是关键，但这确保了长期可持续性。没有它，查询性能会下降，存储成本会无限增长。
 
-## Success Criteria *(mandatory)*
+**独立测试**: 可以通过模拟数月数据并验证分区正常工作且旧数据可以归档来测试。
 
-### Measurable Outcomes
+**验收场景**:
 
-- **SC-001**: Storage pipeline processes 23,210 existing messages in under 5 minutes on standard hardware
-- **SC-002**: Query performance returns results for single-day queries in under 1 second
-- **SC-003**: Storage efficiency achieves at least 50% compression ratio compared to raw JSON logs
-- **SC-004**: Data integrity validation confirms 100% of messages are preserved with no data loss
-- **SC-005**: Incremental processing adds new messages to storage within 1 minute of webhook log update
-- **SC-006**: System handles schema evolution without requiring manual intervention or data migration
-- **SC-007**: Query interface supports filtering by date, sender, chatroom, and message type with correct results
-- **SC-008**: Storage system operates without requiring external database server or daemon processes
+1. **假设** 跨越多个月的消息，**当** 存储管道运行时，**那么** 数据按年/月分区以实现高效查询
+2. **假设** 超过保留期的数据，**当** 归档流程运行时，**那么** 旧数据根据策略移至冷存储或删除
+3. **假设** 分区数据，**当** 查询最近数据（最近 7 天）时，**那么** 仅扫描相关分区
+4. **假设** 存储使用指标，**当** 检查监控仪表板时，**那么** 当前存储大小和增长率可见
 
-## Assumptions *(optional)*
+---
 
-- Webhook logs are append-only and messages are not modified after writing
-- Message IDs (`msg_id`) are unique and can be used for deduplication
-- System has sufficient disk space for storing Parquet files (estimated 50% of raw log size)
-- Python environment has access to PyArrow/Pandas libraries for Parquet operations
-- File system supports atomic writes or file locking for concurrent access protection
-- Data retention policy will be defined later (default: keep all data)
-- Query workload is primarily analytical (batch queries) rather than transactional (point lookups)
-- Parquet files will be stored locally on the same server as the application
+### 边界情况
 
-## Out of Scope *(optional)*
+- 当 webhook 日志文件损坏或包含无效 JSON 时会发生什么？
+  - 系统应跳过损坏的条目，记录错误，并继续处理有效条目
+- 当由于磁盘空间不足导致 Parquet 文件写入失败时会发生什么？
+  - 系统应检测错误，记录它，并使用指数退避重试
+- 当消息 schema 发生重大变化（破坏性变更）时会发生什么？
+  - 系统应检测 schema 不兼容并创建新的版本化 Parquet 文件
+- 当查询跨越多个 Parquet 文件的数据时会发生什么？
+  - 查询引擎应自动合并来自多个文件的结果
+- 当两个进程尝试同时写入存储时会发生什么？
+  - 文件锁定或原子写入应防止数据损坏
+- 当源字段类型改变时会发生什么（例如，`source` 字段有时是 int，有时是 string）？
+  - Schema 应使用联合类型或转换为字符串以处理两种情况
 
-- Real-time streaming ingestion (batch processing only for MVP)
-- Distributed storage across multiple servers
-- SQL query interface (Python API only for MVP)
-- Data visualization dashboard
-- Automatic backup and disaster recovery
-- XML parsing of `content` and `source` fields (stored as raw strings)
-- Integration with external data lakes (S3, HDFS, etc.)
-- User authentication and access control for queries
-- Data encryption at rest (file system encryption is sufficient)
+## 需求 *(必填)*
 
-## Dependencies *(optional)*
+### 功能需求
 
-- **Feature 003 (WeChat Notification Webhook)**: Provides the source webhook logs that need to be stored
-- **Python Libraries**: PyArrow (Parquet I/O), Pandas (data manipulation), Pydantic (schema validation)
-- **File System**: Requires local file system with sufficient space and write permissions
-- **Existing Data**: `data/wechat_webhook.log` and `data/parsed_messages_*.json` files
+- **FR-001**: 系统必须从 webhook 日志文件（`data/wechat_webhook.log`）读取消息并解析 JSON 结构
+- **FR-002**: 系统必须根据字段数量区分消息内容类型（11 个字段）和联系人同步类型（46-55 个字段）
+- **FR-003**: 系统必须将消息内容和联系人同步数据存储在具有适当 schema 的独立 Parquet 文件中
+- **FR-004**: 系统必须保留源数据的所有字段，包括嵌套结构（XML 字符串、字典）
+- **FR-005**: 系统必须按日期（年/月/日）分区 Parquet 文件以实现高效查询
+- **FR-006**: 系统必须支持增量处理以避免重新处理整个日志文件
+- **FR-007**: 系统必须基于 `msg_id` 字段检测并跳过重复消息
+- **FR-008**: 系统必须验证数据类型并处理类型不一致（例如，`source` 字段为 int 或 string）
+- **FR-009**: 系统必须记录所有处理错误（格式错误的 JSON、schema 违规）而不停止管道
+- **FR-010**: 系统必须提供查询接口以读取 Parquet 文件，支持按日期、发送者、聊天室、消息类型过滤
+- **FR-011**: 系统必须维护关于存储数据的元数据（记录数、日期范围、文件位置）
+- **FR-012**: 系统必须通过在 Parquet 文件中保留未知字段来支持 schema 演化
+- **FR-013**: 系统必须使用 Snappy 或 Zstd 压缩来压缩 Parquet 文件以提高存储效率
+- **FR-014**: 系统必须提供用于存储操作的 CLI 命令（摄取、查询、验证、归档）
+- **FR-015**: 系统必须处理敏感数据字段（mobile、customInfo.detail），具有可选的脱敏能力
 
-## References *(optional)*
+### 关键实体
 
-- `docs/wechat-message-schema.md`: Detailed schema documentation for WeChat webhook messages
-- Apache Parquet format specification: https://parquet.apache.org/docs/
-- PyArrow documentation: https://arrow.apache.org/docs/python/
-- Data lake architecture patterns: https://www.databricks.com/glossary/data-lake
+- **消息内容记录**: 表示具有 11 个核心字段的微信消息
+  - 属性: from_username, to_username, chatroom, chatroom_sender, msg_id, msg_type, create_time, is_chatroom_msg, content (XML), desc, source (XML/int)
+  - 关系: 属于聊天室，由用户发送，具有消息类型
+  - 分区: 按 create_time（年/月/日）
+
+- **联系人同步记录**: 表示具有 46-55 个字段的联系人/聊天室同步数据
+  - 属性: 基本信息（alias, username, encryptUserName）、状态标志（contactType, deleteFlag, verifyFlag）、联系人设置、图像 URL、地理数据、联系人备注、群组信息、社交数据、企业扩展
+  - 关系: 表示联系人或聊天室实体
+  - 分区: 按同步时间戳（年/月/日）
+
+- **存储分区**: 表示基于时间的数据分区
+  - 属性: partition_key（年/月/日）、record_count、file_path、size_bytes、created_at、last_updated_at
+  - 关系: 包含多个消息或联系人记录
+
+- **处理检查点**: 跟踪增量处理进度
+  - 属性: last_processed_offset、last_processed_timestamp、processed_record_count、checkpoint_time
+  - 关系: 引用源日志文件
+
+## 成功标准 *(必填)*
+
+### 可测量结果
+
+- **SC-001**: 存储管道在标准硬件上在 5 分钟内处理 23,210 条现有消息
+- **SC-002**: 查询性能在 1 秒内返回单日查询结果
+- **SC-003**: 存储效率相比原始 JSON 日志实现至少 50% 的压缩率
+- **SC-004**: 数据完整性验证确认 100% 的消息被保留且无数据丢失
+- **SC-005**: 增量处理在 webhook 日志更新后 1 分钟内将新消息添加到存储
+- **SC-006**: 系统处理 schema 演化而无需手动干预或数据迁移
+- **SC-007**: 查询接口支持按日期、发送者、聊天室和消息类型过滤并返回正确结果
+- **SC-008**: 存储系统运行无需外部数据库服务器或守护进程
+
+## 假设 *(可选)*
+
+- Webhook 日志是仅追加的，消息在写入后不会被修改
+- 消息 ID（`msg_id`）是唯一的，可用于去重
+- 系统有足够的磁盘空间存储 Parquet 文件（估计为原始日志大小的 50%）
+- Python 环境可以访问 PyArrow/Pandas 库进行 Parquet 操作
+- 文件系统支持原子写入或文件锁定以保护并发访问
+- 数据保留策略将在稍后定义（默认：保留所有数据）
+- 查询工作负载主要是分析性的（批量查询）而非事务性的（点查找）
+- Parquet 文件将存储在与应用程序相同的服务器上
+
+## 不在范围内 *(可选)*
+
+- 实时流式摄取（MVP 仅批处理）
+- 跨多个服务器的分布式存储
+- SQL 查询接口（MVP 仅 Python API）
+- 数据可视化仪表板
+- 自动备份和灾难恢复
+- `content` 和 `source` 字段的 XML 解析（存储为原始字符串）
+- 与外部数据湖（S3、HDFS 等）的集成
+- 查询的用户身份验证和访问控制
+- 静态数据加密（文件系统加密已足够）
+
+## 依赖 *(可选)*
+
+- **Feature 003（微信通知 Webhook）**: 提供需要存储的源 webhook 日志
+- **Python 库**: PyArrow（Parquet I/O）、Pandas（数据操作）、Pydantic（schema 验证）
+- **文件系统**: 需要具有足够空间和写入权限的本地文件系统
+- **现有数据**: `data/wechat_webhook.log` 和 `data/parsed_messages_*.json` 文件
+
+## 参考 *(可选)*
+
+- `docs/wechat-message-schema.md`: 微信 webhook 消息的详细 schema 文档
+- Apache Parquet 格式规范: https://parquet.apache.org/docs/
+- PyArrow 文档: https://arrow.apache.org/docs/python/
+- 数据湖架构模式: https://www.databricks.com/glossary/data-lake
