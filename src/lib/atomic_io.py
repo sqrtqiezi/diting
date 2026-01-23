@@ -6,7 +6,7 @@ This module provides atomic file write operations using Write-Rename pattern.
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, BinaryIO, TextIO
+from typing import Any, BinaryIO, TextIO, cast
 
 
 class AtomicWriter:
@@ -65,11 +65,12 @@ class AtomicWriter:
 
         # 打开临时文件
         if self.encoding:
-            self.file_handle = open(
-                self.temp_path, mode=self.mode, encoding=self.encoding, **self.kwargs
+            self.file_handle = cast(
+                TextIO,
+                open(self.temp_path, mode=self.mode, encoding=self.encoding, **self.kwargs),
             )
         else:
-            self.file_handle = open(self.temp_path, mode=self.mode, **self.kwargs)
+            self.file_handle = cast(BinaryIO, open(self.temp_path, mode=self.mode, **self.kwargs))
 
         return self.file_handle
 
@@ -118,4 +119,8 @@ def atomic_write(
         >>> atomic_write("data.txt", "Hello World")
     """
     with AtomicWriter(target_path, mode=mode, encoding=encoding) as f:
-        f.write(content)
+        if isinstance(content, str):
+            cast(TextIO, f).write(content)
+        else:
+            cast(BinaryIO, f).write(content)
+

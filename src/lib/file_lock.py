@@ -7,6 +7,7 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import IO, Any
 
 import portalocker
 
@@ -39,7 +40,7 @@ def file_lock(
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 打开文件(如果不存在则创建)
-    lock_file = open(file_path, "a+")
+    lock_file: IO[Any] = open(file_path, "a+")
 
     start_time = time.time()
     acquired = False
@@ -96,7 +97,7 @@ class FileLock:
             file_path: 要锁定的文件路径
         """
         self.file_path = Path(file_path)
-        self.lock_file = None
+        self.lock_file: IO[Any] | None = None
         self.acquired = False
 
     def acquire(self, timeout: float = 5.0, check_interval: float = 0.1) -> None:
@@ -131,7 +132,8 @@ class FileLock:
                 time.sleep(check_interval)
 
         # 超时,关闭文件并抛出异常
-        self.lock_file.close()
+        if self.lock_file:
+            self.lock_file.close()
         self.lock_file = None
         raise OSError(
             f"Failed to acquire file lock for {self.file_path} " f"within {timeout} seconds"
@@ -157,7 +159,7 @@ class FileLock:
         self.acquire()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """退出上下文管理器"""
         self.release()
 
