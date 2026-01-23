@@ -70,18 +70,9 @@ target-version = "py312"
 indent-width = 4
 
 [tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
 # 忽略一些代码风格建议，这些不影响功能
 ignore = ["SIM115", "SIM105"]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "auto"
-skip-magic-trailing-comma = false
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = []
 exclude = [
     ".venv",
     "__pycache__",
