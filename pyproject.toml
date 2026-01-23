@@ -69,6 +69,10 @@ line-length = 100
 target-version = "py312"
 indent-width = 4
 
+[tool.ruff.lint]
+# 忽略一些代码风格建议，这些不影响功能
+ignore = ["SIM115", "SIM105"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
