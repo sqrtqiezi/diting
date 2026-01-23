@@ -4,12 +4,11 @@
 """
 
 import json
-import pytest
+from pathlib import Path
+
 import pyarrow as pa
 import pyarrow.parquet as pq
-from pathlib import Path
-from datetime import datetime
-from typing import Any
+import pytest
 
 # 注意: 这些导入在实现之前会失败,这是 TDD 的预期行为
 try:
@@ -64,10 +63,7 @@ class TestParquetConverterContract:
         parquet_root = temp_dir / "parquet"
 
         # 应该接受必需参数: jsonl_path, parquet_root
-        result = convert_jsonl_to_parquet(
-            jsonl_path=sample_jsonl_file,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=sample_jsonl_file, parquet_root=parquet_root)
 
         # 应该返回字典类型的统计信息
         assert isinstance(result, dict)
@@ -76,10 +72,7 @@ class TestParquetConverterContract:
         """测试返回值契约"""
         parquet_root = temp_dir / "parquet"
 
-        result = convert_jsonl_to_parquet(
-            jsonl_path=sample_jsonl_file,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=sample_jsonl_file, parquet_root=parquet_root)
 
         # 验证返回值包含所有必需字段
         required_fields = {
@@ -89,20 +82,21 @@ class TestParquetConverterContract:
             "total_batches",
             "source_size_mb",
             "target_size_mb",
-            "compression_ratio"
+            "compression_ratio",
         }
 
-        assert set(result.keys()) >= required_fields, \
-            f"返回值契约变更: 缺少字段 {required_fields - set(result.keys())}"
+        assert (
+            set(result.keys()) >= required_fields
+        ), f"返回值契约变更: 缺少字段 {required_fields - set(result.keys())}"
 
         # 验证字段类型
         assert isinstance(result["source_file"], str)
         assert isinstance(result["target_file"], str)
         assert isinstance(result["total_records"], int)
         assert isinstance(result["total_batches"], int)
-        assert isinstance(result["source_size_mb"], (int, float))
-        assert isinstance(result["target_size_mb"], (int, float))
-        assert isinstance(result["compression_ratio"], (int, float))
+        assert isinstance(result["source_size_mb"], int | float)
+        assert isinstance(result["target_size_mb"], int | float)
+        assert isinstance(result["compression_ratio"], int | float)
 
         # 验证字段值合理性
         assert result["total_records"] > 0
@@ -115,10 +109,7 @@ class TestParquetConverterContract:
         """测试创建 Parquet 文件契约"""
         parquet_root = temp_dir / "parquet"
 
-        result = convert_jsonl_to_parquet(
-            jsonl_path=sample_jsonl_file,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=sample_jsonl_file, parquet_root=parquet_root)
 
         # 验证 Parquet 文件被创建
         target_file = Path(result["target_file"])
@@ -129,10 +120,7 @@ class TestParquetConverterContract:
         """测试分区结构契约"""
         parquet_root = temp_dir / "parquet"
 
-        result = convert_jsonl_to_parquet(
-            jsonl_path=sample_jsonl_file,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=sample_jsonl_file, parquet_root=parquet_root)
 
         # 验证分区目录结构: year=YYYY/month=MM/day=DD
         target_file = Path(result["target_file"])
@@ -155,10 +143,7 @@ class TestParquetConverterContract:
         """测试 Parquet Schema 契约"""
         parquet_root = temp_dir / "parquet"
 
-        result = convert_jsonl_to_parquet(
-            jsonl_path=sample_jsonl_file,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=sample_jsonl_file, parquet_root=parquet_root)
 
         # 读取 Parquet 文件
         target_file = Path(result["target_file"])
@@ -166,34 +151,43 @@ class TestParquetConverterContract:
 
         # 验证 Schema 包含所有必需字段
         expected_fields = {
-            'msg_id', 'from_username', 'to_username', 'chatroom',
-            'chatroom_sender', 'msg_type', 'create_time', 'is_chatroom_msg',
-            'content', 'desc', 'source', 'guid', 'notify_type', 'ingestion_time'
+            "msg_id",
+            "from_username",
+            "to_username",
+            "chatroom",
+            "chatroom_sender",
+            "msg_type",
+            "create_time",
+            "is_chatroom_msg",
+            "content",
+            "desc",
+            "source",
+            "guid",
+            "notify_type",
+            "ingestion_time",
         }
 
         actual_fields = set(table.schema.names)
-        assert expected_fields.issubset(actual_fields), \
-            f"Schema 契约变更: 缺少字段 {expected_fields - actual_fields}"
+        assert expected_fields.issubset(
+            actual_fields
+        ), f"Schema 契约变更: 缺少字段 {expected_fields - actual_fields}"
 
         # 验证关键字段类型
-        assert table.schema.field('msg_id').type == pa.string()
-        assert table.schema.field('from_username').type == pa.string()
-        assert table.schema.field('to_username').type == pa.string()
-        assert table.schema.field('msg_type').type == pa.int32()
-        assert table.schema.field('is_chatroom_msg').type == pa.int8()
-        assert table.schema.field('source').type == pa.string()  # 统一为字符串
+        assert table.schema.field("msg_id").type == pa.string()
+        assert table.schema.field("from_username").type == pa.string()
+        assert table.schema.field("to_username").type == pa.string()
+        assert table.schema.field("msg_type").type == pa.int32()
+        assert table.schema.field("is_chatroom_msg").type == pa.int8()
+        assert table.schema.field("source").type == pa.string()  # 统一为字符串
 
     def test_data_integrity_contract(self, sample_jsonl_file: Path, temp_dir: Path):
         """测试数据完整性契约"""
         parquet_root = temp_dir / "parquet"
 
-        result = convert_jsonl_to_parquet(
-            jsonl_path=sample_jsonl_file,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=sample_jsonl_file, parquet_root=parquet_root)
 
         # 读取原始 JSONL 数据
-        with open(sample_jsonl_file, "r", encoding="utf-8") as f:
+        with open(sample_jsonl_file, encoding="utf-8") as f:
             original_messages = [json.loads(line) for line in f]
 
         # 读取 Parquet 数据
@@ -202,15 +196,16 @@ class TestParquetConverterContract:
         df = table.to_pandas()
 
         # 验证记录数一致
-        assert len(df) == len(original_messages), \
-            f"记录数不一致: Parquet {len(df)} vs JSONL {len(original_messages)}"
+        assert len(df) == len(
+            original_messages
+        ), f"记录数不一致: Parquet {len(df)} vs JSONL {len(original_messages)}"
 
         # 验证关键字段数据一致
         for i, original_msg in enumerate(original_messages):
             row = df.iloc[i]
-            assert row['msg_id'] == original_msg['msg_id']
-            assert row['from_username'] == original_msg['from_username']
-            assert row['content'] == original_msg['content']
+            assert row["msg_id"] == original_msg["msg_id"]
+            assert row["from_username"] == original_msg["from_username"]
+            assert row["content"] == original_msg["content"]
 
     def test_compression_parameter_contract(self, sample_jsonl_file: Path, temp_dir: Path):
         """测试压缩参数契约"""
@@ -221,7 +216,7 @@ class TestParquetConverterContract:
             result = convert_jsonl_to_parquet(
                 jsonl_path=sample_jsonl_file,
                 parquet_root=parquet_root / compression,
-                compression=compression
+                compression=compression,
             )
 
             # 应该成功创建文件
@@ -229,7 +224,7 @@ class TestParquetConverterContract:
             assert target_file.exists()
 
             # 验证压缩算法
-            parquet_file = pq.ParquetFile(target_file)
+            pq.ParquetFile(target_file)
             # 注意: 压缩算法存储在元数据中,具体验证方式取决于 PyArrow 版本
 
     def test_batch_size_parameter_contract(self, sample_jsonl_file: Path, temp_dir: Path):
@@ -241,7 +236,7 @@ class TestParquetConverterContract:
             result = convert_jsonl_to_parquet(
                 jsonl_path=sample_jsonl_file,
                 parquet_root=parquet_root / f"batch_{batch_size}",
-                batch_size=batch_size
+                batch_size=batch_size,
             )
 
             # 应该成功创建文件
@@ -260,9 +255,7 @@ class TestParquetConverterContract:
 
         # 使用显式 Schema
         result = convert_jsonl_to_parquet(
-            jsonl_path=sample_jsonl_file,
-            parquet_root=parquet_root,
-            schema=MESSAGE_CONTENT_SCHEMA
+            jsonl_path=sample_jsonl_file, parquet_root=parquet_root, schema=MESSAGE_CONTENT_SCHEMA
         )
 
         # 应该成功创建文件
@@ -281,10 +274,7 @@ class TestParquetConverterContract:
 
         # 应该抛出 FileNotFoundError
         with pytest.raises(FileNotFoundError):
-            convert_jsonl_to_parquet(
-                jsonl_path=non_existent_file,
-                parquet_root=parquet_root
-            )
+            convert_jsonl_to_parquet(jsonl_path=non_existent_file, parquet_root=parquet_root)
 
     def test_error_handling_invalid_json(self, temp_dir: Path):
         """测试无效 JSON 错误处理契约"""
@@ -316,17 +306,14 @@ class TestParquetConverterContract:
         }
 
         with open(jsonl_path, "w", encoding="utf-8") as f:
-            f.write(json.dumps(valid_msg1) + '\n')
-            f.write('invalid json line\n')  # 无效 JSON
-            f.write(json.dumps(valid_msg2) + '\n')
+            f.write(json.dumps(valid_msg1) + "\n")
+            f.write("invalid json line\n")  # 无效 JSON
+            f.write(json.dumps(valid_msg2) + "\n")
 
         parquet_root = temp_dir / "parquet"
 
         # 应该跳过无效行并记录警告,不抛出异常
-        result = convert_jsonl_to_parquet(
-            jsonl_path=jsonl_path,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=jsonl_path, parquet_root=parquet_root)
 
         # 应该只处理有效的 2 行
         assert result["total_records"] == 2
@@ -340,10 +327,7 @@ class TestParquetConverterContract:
         parquet_root = temp_dir / "parquet"
 
         # 应该优雅处理空文件
-        result = convert_jsonl_to_parquet(
-            jsonl_path=jsonl_path,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=jsonl_path, parquet_root=parquet_root)
 
         # 应该返回 0 记录
         assert result["total_records"] == 0
@@ -390,15 +374,11 @@ class TestParquetConverterPerformanceContract:
         parquet_root = tmp_path / "parquet"
 
         start_time = time.time()
-        result = convert_jsonl_to_parquet(
-            jsonl_path=large_jsonl_file,
-            parquet_root=parquet_root
-        )
+        result = convert_jsonl_to_parquet(jsonl_path=large_jsonl_file, parquet_root=parquet_root)
         elapsed_time = time.time() - start_time
 
         # 性能契约: 23,210 条消息应该在 5 分钟内完成
-        assert elapsed_time < 300, \
-            f"转换超时: {elapsed_time:.2f}s > 300s (5分钟)"
+        assert elapsed_time < 300, f"转换超时: {elapsed_time:.2f}s > 300s (5分钟)"
 
         # 验证记录数
         assert result["total_records"] == 23210
@@ -408,14 +388,13 @@ class TestParquetConverterPerformanceContract:
         parquet_root = tmp_path / "parquet"
 
         result = convert_jsonl_to_parquet(
-            jsonl_path=large_jsonl_file,
-            parquet_root=parquet_root,
-            compression="snappy"
+            jsonl_path=large_jsonl_file, parquet_root=parquet_root, compression="snappy"
         )
 
         # 压缩率契约: 应该至少有 1.5x 压缩
-        assert result["compression_ratio"] >= 1.5, \
-            f"压缩率不足: {result['compression_ratio']:.2f}x < 1.5x"
+        assert (
+            result["compression_ratio"] >= 1.5
+        ), f"压缩率不足: {result['compression_ratio']:.2f}x < 1.5x"
 
     def test_memory_efficiency(self, large_jsonl_file: Path, tmp_path: Path):
         """测试内存效率契约 (峰值内存 < 500MB)"""
@@ -426,10 +405,7 @@ class TestParquetConverterPerformanceContract:
         # 开始内存跟踪
         tracemalloc.start()
 
-        result = convert_jsonl_to_parquet(
-            jsonl_path=large_jsonl_file,
-            parquet_root=parquet_root
-        )
+        convert_jsonl_to_parquet(jsonl_path=large_jsonl_file, parquet_root=parquet_root)
 
         # 获取峰值内存使用
         current, peak = tracemalloc.get_traced_memory()
@@ -437,5 +413,4 @@ class TestParquetConverterPerformanceContract:
 
         # 内存契约: 峰值内存应该 < 500MB
         peak_mb = peak / (1024 * 1024)
-        assert peak_mb < 500, \
-            f"内存使用超标: {peak_mb:.2f}MB > 500MB"
+        assert peak_mb < 500, f"内存使用超标: {peak_mb:.2f}MB > 500MB"

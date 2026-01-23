@@ -3,7 +3,6 @@
 测试分区字段提取、分区路径生成和消息分组功能。
 """
 
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -299,7 +298,7 @@ class TestGroupMessagesByPartition:
         assert len(result) == 10
 
         # 每个分区应该有 1000 条消息
-        for partition_key, partition_messages in result.items():
+        for _partition_key, partition_messages in result.items():
             assert len(partition_messages) == 1000
 
 

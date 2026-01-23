@@ -1,6 +1,5 @@
 """Pytest 全局配置和 fixtures"""
 
-from pathlib import Path
 
 import pytest
 

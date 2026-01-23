@@ -3,11 +3,12 @@
 验证 MessageContent Pydantic 模型的 API 契约稳定性。
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
 from pydantic import ValidationError
 
-from src.models.message_schema import MessageContent, ContactSync
+from src.models.message_schema import ContactSync, MessageContent
 
 
 class TestMessageContentContract:
@@ -21,15 +22,23 @@ class TestMessageContentContract:
 
         # 验证错误信息包含所有必填字段
         error_dict = exc_info.value.errors()
-        missing_fields = {err['loc'][0] for err in error_dict if err['type'] == 'missing'}
+        missing_fields = {err["loc"][0] for err in error_dict if err["type"] == "missing"}
 
         expected_required = {
-            'msg_id', 'from_username', 'to_username', 'msg_type',
-            'create_time', 'is_chatroom_msg', 'source', 'guid', 'notify_type'
+            "msg_id",
+            "from_username",
+            "to_username",
+            "msg_type",
+            "create_time",
+            "is_chatroom_msg",
+            "source",
+            "guid",
+            "notify_type",
         }
 
-        assert expected_required.issubset(missing_fields), \
-            f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
+        assert expected_required.issubset(
+            missing_fields
+        ), f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
 
     def test_minimal_valid_message(self):
         """测试最小有效消息契约"""
@@ -43,7 +52,7 @@ class TestMessageContentContract:
             is_chatroom_msg=0,
             source="0",
             guid="test-guid-123",
-            notify_type=100
+            notify_type=100,
         )
 
         # 验证字段值
@@ -76,7 +85,7 @@ class TestMessageContentContract:
             is_chatroom_msg=0,
             source=123,  # 整数
             guid="test-guid-123",
-            notify_type=100
+            notify_type=100,
         )
         assert msg_int_source.source == "123"
         assert isinstance(msg_int_source.source, str)
@@ -91,7 +100,7 @@ class TestMessageContentContract:
             is_chatroom_msg=0,
             source="abc",  # 字符串
             guid="test-guid-123",
-            notify_type=100
+            notify_type=100,
         )
         assert msg_str_source.source == "abc"
 
@@ -105,7 +114,7 @@ class TestMessageContentContract:
             is_chatroom_msg=0,
             source=None,  # None
             guid="test-guid-123",
-            notify_type=100
+            notify_type=100,
         )
         assert msg_none_source.source == ""
 
@@ -122,7 +131,7 @@ class TestMessageContentContract:
                 is_chatroom_msg=0,
                 source="0",
                 guid="test-guid-123",
-                notify_type=100
+                notify_type=100,
             )
 
         # create_time 必须 > 0
@@ -136,7 +145,7 @@ class TestMessageContentContract:
                 is_chatroom_msg=0,
                 source="0",
                 guid="test-guid-123",
-                notify_type=100
+                notify_type=100,
             )
 
         # is_chatroom_msg 必须是 0 或 1
@@ -150,7 +159,7 @@ class TestMessageContentContract:
                 is_chatroom_msg=2,  # 无效
                 source="0",
                 guid="test-guid-123",
-                notify_type=100
+                notify_type=100,
             )
 
         # notify_type 必须 >= 0
@@ -164,7 +173,7 @@ class TestMessageContentContract:
                 is_chatroom_msg=0,
                 source="0",
                 guid="test-guid-123",
-                notify_type=-1  # 无效
+                notify_type=-1,  # 无效
             )
 
     def test_model_dict_serialization(self):
@@ -178,7 +187,7 @@ class TestMessageContentContract:
             is_chatroom_msg=0,
             source="0",
             guid="test-guid-123",
-            notify_type=100
+            notify_type=100,
         )
 
         # 转换为字典
@@ -186,9 +195,20 @@ class TestMessageContentContract:
 
         # 验证所有字段都存在
         expected_fields = {
-            'msg_id', 'from_username', 'to_username', 'chatroom',
-            'chatroom_sender', 'msg_type', 'create_time', 'is_chatroom_msg',
-            'content', 'desc', 'source', 'guid', 'notify_type', 'ingestion_time'
+            "msg_id",
+            "from_username",
+            "to_username",
+            "chatroom",
+            "chatroom_sender",
+            "msg_type",
+            "create_time",
+            "is_chatroom_msg",
+            "content",
+            "desc",
+            "source",
+            "guid",
+            "notify_type",
+            "ingestion_time",
         }
         assert set(msg_dict.keys()) == expected_fields
 
@@ -209,20 +229,17 @@ class TestContactSyncContract:
 
         # 验证错误信息包含必填字段
         error_dict = exc_info.value.errors()
-        missing_fields = {err['loc'][0] for err in error_dict if err['type'] == 'missing'}
+        missing_fields = {err["loc"][0] for err in error_dict if err["type"] == "missing"}
 
-        expected_required = {'username', 'guid', 'notify_type'}
+        expected_required = {"username", "guid", "notify_type"}
 
-        assert expected_required.issubset(missing_fields), \
-            f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
+        assert expected_required.issubset(
+            missing_fields
+        ), f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
 
     def test_minimal_valid_contact(self):
         """测试最小有效联系人契约"""
-        contact = ContactSync(
-            username="wxid_test",
-            guid="test-guid-456",
-            notify_type=101
-        )
+        contact = ContactSync(username="wxid_test", guid="test-guid-456", notify_type=101)
 
         # 验证必填字段
         assert contact.username == "wxid_test"
@@ -254,7 +271,7 @@ class TestContactSyncContract:
                 username="wxid_test",
                 guid="test-guid-456",
                 notify_type=101,
-                deleteFlag=2  # 无效
+                deleteFlag=2,  # 无效
             )
 
         # sex 必须是 0-2
@@ -263,7 +280,7 @@ class TestContactSyncContract:
                 username="wxid_test",
                 guid="test-guid-456",
                 notify_type=101,
-                sex=3  # 无效
+                sex=3,  # 无效
             )
 
         # contactType 必须 >= 0
@@ -272,17 +289,13 @@ class TestContactSyncContract:
                 username="wxid_test",
                 guid="test-guid-456",
                 notify_type=101,
-                contactType=-1  # 无效
+                contactType=-1,  # 无效
             )
 
     def test_model_dict_serialization(self):
         """测试模型字典序列化契约"""
         contact = ContactSync(
-            username="wxid_test",
-            guid="test-guid-456",
-            notify_type=101,
-            alias="TestUser",
-            sex=1
+            username="wxid_test", guid="test-guid-456", notify_type=101, alias="TestUser", sex=1
         )
 
         # 转换为字典
@@ -290,10 +303,24 @@ class TestContactSyncContract:
 
         # 验证所有字段都存在
         expected_fields = {
-            'username', 'alias', 'encryptUserName', 'contactType',
-            'deleteFlag', 'verifyFlag', 'sex', 'country', 'province',
-            'city', 'mobile', 'nickName', 'remark', 'snsUserInfo',
-            'customInfo', 'guid', 'notify_type', 'ingestion_time'
+            "username",
+            "alias",
+            "encryptUserName",
+            "contactType",
+            "deleteFlag",
+            "verifyFlag",
+            "sex",
+            "country",
+            "province",
+            "city",
+            "mobile",
+            "nickName",
+            "remark",
+            "snsUserInfo",
+            "customInfo",
+            "guid",
+            "notify_type",
+            "ingestion_time",
         }
         assert set(contact_dict.keys()) == expected_fields
 

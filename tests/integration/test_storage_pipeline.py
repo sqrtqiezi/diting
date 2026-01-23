@@ -4,7 +4,6 @@
 """
 
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -241,7 +240,7 @@ class TestStoragePipelineIntegration:
         df = table.to_pandas()
 
         # 验证所有原始消息的数据都存在
-        for i, original_msg in enumerate(sample_messages):
+        for _i, original_msg in enumerate(sample_messages):
             row = df[df["msg_id"] == original_msg["msg_id"]].iloc[0]
 
             assert row["from_username"] == original_msg["from_username"]

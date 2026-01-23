@@ -5,7 +5,7 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -38,7 +38,7 @@ class TestJSONLWriterInit:
         base_dir = tmp_path / "messages" / "raw"
         assert not base_dir.exists()
 
-        writer = JSONLWriter(base_dir=base_dir)
+        JSONLWriter(base_dir=base_dir)
 
         assert base_dir.exists()
         assert base_dir.is_dir()
@@ -325,14 +325,18 @@ class TestJSONLWriterErrorHandling:
         """测试文件写入失败抛出 OSError"""
         message = {"msg_id": "test_123"}
 
-        with patch("builtins.open", side_effect=OSError("Disk full")):
-            with pytest.raises(OSError):
-                writer.append_message(message)
+        with (
+            patch("builtins.open", side_effect=OSError("Disk full")),
+            pytest.raises(OSError),
+        ):
+            writer.append_message(message)
 
     def test_append_batch_file_write_error(self, writer: JSONLWriter):
         """测试批量写入失败抛出 OSError"""
         messages = [{"msg_id": "msg_1"}]
 
-        with patch("builtins.open", side_effect=OSError("Disk full")):
-            with pytest.raises(OSError):
-                writer.append_batch(messages)
+        with (
+            patch("builtins.open", side_effect=OSError("Disk full")),
+            pytest.raises(OSError),
+        ):
+            writer.append_batch(messages)

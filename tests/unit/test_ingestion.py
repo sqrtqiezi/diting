@@ -3,11 +3,8 @@
 测试 JSONL 到 Parquet 转换的核心功能，使用 mock 隔离文件系统依赖。
 """
 
-from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
 
-import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -337,9 +334,7 @@ class TestAppendToParquetPartition:
             }
         ]
 
-    def test_append_to_parquet_partition_success(
-        self, tmp_path: Path, sample_messages: list[dict]
-    ):
+    def test_append_to_parquet_partition_success(self, tmp_path: Path, sample_messages: list[dict]):
         """测试成功追加到 Parquet 分区"""
         parquet_root = tmp_path / "parquet"
 

@@ -4,10 +4,11 @@
 """
 
 import json
-import pytest
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Any
+
+import pytest
 
 # 注意: 这些导入在实现之前会失败,这是 TDD 的预期行为
 try:
@@ -50,7 +51,7 @@ class TestJSONLWriterContract:
             "msg_id": "test_123",
             "from_username": "wxid_sender",
             "content": "Hello",
-            "create_time": 1737590400
+            "create_time": 1737590400,
         }
 
         # 应该返回 None (静默成功)
@@ -63,7 +64,7 @@ class TestJSONLWriterContract:
             "msg_id": "test_123",
             "from_username": "wxid_sender",
             "content": "Hello",
-            "create_time": 1737590400
+            "create_time": 1737590400,
         }
 
         writer.append_message(message)
@@ -80,7 +81,7 @@ class TestJSONLWriterContract:
             "msg_id": "test_123",
             "from_username": "wxid_sender",
             "content": "Hello",
-            "create_time": 1737590400
+            "create_time": 1737590400,
         }
 
         writer.append_message(message)
@@ -89,7 +90,7 @@ class TestJSONLWriterContract:
         today = datetime.utcnow().strftime("%Y-%m-%d")
         jsonl_file = temp_dir / f"{today}.jsonl"
 
-        with open(jsonl_file, "r", encoding="utf-8") as f:
+        with open(jsonl_file, encoding="utf-8") as f:
             lines = f.readlines()
 
         # 应该有一行
@@ -113,7 +114,7 @@ class TestJSONLWriterContract:
         today = datetime.utcnow().strftime("%Y-%m-%d")
         jsonl_file = temp_dir / f"{today}.jsonl"
 
-        with open(jsonl_file, "r", encoding="utf-8") as f:
+        with open(jsonl_file, encoding="utf-8") as f:
             lines = f.readlines()
 
         # 应该有两行
@@ -130,7 +131,7 @@ class TestJSONLWriterContract:
         # 传入不可序列化的对象应该抛出 ValueError
         invalid_message = {
             "msg_id": "test_123",
-            "invalid_field": object()  # 不可序列化
+            "invalid_field": object(),  # 不可序列化
         }
 
         with pytest.raises((ValueError, TypeError)):
@@ -162,7 +163,7 @@ class TestJSONLWriterContract:
         today = datetime.utcnow().strftime("%Y-%m-%d")
         jsonl_file = temp_dir / f"{today}.jsonl"
 
-        with open(jsonl_file, "r", encoding="utf-8") as f:
+        with open(jsonl_file, encoding="utf-8") as f:
             lines = f.readlines()
 
         # 应该有三行
@@ -192,7 +193,7 @@ class TestJSONLWriterContract:
         threads = []
         chunk_size = 20
         for i in range(0, len(messages), chunk_size):
-            chunk = messages[i:i+chunk_size]
+            chunk = messages[i : i + chunk_size]
             thread = threading.Thread(target=write_messages, args=(chunk,))
             threads.append(thread)
             thread.start()
@@ -205,7 +206,7 @@ class TestJSONLWriterContract:
         today = datetime.utcnow().strftime("%Y-%m-%d")
         jsonl_file = temp_dir / f"{today}.jsonl"
 
-        with open(jsonl_file, "r", encoding="utf-8") as f:
+        with open(jsonl_file, encoding="utf-8") as f:
             lines = f.readlines()
 
         # 应该有 100 行(无数据丢失)
@@ -253,29 +254,28 @@ class TestJSONLWriterPerformanceContract:
             "msg_id": "test_123",
             "from_username": "wxid_sender",
             "content": "Hello World",
-            "create_time": 1737590400
+            "create_time": 1737590400,
         }
 
         # 使用 pytest-benchmark 测试性能
-        result = benchmark(writer.append_message, message)
+        benchmark(writer.append_message, message)
 
         # 性能契约: 单条消息写入应该 <10ms
         # 注意: benchmark.stats.mean 单位是秒
-        assert benchmark.stats.mean < 0.01, \
-            f"单条消息写入超时: {benchmark.stats.mean*1000:.2f}ms > 10ms"
+        assert (
+            benchmark.stats.mean < 0.01
+        ), f"单条消息写入超时: {benchmark.stats.mean*1000:.2f}ms > 10ms"
 
     def test_batch_write_performance(self, writer: "JSONLWriter", benchmark):
         """测试批量写入性能契约"""
-        messages = [
-            {"msg_id": f"msg_{i}", "content": f"Message {i}"}
-            for i in range(1000)
-        ]
+        messages = [{"msg_id": f"msg_{i}", "content": f"Message {i}"} for i in range(1000)]
 
         # 批量写入 1000 条消息
-        result = benchmark(writer.append_batch, messages)
+        benchmark(writer.append_batch, messages)
 
         # 性能契约: 批量写入应该比单条写入快
         # 平均每条消息 <5ms
         avg_per_message = benchmark.stats.mean / len(messages)
-        assert avg_per_message < 0.005, \
-            f"批量写入平均每条消息超时: {avg_per_message*1000:.2f}ms > 5ms"
+        assert (
+            avg_per_message < 0.005
+        ), f"批量写入平均每条消息超时: {avg_per_message*1000:.2f}ms > 5ms"

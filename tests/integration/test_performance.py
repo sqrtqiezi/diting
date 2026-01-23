@@ -3,12 +3,9 @@
 验证存储管道满足性能契约：5分钟内处理 23,210 条消息
 """
 
-import json
 import time
-from datetime import UTC, datetime
 from pathlib import Path
 
-import pyarrow.parquet as pq
 import pytest
 
 from src.services.storage.ingestion import convert_jsonl_to_parquet
@@ -108,7 +105,7 @@ class TestStoragePerformance:
         writer.append_batch(large_message_dataset)
         elapsed_time = time.time() - start_time
 
-        print(f"\nJSONL 写入性能:")
+        print("\nJSONL 写入性能:")
         print(f"  消息数量: {len(large_message_dataset)}")
         print(f"  总时间: {elapsed_time:.2f} 秒")
         print(f"  吞吐量: {len(large_message_dataset) / elapsed_time:.2f} 条/秒")
@@ -135,7 +132,7 @@ class TestStoragePerformance:
         result = convert_jsonl_to_parquet(jsonl_file, parquet_dir)
         elapsed_time = time.time() - start_time
 
-        print(f"\nParquet 转换性能:")
+        print("\nParquet 转换性能:")
         print(f"  消息数量: {result['total_records']}")
         print(f"  总时间: {elapsed_time:.2f} 秒")
         print(f"  吞吐量: {result['total_records'] / elapsed_time:.2f} 条/秒")
@@ -175,7 +172,7 @@ class TestStoragePerformance:
         avg_latency = sum(latencies) / len(latencies)
         max_latency = max(latencies)
 
-        print(f"\n单条消息写入延迟:")
+        print("\n单条消息写入延迟:")
         print(f"  平均延迟: {avg_latency * 1000:.2f} ms")
         print(f"  最大延迟: {max_latency * 1000:.2f} ms")
 
@@ -213,7 +210,7 @@ class TestStoragePerformance:
 
         throughput = len(messages) / elapsed_time
 
-        print(f"\n批量写入吞吐量:")
+        print("\n批量写入吞吐量:")
         print(f"  消息数量: {len(messages)}")
         print(f"  总时间: {elapsed_time:.2f} 秒")
         print(f"  吞吐量: {throughput:.2f} 条/秒")
@@ -262,9 +259,9 @@ class TestStoragePerformance:
         result = convert_jsonl_to_parquet(jsonl_file, parquet_dir)
         elapsed_time = time.time() - start_time
 
-        print(f"\n多分区转换性能:")
+        print("\n多分区转换性能:")
         print(f"  消息数量: {result['total_records']}")
-        print(f"  分区数量: 30")
+        print("  分区数量: 30")
         print(f"  总时间: {elapsed_time:.2f} 秒")
         print(f"  吞吐量: {result['total_records'] / elapsed_time:.2f} 条/秒")
 
@@ -286,7 +283,7 @@ class TestStoragePerformance:
         jsonl_file = writer._get_current_file_path()
         result = convert_jsonl_to_parquet(jsonl_file, parquet_dir)
 
-        print(f"\n压缩效率:")
+        print("\n压缩效率:")
         print(f"  源文件大小: {result['source_size_mb']:.2f} MB")
         print(f"  目标文件大小: {result['target_size_mb']:.2f} MB")
         print(f"  压缩比: {result['compression_ratio']:.2f}x")
@@ -337,7 +334,7 @@ class TestStorageScalability:
         final_memory = process.memory_info().rss / 1024 / 1024  # MB
         memory_increase = final_memory - initial_memory
 
-        print(f"\n内存使用:")
+        print("\n内存使用:")
         print(f"  初始内存: {initial_memory:.2f} MB")
         print(f"  最终内存: {final_memory:.2f} MB")
         print(f"  内存增长: {memory_increase:.2f} MB")
@@ -382,7 +379,7 @@ class TestStorageScalability:
         convert_jsonl_to_parquet(jsonl_file, parquet_dir)
         conversion_time = time.time() - start_time
 
-        print(f"\n磁盘 I/O 效率:")
+        print("\n磁盘 I/O 效率:")
         print(f"  JSONL 写入时间: {write_time:.2f} 秒")
         print(f"  Parquet 转换时间: {conversion_time:.2f} 秒")
         print(f"  总时间: {write_time + conversion_time:.2f} 秒")
