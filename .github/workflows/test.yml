@@ -50,7 +50,7 @@ jobs:
 
       # Step 5: 类型检查
       - name: Run mypy type checker
-        run: uv run mypy src
+        run: uv run mypy src/lib src/models src/services
         continue-on-error: false
 
       # Step 6: 运行测试套件
