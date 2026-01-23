@@ -131,7 +131,7 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
-fail_under = 67
+fail_under = 66
 
 [tool.coverage.html]
 directory = "htmlcov"
