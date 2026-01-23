@@ -4,17 +4,7 @@
 测试环境变量配置和路径获取功能。
 """
 
-import os
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
-
-from src.config import (
-    get_data_base_path,
-    get_messages_parquet_path,
-    get_messages_raw_path,
-)
 
 
 class TestConfig:
