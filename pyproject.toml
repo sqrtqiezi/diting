@@ -121,6 +121,7 @@ omit = [
     "*/__init__.py",
     ".venv/*",
     "src/diting/cli/*",
+    "src/cli/*",
 ]
 
 [tool.coverage.report]
