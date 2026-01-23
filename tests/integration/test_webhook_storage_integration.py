@@ -45,7 +45,12 @@ def reset_jsonl_writer():
 class TestWebhookStorageIntegration:
     """Webhook 存储集成测试"""
 
-    @pytest.mark.skip(reason="TODO: Fix background task testing - TestClient doesn't properly execute background tasks with global state")
+    @pytest.mark.skip(
+        reason=(
+            "TODO: Fix background task testing - TestClient doesn't properly "
+            "execute background tasks with global state"
+        )
+    )
     def test_webhook_persists_json_message_to_jsonl(self, client, temp_data_dir, monkeypatch):
         """测试 webhook 接收 JSON 消息后持久化到 JSONL 文件"""
         # 修改数据目录为临时目录
@@ -104,7 +109,12 @@ class TestWebhookStorageIntegration:
         # 清理:重置全局变量
         webhook_handler._jsonl_writer = None
 
-    @pytest.mark.skip(reason="TODO: Fix background task testing - JSONLWriter creates directory on init, can't test failure gracefully")
+    @pytest.mark.skip(
+        reason=(
+            "TODO: Fix background task testing - JSONLWriter creates directory "
+            "on init, can't test failure gracefully"
+        )
+    )
     def test_webhook_handles_storage_failure_gracefully(self, client, monkeypatch):
         """测试存储失败时 webhook 仍然返回成功响应"""
         from src.diting.endpoints.wechat import webhook_handler
@@ -158,7 +168,12 @@ class TestWebhookStorageIntegration:
         # 清理:重置全局变量
         webhook_handler._jsonl_writer = None
 
-    @pytest.mark.skip(reason="TODO: Fix background task testing - TestClient doesn't properly execute background tasks with global state")
+    @pytest.mark.skip(
+        reason=(
+            "TODO: Fix background task testing - TestClient doesn't properly "
+            "execute background tasks with global state"
+        )
+    )
     def test_webhook_appends_multiple_messages(self, client, temp_data_dir, monkeypatch):
         """测试 webhook 可以追加多条消息到同一个 JSONL 文件"""
         from src.diting.endpoints.wechat import webhook_handler
