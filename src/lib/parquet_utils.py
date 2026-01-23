@@ -28,12 +28,7 @@ def extract_partition_fields(timestamp: int) -> dict[str, int]:
     }
 
 
-def build_partition_path(
-    base_dir: Path,
-    year: int,
-    month: int,
-    day: int
-) -> Path:
+def build_partition_path(base_dir: Path, year: int, month: int, day: int) -> Path:
     """构建分区目录路径
 
     Args:
@@ -98,7 +93,8 @@ def read_parquet_metadata(parquet_path: Path) -> dict[str, Any]:
         "file_size_bytes": parquet_path.stat().st_size,
         "schema": parquet_file.schema_arrow,
         "compression": metadata.row_group(0).column(0).compression
-        if metadata.num_row_groups > 0 else "UNCOMPRESSED",
+        if metadata.num_row_groups > 0
+        else "UNCOMPRESSED",
     }
 
 
@@ -154,8 +150,7 @@ def get_parquet_statistics(parquet_path: Path) -> dict[str, Any]:
 
     # 计算压缩率
     total_uncompressed_size = sum(
-        metadata.row_group(i).total_byte_size
-        for i in range(metadata.num_row_groups)
+        metadata.row_group(i).total_byte_size for i in range(metadata.num_row_groups)
     )
     file_size = parquet_path.stat().st_size
     compression_ratio = total_uncompressed_size / file_size if file_size > 0 else 1.0
@@ -171,10 +166,7 @@ def get_parquet_statistics(parquet_path: Path) -> dict[str, Any]:
 
 
 def list_partition_files(
-    base_dir: Path,
-    year: int | None = None,
-    month: int | None = None,
-    day: int | None = None
+    base_dir: Path, year: int | None = None, month: int | None = None, day: int | None = None
 ) -> list[Path]:
     """列出分区目录下的所有 Parquet 文件
 
@@ -228,7 +220,7 @@ def convert_timestamp_to_datetime(table: pa.Table) -> pa.Table:
 
     # 更新 schema
     new_fields = []
-    for i, field in enumerate(schema):
+    for field in schema:
         if field.name == "create_time" and pa.types.is_integer(field.type):
             new_fields.append(pa.field("create_time", pa.timestamp("s", tz="UTC")))
         else:

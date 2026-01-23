@@ -6,7 +6,7 @@ This module provides atomic file write operations using Write-Rename pattern.
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, BinaryIO, TextIO, Union
+from typing import Any, BinaryIO, TextIO
 
 
 class AtomicWriter:
@@ -25,11 +25,7 @@ class AtomicWriter:
     """
 
     def __init__(
-        self,
-        target_path: Union[str, Path],
-        mode: str = "w",
-        encoding: str = "utf-8",
-        **kwargs: Any
+        self, target_path: str | Path, mode: str = "w", encoding: str = "utf-8", **kwargs: Any
     ):
         """初始化原子写入器
 
@@ -50,9 +46,9 @@ class AtomicWriter:
         # 临时文件路径(同目录下,确保在同一文件系统)
         self.temp_fd: int | None = None
         self.temp_path: Path | None = None
-        self.file_handle: Union[TextIO, BinaryIO, None] = None
+        self.file_handle: TextIO | BinaryIO | None = None
 
-    def __enter__(self) -> Union[TextIO, BinaryIO]:
+    def __enter__(self) -> TextIO | BinaryIO:
         """进入上下文管理器
 
         Returns:
@@ -60,9 +56,7 @@ class AtomicWriter:
         """
         # 在目标文件同目录下创建临时文件
         self.temp_fd, temp_name = tempfile.mkstemp(
-            dir=self.target_path.parent,
-            prefix=f".{self.target_path.name}.",
-            suffix=".tmp"
+            dir=self.target_path.parent, prefix=f".{self.target_path.name}.", suffix=".tmp"
         )
         self.temp_path = Path(temp_name)
 
@@ -72,17 +66,10 @@ class AtomicWriter:
         # 打开临时文件
         if self.encoding:
             self.file_handle = open(
-                self.temp_path,
-                mode=self.mode,
-                encoding=self.encoding,
-                **self.kwargs
+                self.temp_path, mode=self.mode, encoding=self.encoding, **self.kwargs
             )
         else:
-            self.file_handle = open(
-                self.temp_path,
-                mode=self.mode,
-                **self.kwargs
-            )
+            self.file_handle = open(self.temp_path, mode=self.mode, **self.kwargs)
 
         return self.file_handle
 
@@ -117,10 +104,7 @@ class AtomicWriter:
 
 
 def atomic_write(
-    target_path: Union[str, Path],
-    content: Union[str, bytes],
-    mode: str = "w",
-    encoding: str = "utf-8"
+    target_path: str | Path, content: str | bytes, mode: str = "w", encoding: str = "utf-8"
 ) -> None:
     """原子写入文件内容(便捷函数)
 

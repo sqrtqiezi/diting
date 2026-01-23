@@ -4,18 +4,16 @@ This module provides file locking utilities for concurrent write protection.
 """
 
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator, Union
 
 import portalocker
 
 
 @contextmanager
 def file_lock(
-    file_path: Union[str, Path],
-    timeout: float = 5.0,
-    check_interval: float = 0.1
+    file_path: str | Path, timeout: float = 5.0, check_interval: float = 0.1
 ) -> Generator[None, None, None]:
     """文件锁上下文管理器
 
@@ -50,10 +48,7 @@ def file_lock(
         # 尝试获取排他锁
         while time.time() - start_time < timeout:
             try:
-                portalocker.lock(
-                    lock_file,
-                    portalocker.LOCK_EX | portalocker.LOCK_NB
-                )
+                portalocker.lock(lock_file, portalocker.LOCK_EX | portalocker.LOCK_NB)
                 acquired = True
                 break
             except portalocker.LockException:
@@ -62,8 +57,7 @@ def file_lock(
 
         if not acquired:
             raise OSError(
-                f"Failed to acquire file lock for {file_path} "
-                f"within {timeout} seconds"
+                f"Failed to acquire file lock for {file_path} " f"within {timeout} seconds"
             )
 
         # 锁已获取,执行用户代码
@@ -95,7 +89,7 @@ class FileLock:
         ...     lock.release()
     """
 
-    def __init__(self, file_path: Union[str, Path]):
+    def __init__(self, file_path: str | Path):
         """初始化文件锁
 
         Args:
@@ -129,10 +123,7 @@ class FileLock:
         # 尝试获取排他锁
         while time.time() - start_time < timeout:
             try:
-                portalocker.lock(
-                    self.lock_file,
-                    portalocker.LOCK_EX | portalocker.LOCK_NB
-                )
+                portalocker.lock(self.lock_file, portalocker.LOCK_EX | portalocker.LOCK_NB)
                 self.acquired = True
                 return
             except portalocker.LockException:
@@ -143,8 +134,7 @@ class FileLock:
         self.lock_file.close()
         self.lock_file = None
         raise OSError(
-            f"Failed to acquire file lock for {self.file_path} "
-            f"within {timeout} seconds"
+            f"Failed to acquire file lock for {self.file_path} " f"within {timeout} seconds"
         )
 
     def release(self) -> None:
