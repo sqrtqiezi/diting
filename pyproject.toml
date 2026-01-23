@@ -30,6 +30,7 @@ dependencies = [
     "uvicorn[standard]>=0.24.0,<1.0.0",
     "pyarrow>=23.0.0",
     "portalocker>=3.2.0",
+    "pandas>=2.0.0",
 ]
 
 # 开发依赖

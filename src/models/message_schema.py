@@ -32,8 +32,7 @@ class MessageContent(BaseModel):
     guid: str = Field(..., description="Webhook 事件唯一 ID")
     notify_type: int = Field(..., ge=0, description="通知类型 ID")
     ingestion_time: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="数据摄入时间戳(UTC)"
+        default_factory=datetime.utcnow, description="数据摄入时间戳(UTC)"
     )
 
     @field_validator("source", mode="before")
@@ -49,6 +48,7 @@ class MessageContent(BaseModel):
 
     class Config:
         """Pydantic 配置"""
+
         json_schema_extra = {
             "example": {
                 "msg_id": "1234567890",
@@ -101,12 +101,12 @@ class ContactSync(BaseModel):
     guid: str = Field(..., description="Webhook 事件唯一 ID")
     notify_type: int = Field(..., ge=0, description="通知类型 ID")
     ingestion_time: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="数据摄入时间戳(UTC)"
+        default_factory=datetime.utcnow, description="数据摄入时间戳(UTC)"
     )
 
     class Config:
         """Pydantic 配置"""
+
         json_schema_extra = {
             "example": {
                 "username": "wxid_abc123",

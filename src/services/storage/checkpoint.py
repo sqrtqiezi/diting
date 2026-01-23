@@ -5,7 +5,6 @@ This module provides checkpoint management for incremental processing.
 
 import json
 from pathlib import Path
-from typing import Optional
 
 from src.lib.atomic_io import atomic_write
 from src.lib.file_lock import file_lock
@@ -40,7 +39,7 @@ class CheckpointManager:
         checkpoint_name = f"{source_path.stem}_checkpoint.json"
         return self.checkpoint_dir / checkpoint_name
 
-    def load_checkpoint(self, source_file: str) -> Optional[ProcessingCheckpoint]:
+    def load_checkpoint(self, source_file: str) -> ProcessingCheckpoint | None:
         """加载检查点
 
         Args:
@@ -55,7 +54,7 @@ class CheckpointManager:
             return None
 
         try:
-            with open(checkpoint_path, "r", encoding="utf-8") as f:
+            with open(checkpoint_path, encoding="utf-8") as f:
                 data = json.load(f)
             return ProcessingCheckpoint.from_dict(data)
         except Exception:
@@ -85,7 +84,7 @@ class CheckpointManager:
         last_processed_line: int,
         last_processed_msg_id: str = "",
         last_processed_timestamp: int = 0,
-        processed_record_count: int = 0
+        processed_record_count: int = 0,
     ) -> ProcessingCheckpoint:
         """更新检查点
 
@@ -167,7 +166,7 @@ class CheckpointManager:
 
         for checkpoint_file in self.checkpoint_dir.glob("*_checkpoint.json"):
             try:
-                with open(checkpoint_file, "r", encoding="utf-8") as f:
+                with open(checkpoint_file, encoding="utf-8") as f:
                     data = json.load(f)
                 checkpoint = ProcessingCheckpoint.from_dict(data)
                 checkpoints.append(checkpoint)
