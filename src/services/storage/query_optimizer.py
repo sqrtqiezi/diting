@@ -17,9 +17,7 @@ class QueryOptimizer:
     """查询优化器"""
 
     @staticmethod
-    def optimize_partition_filters(
-        start_date: str, end_date: str
-    ) -> list[tuple[str, str, Any]]:
+    def optimize_partition_filters(start_date: str, end_date: str) -> list[tuple[str, str, Any]]:
         """
         分区裁剪: 构建最优分区过滤器
 
@@ -116,9 +114,7 @@ class QueryOptimizer:
             for expr in expressions[1:]:
                 result = result & expr
 
-            logger.debug(
-                "Predicate pushdown filter built", expression_count=len(expressions)
-            )
+            logger.debug("Predicate pushdown filter built", expression_count=len(expressions))
 
             return result
 
@@ -158,7 +154,7 @@ class QueryOptimizer:
 
     @staticmethod
     def estimate_scan_cost(
-        start_date: str, end_date: str, partition_count: int = None
+        start_date: str, end_date: str, partition_count: int | None = None
     ) -> dict[str, Any]:
         """
         估算扫描成本

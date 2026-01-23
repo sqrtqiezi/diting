@@ -6,7 +6,6 @@
 
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pyarrow as pa

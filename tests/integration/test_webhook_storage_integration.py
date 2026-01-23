@@ -6,7 +6,6 @@ Webhook 存储集成测试
 
 import json
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
 from diting.endpoints.wechat.webhook_app import app
@@ -36,9 +35,7 @@ class TestWebhookStorageIntegration:
         # 修改数据目录为临时目录
         from src.diting.endpoints.wechat import webhook_handler
 
-        monkeypatch.setattr(
-            webhook_handler, "_jsonl_writer", None
-        )  # 重置单例以使用新路径
+        monkeypatch.setattr(webhook_handler, "_jsonl_writer", None)  # 重置单例以使用新路径
 
         # 模拟 get_jsonl_writer 使用临时目录
         from src.services.storage.jsonl_writer import JSONLWriter

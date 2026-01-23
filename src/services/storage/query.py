@@ -10,7 +10,6 @@ from typing import Any
 
 import pandas as pd
 import pyarrow.dataset as ds
-import pyarrow.parquet as pq
 import structlog
 
 from .query_optimizer import QueryOptimizer
@@ -58,9 +57,7 @@ def query_messages(
     # 使用查询优化器构建过滤器
     optimizer = QueryOptimizer()
     partition_filters = optimizer.optimize_partition_filters(start_date, end_date)
-    arrow_filters = optimizer.build_predicate_pushdown_filter(
-        partition_filters, filters
-    )
+    arrow_filters = optimizer.build_predicate_pushdown_filter(partition_filters, filters)
     optimized_columns = optimizer.optimize_column_projection(columns)
 
     logger.info(

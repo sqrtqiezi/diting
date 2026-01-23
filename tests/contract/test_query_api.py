@@ -4,7 +4,6 @@
 验证查询服务的 API 契约符合 contracts/storage-api.md 规范。
 """
 
-import tempfile
 from datetime import datetime
 from pathlib import Path
 

@@ -9,7 +9,6 @@ from datetime import datetime
 from pathlib import Path
 
 import click
-import pandas as pd
 import structlog
 
 from src.services.storage.query import query_messages, query_messages_by_id
@@ -251,10 +250,7 @@ def dump_parquet(
     """
     try:
         # 确定日期
-        if date:
-            target_date = datetime.strptime(date, "%Y-%m-%d")
-        else:
-            target_date = datetime.now()
+        target_date = datetime.strptime(date, "%Y-%m-%d") if date else datetime.now()
 
         date_str = target_date.strftime("%Y-%m-%d")
         jsonl_path = Path(jsonl_dir) / f"{date_str}.jsonl"

@@ -7,7 +7,7 @@
 """
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import pyarrow as pa
@@ -164,9 +164,7 @@ class TestQueryPerformance:
         # 验证列裁剪提升性能
         assert len(result_all) == len(result_partial)
         # 列裁剪应该更快（但可能差异不大）
-        print(
-            f"✓ 列裁剪性能: 全列 {elapsed_all:.3f}s vs 部分列 {elapsed_partial:.3f}s"
-        )
+        print(f"✓ 列裁剪性能: 全列 {elapsed_all:.3f}s vs 部分列 {elapsed_partial:.3f}s")
 
     def test_partition_pruning_effectiveness(self, large_parquet_dataset: Path):
         """测试分区裁剪的有效性"""
@@ -194,7 +192,5 @@ class TestQueryPerformance:
 
         # 月度查询应该不超过单日查询的 30 倍（理想情况）
         # 实际可能因为并行读取而更快
-        print(
-            f"✓ 分区裁剪效果: 单日 {elapsed_single:.3f}s vs 月度 {elapsed_month:.3f}s"
-        )
+        print(f"✓ 分区裁剪效果: 单日 {elapsed_single:.3f}s vs 月度 {elapsed_month:.3f}s")
         print(f"  倍数: {elapsed_month / elapsed_single:.1f}x (理论最大 30x)")

@@ -4,10 +4,6 @@
 测试查询优化器的各项功能。
 """
 
-from datetime import datetime
-
-import pyarrow.compute as pc
-import pytest
 
 from src.services.storage.query_optimizer import QueryOptimizer
 
@@ -84,9 +80,7 @@ class TestQueryOptimizer:
         partition_filters = [("year", "=", 2026)]
         extra_filters = {"chatroom": "chatroom_123", "msg_type": 1}
 
-        result = optimizer.build_predicate_pushdown_filter(
-            partition_filters, extra_filters
-        )
+        result = optimizer.build_predicate_pushdown_filter(partition_filters, extra_filters)
 
         assert result is not None
 
@@ -96,9 +90,7 @@ class TestQueryOptimizer:
         partition_filters = []
         extra_filters = {"msg_type": [1, 2, 3]}
 
-        result = optimizer.build_predicate_pushdown_filter(
-            partition_filters, extra_filters
-        )
+        result = optimizer.build_predicate_pushdown_filter(partition_filters, extra_filters)
 
         assert result is not None
 
