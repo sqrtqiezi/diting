@@ -24,9 +24,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15  # 超时保护
-    environment:
-      name: production
-      url: http://${{ secrets.ALIYUN_ECS_HOST }}:17999
+    environment: production
 
     steps:
       # Step 1: 检出代码
