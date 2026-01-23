@@ -93,6 +93,22 @@ jobs:
           EOF
           echo "::endgroup::"
 
+      # Step 6.5: 创建 .env 配置文件
+      - name: Create .env configuration file
+        run: |
+          echo "::group::创建 .env 配置文件"
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+            cd ${{ steps.create-release.outputs.RELEASE_DIR }}
+
+            # 创建 .env 文件
+            cat > .env << 'ENVEOF'
+BASE_URL=${{ secrets.BASE_URL }}
+ENVEOF
+
+            echo "✅ .env 配置文件已创建"
+          EOF
+          echo "::endgroup::"
+
       # Step 7: 更新 systemd 服务文件
       - name: Update systemd service file
         run: |

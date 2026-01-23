@@ -11,6 +11,7 @@ from pathlib import Path
 import click
 import structlog
 
+from src.config import get_messages_parquet_path, get_messages_raw_path
 from src.services.storage.query import query_messages, query_messages_by_id
 
 logger = structlog.get_logger()
@@ -37,8 +38,8 @@ def storage():
 )
 @click.option(
     "--parquet-root",
-    default="data/parquet/messages",
-    help="Parquet 根目录",
+    default=None,
+    help="Parquet 根目录 (默认从配置读取)",
 )
 @click.option(
     "--chatroom",
@@ -70,7 +71,7 @@ def storage():
 def query(
     start: str,
     end: str,
-    parquet_root: str,
+    parquet_root: str | None,
     chatroom: str | None,
     from_user: str | None,
     msg_type: int | None,
@@ -91,6 +92,10 @@ def query(
         storage query --start 2026-01-20 --end 2026-01-23 --output messages.csv
     """
     try:
+        # 使用配置路径（如果未指定）
+        if parquet_root is None:
+            parquet_root = str(get_messages_parquet_path())
+
         # 构建过滤条件
         filters = {}
         if chatroom:
@@ -145,8 +150,8 @@ def query(
 @click.argument("msg_ids", nargs=-1, required=True)
 @click.option(
     "--parquet-root",
-    default="data/parquet/messages",
-    help="Parquet 根目录",
+    default=None,
+    help="Parquet 根目录 (默认从配置读取)",
 )
 @click.option(
     "--columns",
@@ -159,7 +164,7 @@ def query(
 )
 def query_by_id(
     msg_ids: tuple[str, ...],
-    parquet_root: str,
+    parquet_root: str | None,
     columns: str | None,
     output: str | None,
 ):
@@ -173,6 +178,10 @@ def query_by_id(
         storage query-by-id msg_123 msg_456 msg_789
     """
     try:
+        # 使用配置路径（如果未指定）
+        if parquet_root is None:
+            parquet_root = str(get_messages_parquet_path())
+
         # 解析列
         column_list = None
         if columns:
@@ -210,13 +219,13 @@ def query_by_id(
 )
 @click.option(
     "--jsonl-dir",
-    default="data/messages/raw",
-    help="JSONL 文件目录",
+    default=None,
+    help="JSONL 文件目录 (默认从配置读取)",
 )
 @click.option(
     "--parquet-root",
-    default="data/parquet/messages",
-    help="Parquet 输出根目录",
+    default=None,
+    help="Parquet 输出根目录 (默认从配置读取)",
 )
 @click.option(
     "--skip-existing",
@@ -231,8 +240,8 @@ def query_by_id(
 )
 def dump_parquet(
     date: str | None,
-    jsonl_dir: str,
-    parquet_root: str,
+    jsonl_dir: str | None,
+    parquet_root: str | None,
     skip_existing: bool,
     overwrite: bool,
 ):
@@ -249,6 +258,12 @@ def dump_parquet(
         storage dump-parquet --date 2026-01-23 --overwrite
     """
     try:
+        # 使用配置路径（如果未指定）
+        if jsonl_dir is None:
+            jsonl_dir = str(get_messages_raw_path())
+        if parquet_root is None:
+            parquet_root = str(get_messages_parquet_path())
+
         # 确定日期
         target_date = datetime.strptime(date, "%Y-%m-%d") if date else datetime.now()
 
