@@ -97,13 +97,11 @@ jobs:
       - name: Create .env configuration file
         run: |
           echo "::group::创建 .env 配置文件"
-          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << 'EOF'
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << EOF
             cd ${{ steps.create-release.outputs.RELEASE_DIR }}
 
             # 创建 .env 文件
-            cat > .env << 'ENVEOF'
-BASE_URL=${{ secrets.BASE_URL }}
-ENVEOF
+            echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
 
             echo "✅ .env 配置文件已创建"
           EOF
