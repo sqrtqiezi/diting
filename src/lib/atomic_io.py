@@ -123,4 +123,3 @@ def atomic_write(
             cast(TextIO, f).write(content)
         else:
             cast(BinaryIO, f).write(content)
-
