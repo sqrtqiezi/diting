@@ -105,7 +105,7 @@
 
 ---
 
-## Phase 4: 用户故事 2 - 高效查询历史消息 (优先级: P2)
+## Phase 4: 用户故事 2 - 高效查询历史消息 (优先级: P2) 🎯 IN PROGRESS
 
 **目标**: 按日期、发送者、聊天室、消息类型查询历史消息
 
@@ -113,16 +113,16 @@
 
 ### 契约测试 for US2
 
-- [ ] T030 [P] [US2] query_messages 契约测试 in tests/contract/test_query_api.py
-- [ ] T031 [P] [US2] query_messages_by_id 契约测试 in tests/contract/test_query_api.py
+- [X] T030 [P] [US2] query_messages 契约测试 in tests/contract/test_query_api.py
+- [X] T031 [P] [US2] query_messages_by_id 契约测试 in tests/contract/test_query_api.py
 
 ### 查询实现 for US2
 
-- [ ] T032 [P] [US2] 实现 query_messages (日期范围查询) in src/services/storage/query.py
-- [ ] T033 [P] [US2] 实现 query_messages_by_id (ID查询) in src/services/storage/query.py
-- [ ] T034 [US2] 实现分区裁剪逻辑 in src/services/storage/query_optimizer.py
-- [ ] T035 [US2] 实现谓词下推过滤 in src/services/storage/query_optimizer.py
-- [ ] T036 [US2] 实现列裁剪优化 in src/services/storage/query_optimizer.py
+- [X] T032 [P] [US2] 实现 query_messages (日期范围查询) in src/services/storage/query.py
+- [X] T033 [P] [US2] 实现 query_messages_by_id (ID查询) in src/services/storage/query.py
+- [X] T034 [US2] 实现分区裁剪逻辑 in src/services/storage/query_optimizer.py
+- [X] T035 [US2] 实现谓词下推过滤 in src/services/storage/query_optimizer.py
+- [X] T036 [US2] 实现列裁剪优化 in src/services/storage/query_optimizer.py
 
 ### CLI 命令 for US2
 
