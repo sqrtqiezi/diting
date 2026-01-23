@@ -23,18 +23,18 @@
 
 ---
 
-## Phase 1: Setup (共享基础设施)
+## Phase 1: Setup (共享基础设施) ✅ COMPLETED
 
 **目的**: 项目初始化和基本结构
 
-- [ ] T001 创建数据目录结构 (data/messages/raw, data/parquet/messages, data/metadata/checkpoints)
-- [ ] T002 安装 PyArrow 和 portalocker 依赖 (uv add pyarrow portalocker)
-- [ ] T003 [P] 创建 src/services/storage/ 模块目录结构
-- [ ] T004 [P] 创建 tests/unit/, tests/integration/, tests/contract/ 目录
+- [X] T001 创建数据目录结构 (data/messages/raw, data/parquet/messages, data/metadata/checkpoints)
+- [X] T002 安装 PyArrow 和 portalocker 依赖 (uv add pyarrow portalocker)
+- [X] T003 [P] 创建 src/services/storage/ 模块目录结构
+- [X] T004 [P] 创建 tests/unit/, tests/integration/, tests/contract/ 目录
 
 ---
 
-## Phase 2: Foundational (阻塞性前置条件)
+## Phase 2: Foundational (阻塞性前置条件) ✅ COMPLETED
 
 **目的**: 所有用户故事依赖的核心基础设施
 
@@ -42,27 +42,27 @@
 
 ### 基础模型和Schema
 
-- [ ] T005 [P] 创建 MessageContent Pydantic 模型 in src/models/message_schema.py
-- [ ] T006 [P] 创建 ContactSync Pydantic 模型 in src/models/message_schema.py
-- [ ] T007 [P] 创建 ProcessingCheckpoint 数据类 in src/models/checkpoint.py
-- [ ] T008 [P] 定义 MESSAGE_CONTENT_SCHEMA (PyArrow) in src/models/parquet_schemas.py
-- [ ] T009 [P] 定义 CONTACT_SYNC_SCHEMA (PyArrow) in src/models/parquet_schemas.py
+- [X] T005 [P] 创建 MessageContent Pydantic 模型 in src/models/message_schema.py
+- [X] T006 [P] 创建 ContactSync Pydantic 模型 in src/models/message_schema.py
+- [X] T007 [P] 创建 ProcessingCheckpoint 数据类 in src/models/checkpoint.py
+- [X] T008 [P] 定义 MESSAGE_CONTENT_SCHEMA (PyArrow) in src/models/parquet_schemas.py
+- [X] T009 [P] 定义 CONTACT_SYNC_SCHEMA (PyArrow) in src/models/parquet_schemas.py
 
 ### 基础工具函数
 
-- [ ] T010 [P] 实现 AtomicWriter 原子写入包装器 in src/lib/atomic_io.py
-- [ ] T011 [P] 实现 file_lock 上下文管理器 in src/lib/file_lock.py
-- [ ] T012 [P] 实现 Parquet Schema 工具函数 in src/lib/parquet_utils.py
+- [X] T010 [P] 实现 AtomicWriter 原子写入包装器 in src/lib/atomic_io.py
+- [X] T011 [P] 实现 file_lock 上下文管理器 in src/lib/file_lock.py
+- [X] T012 [P] 实现 Parquet Schema 工具函数 in src/lib/parquet_utils.py
 
 ### 检查点管理
 
-- [ ] T013 实现 CheckpointManager in src/services/storage/checkpoint.py
+- [X] T013 实现 CheckpointManager in src/services/storage/checkpoint.py
 
 **Checkpoint**: 基础设施就绪 - 用户故事实现可以并行开始
 
 ---
 
-## Phase 3: 用户故事 1 - 持久化消息到结构化存储 (优先级: P1) 🎯 MVP
+## Phase 3: 用户故事 1 - 持久化消息到结构化存储 (优先级: P1) 🎯 MVP ✅ COMPLETED
 
 **目标**: 将 webhook 日志转换为 Parquet 结构化存储,支持高效查询
 
@@ -72,36 +72,36 @@
 
 > **注意: 先写测试,确保失败后再实现**
 
-- [ ] T014 [P] [US1] MessageContent Schema 契约测试 in tests/contract/test_message_schema.py
-- [ ] T015 [P] [US1] JSONL 写入器契约测试 in tests/contract/test_jsonl_writer.py
-- [ ] T016 [P] [US1] Parquet 转换器契约测试 in tests/contract/test_parquet_converter.py
+- [X] T014 [P] [US1] MessageContent Schema 契约测试 in tests/contract/test_message_schema.py
+- [X] T015 [P] [US1] JSONL 写入器契约测试 in tests/contract/test_jsonl_writer.py
+- [X] T016 [P] [US1] Parquet 转换器契约测试 in tests/contract/test_parquet_converter.py
 
 ### JSONL 写入实现 for US1
 
-- [ ] T017 [P] [US1] 实现 JSONLWriter.append_message in src/services/storage/jsonl_writer.py
-- [ ] T018 [P] [US1] 实现 JSONLWriter.append_batch in src/services/storage/jsonl_writer.py
-- [ ] T019 [US1] 集成 JSONLWriter 到 webhook handler in src/endpoints/wechat/webhook_handler.py
+- [X] T017 [P] [US1] 实现 JSONLWriter.append_message in src/services/storage/jsonl_writer.py
+- [X] T018 [P] [US1] 实现 JSONLWriter.append_batch in src/services/storage/jsonl_writer.py
+- [X] T019 [US1] 集成 JSONLWriter 到 webhook handler in src/endpoints/wechat/webhook_handler.py
 
 ### Parquet 转换实现 for US1
 
-- [ ] T020 [P] [US1] 实现 read_jsonl_stream 流式读取 in src/services/storage/jsonl_reader.py
-- [ ] T021 [US1] 实现 JSONLToParquetConverter.convert_to_parquet in src/services/storage/ingestion.py
-- [ ] T022 [US1] 实现字段类型归一化 (source: int→str) in src/services/storage/data_cleaner.py
-- [ ] T023 [US1] 实现分区字段提取 (year/month/day) in src/services/storage/partition.py
-- [ ] T024 [US1] 实现 BatchConverter.convert_all 批量转换 in src/services/storage/batch_converter.py
+- [X] T020 [P] [US1] 实现 read_jsonl_stream 流式读取 in src/services/storage/jsonl_reader.py
+- [X] T021 [US1] 实现 JSONLToParquetConverter.convert_to_parquet in src/services/storage/ingestion.py
+- [X] T022 [US1] 实现字段类型归一化 (source: int→str) in src/services/storage/data_cleaner.py
+- [X] T023 [US1] 实现分区字段提取 (year/month/day) in src/services/storage/partition.py
+- [X] T024 [US1] 实现 BatchConverter.convert_all 批量转换 in src/services/storage/batch_converter.py
 
 ### 单元测试 for US1
 
-- [ ] T025 [P] [US1] JSONLWriter 单元测试 in tests/unit/test_jsonl_writer.py
-- [ ] T026 [P] [US1] JSONLToParquetConverter 单元测试 in tests/unit/test_ingestion.py
-- [ ] T027 [P] [US1] 分区逻辑单元测试 in tests/unit/test_partition.py
+- [X] T025 [P] [US1] JSONLWriter 单元测试 in tests/unit/test_jsonl_writer.py
+- [X] T026 [P] [US1] JSONLToParquetConverter 单元测试 in tests/unit/test_ingestion.py
+- [X] T027 [P] [US1] 分区逻辑单元测试 in tests/unit/test_partition.py
 
 ### 集成测试 for US1
 
-- [ ] T028 [US1] 端到端存储管道集成测试 in tests/integration/test_storage_pipeline.py
-- [ ] T029 [US1] 性能测试: 23,210条消息<5分钟 in tests/integration/test_performance.py
+- [X] T028 [US1] 端到端存储管道集成测试 in tests/integration/test_storage_pipeline.py
+- [X] T029 [US1] 性能测试: 23,210条消息<5分钟 in tests/integration/test_performance.py
 
-**Checkpoint**: 用户故事1完全功能化,可独立测试。验收场景1-4应全部通过。
+**Checkpoint**: 用户故事1完全功能化,可独立测试。验收场景1-4应全部通过。✅
 
 ---
 
