@@ -158,7 +158,7 @@ class QueryOptimizer:
 
     @staticmethod
     def estimate_scan_cost(
-        start_date: str, end_date: str, partition_count: int = 1
+        start_date: str, end_date: str, partition_count: int = None
     ) -> dict[str, Any]:
         """
         估算扫描成本
@@ -166,7 +166,7 @@ class QueryOptimizer:
         Args:
             start_date: 开始日期
             end_date: 结束日期
-            partition_count: 分区数量
+            partition_count: 实际分区数量（None=使用日期范围估算）
 
         Returns:
             成本估算信息
@@ -177,8 +177,11 @@ class QueryOptimizer:
         # 计算日期范围
         date_range_days = (end_dt - start_dt).days + 1
 
-        # 估算扫描的分区数
-        estimated_partitions = min(date_range_days, partition_count)
+        # 估算扫描的分区数（如果未提供实际分区数）
+        if partition_count is None:
+            estimated_partitions = date_range_days
+        else:
+            estimated_partitions = min(date_range_days, partition_count)
 
         # 估算扫描成本（简化模型）
         scan_cost = estimated_partitions * 100  # 每分区 100 单位成本
