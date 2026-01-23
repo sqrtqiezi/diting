@@ -8,10 +8,10 @@ import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs
 
+from src.config import get_messages_raw_path
 from src.services.storage.jsonl_writer import JSONLWriter
 
 from .webhook_logger import get_webhook_logger
@@ -24,8 +24,8 @@ def get_jsonl_writer() -> JSONLWriter:
     """获取 JSONL 写入器单例"""
     global _jsonl_writer
     if _jsonl_writer is None:
-        # 使用默认路径 data/messages/raw
-        base_dir = Path("data/messages/raw")
+        # 从配置中获取路径（支持 .env 文件配置）
+        base_dir = get_messages_raw_path()
         _jsonl_writer = JSONLWriter(base_dir=base_dir)
     return _jsonl_writer
 
