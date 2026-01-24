@@ -199,38 +199,38 @@
 
 ### 契约测试 for US4
 
-- [ ] T060 [P] [US4] archive_old_partitions 契约测试 in tests/contract/test_archive_api.py
-- [ ] T061 [P] [US4] cleanup_old_jsonl 契约测试 in tests/contract/test_archive_api.py
+- [X] T060 [P] [US4] archive_old_partitions 契约测试 in tests/contract/test_archive_api.py
+- [X] T061 [P] [US4] cleanup_old_jsonl 契约测试 in tests/contract/test_archive_api.py
 
 ### 归档实现 for US4
 
-- [ ] T062 [P] [US4] 实现 archive_old_partitions (Zstd-19压缩) in src/services/storage/archive.py
-- [ ] T063 [P] [US4] 实现 cleanup_old_jsonl (JSONL清理) in src/services/storage/cleanup.py
-- [ ] T064 [US4] 实现分区元数据管理 (StoragePartition) in src/services/storage/partition_metadata.py
-- [ ] T065 [US4] 实现存储使用统计 in src/services/storage/storage_stats.py
+- [X] T062 [P] [US4] 实现 archive_old_partitions (Zstd-19压缩) in src/services/storage/archive.py
+- [X] T063 [P] [US4] 实现 cleanup_old_jsonl (JSONL清理) in src/services/storage/cleanup.py
+- [X] T064 [US4] 实现分区元数据管理 (StoragePartition) in src/services/storage/partition_metadata.py
+- [X] T065 [US4] 实现存储使用统计 in src/services/storage/storage_stats.py
 
 ### 定时任务实现 for US4
 
-- [ ] T066 [US4] 创建 Systemd service 文件 in deploy/diting-parquet-dump.service
-- [ ] T067 [US4] 创建 Systemd timer 文件 in deploy/diting-parquet-dump.timer
+- [X] T066 [US4] 创建 Systemd service 文件 in deploy/diting-parquet-dump.service
+- [X] T067 [US4] 创建 Systemd timer 文件 in deploy/diting-parquet-dump.timer
 
 ### CLI 命令 for US4
 
-- [ ] T068 [P] [US4] 实现 storage dump-parquet CLI 命令 in src/cli/storage_commands.py
-- [ ] T069 [P] [US4] 实现 storage cleanup CLI 命令 in src/cli/storage_commands.py
-- [ ] T070 [P] [US4] 实现 storage archive CLI 命令 in src/cli/storage_commands.py
+- [X] T068 [P] [US4] 实现 storage dump-parquet CLI 命令 in src/cli/storage_commands.py
+- [X] T069 [P] [US4] 实现 storage cleanup CLI 命令 in src/cli/storage_commands.py
+- [X] T070 [P] [US4] 实现 storage archive CLI 命令 in src/cli/storage_commands.py
 
 ### 单元测试 for US4
 
-- [ ] T071 [P] [US4] 归档逻辑单元测试 in tests/unit/test_archive.py
-- [ ] T072 [P] [US4] 清理逻辑单元测试 in tests/unit/test_cleanup.py
-- [ ] T073 [P] [US4] 分区元数据单元测试 in tests/unit/test_partition_metadata.py
+- [X] T071 [P] [US4] 归档逻辑单元测试 in tests/unit/test_archive.py
+- [X] T072 [P] [US4] 清理逻辑单元测试 in tests/unit/test_cleanup.py
+- [X] T073 [P] [US4] 分区元数据单元测试 in tests/unit/test_partition_metadata.py
 
 ### 集成测试 for US4
 
-- [ ] T074 [US4] 归档流程集成测试 (90天数据) in tests/integration/test_archive_flow.py
-- [ ] T075 [US4] JSONL清理集成测试 (7天保留) in tests/integration/test_cleanup_flow.py
-- [ ] T076 [US4] 分区查询性能测试 (最近7天) in tests/integration/test_partition_query.py
+- [X] T074 [US4] 归档流程集成测试 (90天数据) in tests/integration/test_archive_flow.py
+- [X] T075 [US4] JSONL清理集成测试 (7天保留) in tests/integration/test_cleanup_flow.py
+- [X] T076 [US4] 分区查询性能测试 (最近7天) in tests/integration/test_partition_query.py
 
 **Checkpoint**: 用户故事4完全功能化,可独立测试。验收场景1-4应全部通过。
 
