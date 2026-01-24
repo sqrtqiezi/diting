@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
-import pyarrow.parquet as pq
 
 from src.services.storage.archive import archive_old_partitions
 from src.services.storage.partition_metadata import scan_partitions
