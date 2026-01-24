@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 
@@ -87,10 +88,7 @@ def validate_partition(partition_path: str | Path) -> dict:
             if first_schema is None:
                 first_schema = parquet_table.schema
             elif not parquet_table.schema.equals(first_schema):
-                errors.append(
-                    f"Schema 不一致: {parquet_file.name} "
-                    f"与第一个文件的 schema 不同"
-                )
+                errors.append(f"Schema 不一致: {parquet_file.name} " f"与第一个文件的 schema 不同")
 
         except Exception as e:
             errors.append(f"读取文件失败 {parquet_file.name}: {str(e)}")
@@ -158,3 +156,84 @@ def detect_duplicates(parquet_root: str | Path) -> pd.DataFrame:
     result.columns = ["msg_id", "count"]
 
     return result
+
+
+def validate_schema(parquet_file: str | Path, expected_schema: pa.Schema) -> dict[str, Any]:
+    """验证 Parquet 文件的 schema 是否符合预期
+
+    Args:
+        parquet_file: Parquet 文件路径
+        expected_schema: 期望的 PyArrow Schema
+
+    Returns:
+        验证结果字典，包含:
+        - is_valid: schema 是否有效
+        - missing_fields: 缺失的字段列表
+        - extra_fields: 额外的字段列表
+        - type_mismatches: 类型不匹配的字段列表
+        - errors: 错误列表
+    """
+    parquet_file = Path(parquet_file)
+    errors: list[str] = []
+    missing_fields: list[str] = []
+    extra_fields: list[str] = []
+    type_mismatches: list[dict[str, str]] = []
+
+    # 验证文件存在
+    if not parquet_file.exists():
+        errors.append(f"文件不存在: {parquet_file}")
+        return {
+            "is_valid": False,
+            "missing_fields": [],
+            "extra_fields": [],
+            "type_mismatches": [],
+            "errors": errors,
+        }
+
+    try:
+        # 读取文件的 schema
+        actual_schema = pq.read_schema(parquet_file)
+
+        # 获取字段名集合
+        expected_field_names = {field.name for field in expected_schema}
+        actual_field_names = {field.name for field in actual_schema}
+
+        # 检查缺失的字段
+        missing_fields = list(expected_field_names - actual_field_names)
+        if missing_fields:
+            errors.append(f"缺失必需字段: {', '.join(missing_fields)}")
+
+        # 检查额外的字段（这通常是允许的，用于 schema 演化）
+        extra_fields = list(actual_field_names - expected_field_names)
+
+        # 检查类型不匹配
+        for field_name in expected_field_names & actual_field_names:
+            expected_field = expected_schema.field(field_name)
+            actual_field = actual_schema.field(field_name)
+
+            if not expected_field.type.equals(actual_field.type):
+                type_mismatches.append(
+                    {
+                        "field": field_name,
+                        "expected": str(expected_field.type),
+                        "actual": str(actual_field.type),
+                    }
+                )
+                errors.append(
+                    f"字段 '{field_name}' 类型不匹配: "
+                    f"期望 {expected_field.type}, 实际 {actual_field.type}"
+                )
+
+    except Exception as e:
+        errors.append(f"读取 schema 失败: {str(e)}")
+
+    # 判断是否有效
+    is_valid = len(errors) == 0
+
+    return {
+        "is_valid": is_valid,
+        "missing_fields": missing_fields,
+        "extra_fields": extra_fields,
+        "type_mismatches": type_mismatches,
+        "errors": errors,
+    }
