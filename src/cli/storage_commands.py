@@ -12,6 +12,9 @@ import click
 import structlog
 
 from src.config import get_messages_parquet_path, get_messages_raw_path
+from src.services.storage.archive import archive_old_partitions
+from src.services.storage.cleanup import cleanup_old_jsonl
+from src.services.storage.incremental import incremental_ingest
 from src.services.storage.query import query_messages, query_messages_by_id
 from src.services.storage.validation import detect_duplicates, validate_partition
 
@@ -215,11 +218,7 @@ def query_by_id(
 
 @storage.command()
 @click.option(
-    "--date",
-    help="转换指定日期的 JSONL (YYYY-MM-DD, 默认今天)",
-)
-@click.option(
-    "--jsonl-dir",
+    "--raw-dir",
     default=None,
     help="JSONL 文件目录 (默认从配置读取)",
 )
@@ -229,63 +228,96 @@ def query_by_id(
     help="Parquet 输出根目录 (默认从配置读取)",
 )
 @click.option(
-    "--skip-existing",
-    is_flag=True,
-    default=True,
-    help="跳过已存在的 Parquet 文件",
+    "--checkpoint-dir",
+    default="data/metadata/checkpoints",
+    help="检查点目录",
 )
 @click.option(
-    "--overwrite",
+    "--batch-size",
+    type=int,
+    default=1000,
+    help="批处理大小",
+)
+@click.option(
+    "--deduplicate",
     is_flag=True,
-    help="强制覆盖已存在的文件",
+    default=True,
+    help="启用去重",
 )
 def dump_parquet(
-    date: str | None,
-    jsonl_dir: str | None,
+    raw_dir: str | None,
     parquet_root: str | None,
-    skip_existing: bool,
-    overwrite: bool,
+    checkpoint_dir: str,
+    batch_size: int,
+    deduplicate: bool,
 ):
-    """转换 JSONL 到 Parquet
+    """转换 JSONL 到 Parquet (增量摄入)
 
     示例:
-        # 转换今天的数据
+        # 转换所有新数据
         storage dump-parquet
 
-        # 转换指定日期
-        storage dump-parquet --date 2026-01-23
+        # 指定目录
+        storage dump-parquet --raw-dir data/messages/raw --parquet-root data/parquet/messages
 
-        # 强制覆盖
-        storage dump-parquet --date 2026-01-23 --overwrite
+        # 禁用去重
+        storage dump-parquet --no-deduplicate
     """
     try:
         # 使用配置路径（如果未指定）
-        if jsonl_dir is None:
-            jsonl_dir = str(get_messages_raw_path())
+        if raw_dir is None:
+            raw_dir = str(get_messages_raw_path())
         if parquet_root is None:
             parquet_root = str(get_messages_parquet_path())
 
-        # 确定日期
-        target_date = datetime.strptime(date, "%Y-%m-%d") if date else datetime.now()
+        click.echo(f"增量摄入 JSONL 到 Parquet")
+        click.echo(f"源目录: {raw_dir}")
+        click.echo(f"目标目录: {parquet_root}")
+        click.echo(f"检查点目录: {checkpoint_dir}")
+        click.echo(f"去重: {'启用' if deduplicate else '禁用'}")
 
-        date_str = target_date.strftime("%Y-%m-%d")
-        jsonl_path = Path(jsonl_dir) / f"{date_str}.jsonl"
+        # 扫描所有 JSONL 文件
+        raw_path = Path(raw_dir)
+        jsonl_files = sorted(raw_path.glob("*.jsonl"))
 
-        # 检查 JSONL 文件是否存在
-        if not jsonl_path.exists():
-            click.echo(f"✗ JSONL 文件不存在: {jsonl_path}", err=True)
+        if not jsonl_files:
+            click.echo("✗ 未找到 JSONL 文件", err=True)
             sys.exit(1)
 
-        click.echo(f"转换 JSONL 到 Parquet: {date_str}")
-        click.echo(f"源文件: {jsonl_path}")
-        click.echo(f"目标目录: {parquet_root}")
+        click.echo(f"\n找到 {len(jsonl_files)} 个 JSONL 文件")
 
-        # TODO: 实现转换逻辑（需要 batch_converter 模块）
-        click.echo("⚠ 转换功能尚未完全实现")
-        click.echo("提示: 使用 Python API 调用 convert_jsonl_to_parquet()")
+        total_processed = 0
+        total_new = 0
+
+        # 处理每个文件
+        for jsonl_file in jsonl_files:
+            click.echo(f"\n处理: {jsonl_file.name}")
+
+            result = incremental_ingest(
+                jsonl_file=jsonl_file,
+                parquet_root=parquet_root,
+                checkpoint_dir=checkpoint_dir,
+                batch_size=batch_size,
+                deduplicate=deduplicate,
+            )
+
+            total_processed += result["total_processed"]
+            total_new += result["new_records"]
+
+            click.echo(f"  处理: {result['total_processed']} 条")
+            click.echo(f"  新增: {result['new_records']} 条")
+            if deduplicate:
+                click.echo(f"  跳过重复: {result['skipped_duplicates']} 条")
+
+        click.echo(f"\n{'='*60}")
+        click.echo(f"✓ 转换完成")
+        click.echo(f"  总处理: {total_processed} 条")
+        click.echo(f"  总新增: {total_new} 条")
+        click.echo(f"{'='*60}\n")
 
     except Exception as e:
         click.echo(f"✗ 转换失败: {e}", err=True)
+        logger.exception("dump_parquet_failed", error=str(e))
         sys.exit(1)
 
 
@@ -324,10 +356,8 @@ def validate(partition_path: str):
         click.echo("\n统计信息:")
         click.echo(f"  文件数量: {result['file_count']}")
         click.echo(f"  记录总数: {result['total_records']}")
-        size_mb = result['total_size_bytes'] / 1024 / 1024
-        click.echo(
-            f"  总大小: {result['total_size_bytes']:,} 字节 ({size_mb:.2f} MB)"
-        )
+        size_mb = result["total_size_bytes"] / 1024 / 1024
+        click.echo(f"  总大小: {result['total_size_bytes']:,} 字节 ({size_mb:.2f} MB)")
 
         if result["errors"]:
             click.echo("\n错误列表:")
@@ -415,6 +445,171 @@ def detect_duplicates_cmd(
 
     except Exception as e:
         click.echo(f"✗ 检测失败: {e}", err=True)
+        sys.exit(1)
+
+
+@storage.command()
+@click.option(
+    "--raw-dir",
+    default=None,
+    help="JSONL 文件目录 (默认从配置读取)",
+)
+@click.option(
+    "--parquet-root",
+    default=None,
+    help="Parquet 根目录 (默认从配置读取)",
+)
+@click.option(
+    "--retention-days",
+    type=int,
+    default=7,
+    help="保留天数",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="试运行(不实际删除)",
+)
+def cleanup(
+    raw_dir: str | None,
+    parquet_root: str | None,
+    retention_days: int,
+    dry_run: bool,
+):
+    """清理过期的 JSONL 文件
+
+    清理已转换为 Parquet 且超过保留期的 JSONL 文件。
+
+    示例:
+        # 试运行
+        storage cleanup --dry-run
+
+        # 清理 7 天前的文件
+        storage cleanup
+
+        # 清理 30 天前的文件
+        storage cleanup --retention-days 30
+    """
+    try:
+        # 使用配置路径（如果未指定）
+        if raw_dir is None:
+            raw_dir = str(get_messages_raw_path())
+        if parquet_root is None:
+            parquet_root = str(get_messages_parquet_path())
+
+        click.echo(f"清理过期 JSONL 文件")
+        click.echo(f"源目录: {raw_dir}")
+        click.echo(f"Parquet 目录: {parquet_root}")
+        click.echo(f"保留天数: {retention_days}")
+        click.echo(f"模式: {'试运行' if dry_run else '实际删除'}")
+
+        result = cleanup_old_jsonl(
+            raw_dir=raw_dir,
+            parquet_root=parquet_root,
+            retention_days=retention_days,
+            dry_run=dry_run,
+        )
+
+        # 显示结果
+        click.echo(f"\n{'='*60}")
+        click.echo(f"扫描文件: {result['total_scanned']}")
+        click.echo(f"删除文件: {result['deleted']}")
+        click.echo(f"跳过(无 Parquet): {result['skipped_no_parquet']}")
+        click.echo(f"跳过(使用中): {result['skipped_in_use']}")
+
+        if result["deleted_files"]:
+            click.echo(f"\n{'已删除' if not dry_run else '将删除'}的文件:")
+            for file_path in result["deleted_files"]:
+                click.echo(f"  • {Path(file_path).name}")
+
+        click.echo(f"{'='*60}\n")
+
+        if dry_run and result["deleted_files"]:
+            click.echo("提示: 使用 --no-dry-run 执行实际删除")
+
+    except Exception as e:
+        click.echo(f"✗ 清理失败: {e}", err=True)
+        logger.exception("cleanup_failed", error=str(e))
+        sys.exit(1)
+
+
+@storage.command()
+@click.option(
+    "--parquet-root",
+    default=None,
+    help="Parquet 根目录 (默认从配置读取)",
+)
+@click.option(
+    "--archive-root",
+    default="data/archive/messages",
+    help="归档目标目录",
+)
+@click.option(
+    "--older-than-days",
+    type=int,
+    default=90,
+    help="归档阈值(天)",
+)
+@click.option(
+    "--compression-level",
+    type=int,
+    default=19,
+    help="压缩级别(1-22)",
+)
+def archive(
+    parquet_root: str | None,
+    archive_root: str,
+    older_than_days: int,
+    compression_level: int,
+):
+    """归档旧分区
+
+    将旧分区重新压缩为高压缩率格式(Zstd-19)并移动到归档目录。
+
+    示例:
+        # 归档 90 天前的分区
+        storage archive
+
+        # 归档 180 天前的分区
+        storage archive --older-than-days 180
+
+        # 使用更高压缩级别
+        storage archive --compression-level 22
+    """
+    try:
+        # 使用配置路径（如果未指定）
+        if parquet_root is None:
+            parquet_root = str(get_messages_parquet_path())
+
+        click.echo(f"归档旧分区")
+        click.echo(f"源目录: {parquet_root}")
+        click.echo(f"归档目录: {archive_root}")
+        click.echo(f"归档阈值: {older_than_days} 天")
+        click.echo(f"压缩级别: {compression_level}")
+
+        result = archive_old_partitions(
+            parquet_root=parquet_root,
+            archive_root=archive_root,
+            older_than_days=older_than_days,
+            compression="zstd",
+            compression_level=compression_level,
+        )
+
+        # 显示结果
+        click.echo(f"\n{'='*60}")
+        click.echo(f"✓ 归档完成")
+        click.echo(f"  归档分区数: {result['archived_partitions']}")
+        click.echo(f"  原始大小: {result['total_size_before_mb']:.2f} MB")
+        click.echo(f"  归档后大小: {result['total_size_after_mb']:.2f} MB")
+        click.echo(f"  压缩率: {result['compression_ratio']:.2f}x")
+        click.echo(f"{'='*60}\n")
+
+        if result["archived_partitions"] == 0:
+            click.echo("提示: 没有符合归档条件的分区")
+
+    except Exception as e:
+        click.echo(f"✗ 归档失败: {e}", err=True)
+        logger.exception("archive_failed", error=str(e))
         sys.exit(1)
 
 

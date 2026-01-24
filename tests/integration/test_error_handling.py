@@ -6,7 +6,6 @@
 import json
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from src.services.storage.error_handler import (
@@ -14,8 +13,6 @@ from src.services.storage.error_handler import (
     safe_parse_message,
     validate_required_fields,
 )
-from src.services.storage.ingestion import convert_jsonl_to_parquet
-from src.services.storage.jsonl_writer import JSONLWriter
 
 
 class TestErrorHandlingIntegration:
@@ -184,7 +181,6 @@ class TestErrorHandlingIntegration:
     ):
         """测试错误恢复和继续处理"""
         jsonl_dir = storage_dirs["jsonl"]
-        parquet_dir = storage_dirs["parquet"]
         error_handler = ErrorHandler(error_log_path)
 
         # 创建包含错误的 JSONL 文件

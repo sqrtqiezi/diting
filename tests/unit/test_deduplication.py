@@ -6,7 +6,6 @@
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from src.services.storage.deduplication import (
     deduplicate_messages,
@@ -361,7 +360,7 @@ class TestDeduplicatePartition:
         test_data.to_parquet(partition_dir / "part-0.parquet", index=False)
 
         # 执行去重
-        result = deduplicate_partition(partition_dir, in_place=True)
+        deduplicate_partition(partition_dir, in_place=True)
 
         # 验证保留第一次出现
         output_data = pd.read_parquet(partition_dir / "part-0.parquet")

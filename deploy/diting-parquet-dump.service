@@ -1,0 +1,39 @@
+[Unit]
+Description=Diting Parquet Dump Service
+Documentation=https://github.com/yourusername/diting
+After=network.target
+
+[Service]
+Type=oneshot
+User=diting
+Group=diting
+WorkingDirectory=/opt/diting
+
+# Environment
+Environment="PATH=/opt/diting/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=-/opt/diting/.env
+
+# Execute parquet dump
+ExecStart=/opt/diting/.venv/bin/uv run python -m src.cli.storage_commands dump-parquet \
+    --raw-dir /opt/diting/data/messages/raw \
+    --parquet-root /opt/diting/data/parquet/messages \
+    --checkpoint-dir /opt/diting/data/metadata/checkpoints
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=diting-parquet-dump
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/diting/data
+
+# Resource limits
+MemoryMax=2G
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

@@ -6,10 +6,9 @@
 from pathlib import Path
 
 import pandas as pd
-import pyarrow.parquet as pq
 import pytest
 
-from src.services.storage.deduplication import deduplicate_messages, deduplicate_partition
+from src.services.storage.deduplication import deduplicate_partition
 from src.services.storage.incremental import incremental_ingest
 from src.services.storage.validation import detect_duplicates
 
@@ -112,7 +111,9 @@ class TestDeduplicationIntegration:
         assert msg_001_count == 3  # 出现在 3 个分区
         assert msg_002_count == 2  # 出现在 2 个分区
 
-    def test_incremental_ingest_with_deduplication(self, storage_dirs: dict[str, Path], tmp_path: Path):
+    def test_incremental_ingest_with_deduplication(
+        self, storage_dirs: dict[str, Path], tmp_path: Path
+    ):
         """测试增量摄入时的去重"""
         parquet_root = storage_dirs["parquet"]
         staging_dir = storage_dirs["staging"]

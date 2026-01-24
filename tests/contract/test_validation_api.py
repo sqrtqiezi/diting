@@ -6,7 +6,6 @@
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from src.services.storage.validation import detect_duplicates, validate_partition
 
@@ -27,8 +26,7 @@ class TestValidatePartitionContract:
         # 验证参数类型注解
         partition_path_annotation = sig.parameters["partition_path"].annotation
         assert partition_path_annotation == str | Path, (
-            f"partition_path 类型契约变更: "
-            f"期望 str | Path, 实际 {partition_path_annotation}"
+            f"partition_path 类型契约变更: " f"期望 str | Path, 实际 {partition_path_annotation}"
         )
 
         # 验证返回类型注解
@@ -120,9 +118,9 @@ class TestDetectDuplicatesContract:
 
         # 验证返回类型注解
         return_annotation = sig.return_annotation
-        assert return_annotation == pd.DataFrame, (
-            f"返回类型契约变更: 期望 pd.DataFrame, 实际 {return_annotation}"
-        )
+        assert (
+            return_annotation == pd.DataFrame
+        ), f"返回类型契约变更: 期望 pd.DataFrame, 实际 {return_annotation}"
 
     def test_return_structure_no_duplicates(self, tmp_path):
         """测试无重复数据的返回结构契约"""

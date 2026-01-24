@@ -1,0 +1,21 @@
+[Unit]
+Description=Diting Parquet Dump Timer
+Documentation=https://github.com/yourusername/diting
+Requires=diting-parquet-dump.service
+
+[Timer]
+# Run every hour at minute 5
+OnCalendar=hourly
+OnCalendar=*:05:00
+
+# Run 5 minutes after boot
+OnBootSec=5min
+
+# If the system was off when the timer should have triggered, run it immediately
+Persistent=true
+
+# Randomize execution time by up to 2 minutes to avoid load spikes
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pandas as pd
 import pyarrow as pa
-import pyarrow.parquet as pq
 import pytest
 
 from src.services.storage.schema_compat import (
@@ -100,7 +99,10 @@ class TestCheckSchemaCompatibility:
             ]
         )
         new_schema = pa.schema(
-            [pa.field("msg_id", pa.string()), pa.field("count", pa.string())]  # 删除 content  # 类型变更
+            [
+                pa.field("msg_id", pa.string()),
+                pa.field("count", pa.string()),  # 删除 content, 类型变更
+            ]
         )
 
         result = check_schema_compatibility(old_schema, new_schema)
@@ -160,7 +162,10 @@ class TestDetectSchemaEvolution:
         assert result["schema_versions"][0]["field_count"] in [2, 3]
         assert result["schema_versions"][1]["field_count"] in [2, 3]
         # 确保两个版本的字段数不同
-        assert result["schema_versions"][0]["field_count"] != result["schema_versions"][1]["field_count"]
+        assert (
+            result["schema_versions"][0]["field_count"]
+            != result["schema_versions"][1]["field_count"]
+        )
         assert len(result["warnings"]) > 0
 
     def test_evolution_with_incompatible_schema(self, tmp_path: Path):

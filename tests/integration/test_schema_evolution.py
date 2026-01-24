@@ -3,7 +3,6 @@
 测试 schema 演化场景：新增字段、schema 兼容性检查、多版本共存
 """
 
-import json
 from pathlib import Path
 
 import pandas as pd
@@ -260,7 +259,6 @@ class TestSchemaEvolutionIntegration:
             # 注册新 schema（第三天）
             if day == 25:
                 schema = pq.read_schema(partition / "data.parquet")
-                compat_result = registry.is_compatible("message_content", schema)
                 # 注意：由于 Parquet 写入时会添加分区列，schema 可能不完全兼容
                 # 但我们仍然注册新版本
                 registry.register_schema("message_content", schema, f"Day {day} - added timestamp")
@@ -281,7 +279,6 @@ class TestSchemaEvolutionIntegration:
         df.to_parquet(partition / "data.parquet", index=False)
 
         schema = pq.read_schema(partition / "data.parquet")
-        compat_result = registry.is_compatible("message_content", schema)
         # 注意：由于 Parquet 写入时会添加分区列，schema 可能不完全兼容
         # 但我们仍然注册新版本
         registry.register_schema("message_content", schema, "Day 27 - added msg_type")
@@ -363,7 +360,6 @@ class TestSchemaEvolutionIntegration:
 
     def test_breaking_schema_change_detection(self, storage_dirs: dict[str, Path]):
         """测试破坏性 schema 变更检测"""
-        parquet_root = storage_dirs["parquet"]
         registry_path = storage_dirs["registry"]
         registry = SchemaRegistry(registry_path)
 
