@@ -150,44 +150,44 @@
 
 ### 契约测试 for US3
 
-- [ ] T042 [P] [US3] validate_partition 契约测试 in tests/contract/test_validation_api.py
-- [ ] T043 [P] [US3] detect_duplicates 契约测试 in tests/contract/test_validation_api.py
+- [X] T042 [P] [US3] validate_partition 契约测试 in tests/contract/test_validation_api.py
+- [X] T043 [P] [US3] detect_duplicates 契约测试 in tests/contract/test_validation_api.py
 
 ### 数据验证实现 for US3
 
-- [ ] T044 [P] [US3] 实现 validate_partition (分区完整性检查) in src/services/storage/validation.py
-- [ ] T045 [P] [US3] 实现 detect_duplicates (重复检测) in src/services/storage/validation.py
-- [ ] T046 [P] [US3] 实现 validate_schema (Schema 验证) in src/services/storage/validation.py
-- [ ] T047 [US3] 实现 SchemaRegistry (Schema 版本管理) in src/services/storage/schema_registry.py
+- [X] T044 [P] [US3] 实现 validate_partition (分区完整性检查) in src/services/storage/validation.py
+- [X] T045 [P] [US3] 实现 detect_duplicates (重复检测) in src/services/storage/validation.py
+- [X] T046 [P] [US3] 实现 validate_schema (Schema 验证) in src/services/storage/validation.py
+- [X] T047 [US3] 实现 SchemaRegistry (Schema 版本管理) in src/services/storage/schema_registry.py
 
 ### 去重实现 for US3
 
-- [ ] T048 [US3] 实现 deduplicate_messages (基于 msg_id) in src/services/storage/deduplication.py
-- [ ] T049 [US3] 实现 incremental_ingest (增量摄入+去重) in src/services/storage/incremental.py
+- [X] T048 [US3] 实现 deduplicate_messages (基于 msg_id) in src/services/storage/deduplication.py
+- [X] T049 [US3] 实现 incremental_ingest (增量摄入+去重) in src/services/storage/incremental.py
 
 ### 错误处理 for US3
 
-- [ ] T050 [US3] 实现格式错误消息跳过逻辑 in src/services/storage/error_handler.py
-- [ ] T051 [US3] 实现 Schema 不兼容检测 in src/services/storage/schema_compat.py
+- [X] T050 [US3] 实现格式错误消息跳过逻辑 in src/services/storage/error_handler.py
+- [X] T051 [US3] 实现 Schema 不兼容检测 in src/services/storage/schema_compat.py
 
 ### CLI 命令 for US3
 
-- [ ] T052 [P] [US3] 实现 storage validate CLI 命令 in src/cli/storage_commands.py
-- [ ] T053 [P] [US3] 实现 storage detect-duplicates CLI 命令 in src/cli/storage_commands.py
+- [X] T052 [P] [US3] 实现 storage validate CLI 命令 in src/cli/storage_commands.py
+- [X] T053 [P] [US3] 实现 storage detect-duplicates CLI 命令 in src/cli/storage_commands.py
 
 ### 单元测试 for US3
 
-- [ ] T054 [P] [US3] 数据验证单元测试 in tests/unit/test_validation.py
-- [ ] T055 [P] [US3] 去重逻辑单元测试 in tests/unit/test_deduplication.py
-- [ ] T056 [P] [US3] Schema 演化单元测试 in tests/unit/test_schema_evolution.py
+- [X] T054 [P] [US3] 数据验证单元测试 in tests/unit/test_validation.py
+- [X] T055 [P] [US3] 去重逻辑单元测试 in tests/unit/test_deduplication.py
+- [X] T056 [P] [US3] Schema 演化单元测试 in tests/unit/test_schema_evolution.py
 
 ### 集成测试 for US3
 
-- [ ] T057 [US3] 格式错误处理集成测试 in tests/integration/test_error_handling.py
-- [ ] T058 [US3] Schema 变更集成测试 in tests/integration/test_schema_evolution.py
-- [ ] T059 [US3] 重复消息去重集成测试 in tests/integration/test_deduplication.py
+- [X] T057 [US3] 格式错误处理集成测试 in tests/integration/test_error_handling.py
+- [X] T058 [US3] Schema 变更集成测试 in tests/integration/test_schema_evolution.py
+- [X] T059 [US3] 重复消息去重集成测试 in tests/integration/test_deduplication.py
 
-**Checkpoint**: 用户故事3完全功能化,可独立测试。验收场景1-4应全部通过。
+**Checkpoint**: 用户故事3完全功能化,可独立测试。验收场景1-4应全部通过。✅
 
 ---
 
