@@ -3,7 +3,6 @@
 清理过期的 JSONL 文件(已转换为 Parquet 且超过保留期)。
 """
 
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -72,9 +71,7 @@ def cleanup_old_jsonl(
         year = file_date.year
         month = file_date.month
         day = file_date.day
-        parquet_partition = (
-            parquet_root / f"year={year}" / f"month={month:02d}" / f"day={day:02d}"
-        )
+        parquet_partition = parquet_root / f"year={year}" / f"month={month:02d}" / f"day={day:02d}"
 
         if not parquet_partition.exists() or not list(parquet_partition.glob("*.parquet")):
             skipped_no_parquet += 1

@@ -59,13 +59,12 @@ class TestArchiveOldPartitionsContract:
 
         # 验证返回值类型
         assert isinstance(result["archived_partitions"], int)
-        assert isinstance(result["total_size_before_mb"], (int, float))
-        assert isinstance(result["total_size_after_mb"], (int, float))
-        assert isinstance(result["compression_ratio"], (int, float))
+        assert isinstance(result["total_size_before_mb"], int | float)
+        assert isinstance(result["total_size_after_mb"], int | float)
+        assert isinstance(result["compression_ratio"], int | float)
 
     def test_parameter_validation(self, tmp_path: Path):
         """测试参数验证"""
-        parquet_root = tmp_path / "parquet"
         archive_root = tmp_path / "archive"
 
         # 测试不存在的 parquet_root
@@ -193,7 +192,6 @@ class TestCleanupOldJsonlContract:
 
     def test_parameter_validation(self, tmp_path: Path):
         """测试参数验证"""
-        raw_dir = tmp_path / "raw"
         parquet_root = tmp_path / "parquet"
 
         # 测试不存在的 raw_dir

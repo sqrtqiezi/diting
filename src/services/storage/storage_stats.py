@@ -65,9 +65,7 @@ def get_storage_usage(
         "storage_usage_calculated",
         total_size_mb=result["total_size_mb"],
         parquet_partitions=parquet_stats["total_partitions"],
-        archive_partitions=result["archive"]["total_partitions"]
-        if result["archive"]
-        else 0,
+        archive_partitions=result["archive"]["total_partitions"] if result["archive"] else 0,
         raw_files=result["raw"]["total_files"] if result["raw"] else 0,
     )
 
@@ -172,9 +170,7 @@ def get_compression_stats(parquet_root: str | Path) -> dict[str, Any]:
                 )
 
     # 计算平均压缩率
-    avg_compression_ratio = (
-        total_uncompressed / total_compressed if total_compressed > 0 else 1.0
-    )
+    avg_compression_ratio = total_uncompressed / total_compressed if total_compressed > 0 else 1.0
 
     return {
         "total_partitions": len(partitions),

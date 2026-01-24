@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pandas as pd
 import pyarrow.parquet as pq
-import pytest
 
 from src.services.storage.partition_metadata import get_partition_stats, scan_partitions
 from src.services.storage.storage_stats import (
@@ -59,9 +58,7 @@ class TestPartitionQueryPerformance:
         # 过滤最近 7 天的分区
         recent_threshold = datetime.now() - timedelta(days=7)
         recent_partitions = [
-            p
-            for p in partitions
-            if datetime(p.year, p.month, p.day) >= recent_threshold
+            p for p in partitions if datetime(p.year, p.month, p.day) >= recent_threshold
         ]
 
         # 验证最近 7 天的分区
@@ -431,9 +428,7 @@ class TestPartitionQueryPerformance:
         # 过滤最近 7 天
         recent_threshold = datetime.now() - timedelta(days=7)
         recent_partitions = [
-            p
-            for p in partitions
-            if datetime(p.year, p.month, p.day) >= recent_threshold
+            p for p in partitions if datetime(p.year, p.month, p.day) >= recent_threshold
         ]
 
         # 读取最近 7 天的数据

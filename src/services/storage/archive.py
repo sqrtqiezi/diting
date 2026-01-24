@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import pyarrow.parquet as pq
 import structlog
 
@@ -113,9 +112,7 @@ def archive_old_partitions(
                     )
 
     # 计算总体压缩率
-    compression_ratio = (
-        total_size_before / total_size_after if total_size_after > 0 else 0
-    )
+    compression_ratio = total_size_before / total_size_after if total_size_after > 0 else 0
 
     result = {
         "archived_partitions": archived_partitions,

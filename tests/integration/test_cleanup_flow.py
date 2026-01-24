@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from src.services.storage.cleanup import cleanup_old_jsonl
 from src.services.storage.incremental import incremental_ingest
@@ -31,7 +30,10 @@ class TestCleanupFlow:
         with jsonl_file.open("w") as f:
             for i in range(100):
                 timestamp = int(old_date.timestamp()) + i
-                f.write(f'{{"msg_id": "msg_{i}", "content": "test content {i}", "create_time": {timestamp}}}\n')
+                f.write(
+                    f'{{"msg_id": "msg_{i}", "content": "test content {i}", '
+                    f'"create_time": {timestamp}}}\n'
+                )
 
         # 执行增量摄入(转换为 Parquet)
         ingest_result = incremental_ingest(
@@ -273,9 +275,7 @@ class TestCleanupFlow:
             / f"day={old_with_parquet.day:02d}"
         )
         partition1.mkdir(parents=True)
-        pd.DataFrame({"msg_id": ["msg_001"]}).to_parquet(
-            partition1 / "part-0.parquet", index=False
-        )
+        pd.DataFrame({"msg_id": ["msg_001"]}).to_parquet(partition1 / "part-0.parquet", index=False)
 
         # 2. 旧文件,无 Parquet - 应该跳过
         old_without_parquet = datetime.now() - timedelta(days=12)
@@ -293,9 +293,7 @@ class TestCleanupFlow:
             / f"day={recent_with_parquet.day:02d}"
         )
         partition3.mkdir(parents=True)
-        pd.DataFrame({"msg_id": ["msg_003"]}).to_parquet(
-            partition3 / "part-0.parquet", index=False
-        )
+        pd.DataFrame({"msg_id": ["msg_003"]}).to_parquet(partition3 / "part-0.parquet", index=False)
 
         # 执行清理
         result = cleanup_old_jsonl(

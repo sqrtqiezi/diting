@@ -5,7 +5,6 @@
 """
 
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import click
@@ -270,7 +269,7 @@ def dump_parquet(
         if parquet_root is None:
             parquet_root = str(get_messages_parquet_path())
 
-        click.echo(f"增量摄入 JSONL 到 Parquet")
+        click.echo("增量摄入 JSONL 到 Parquet")
         click.echo(f"源目录: {raw_dir}")
         click.echo(f"目标目录: {parquet_root}")
         click.echo(f"检查点目录: {checkpoint_dir}")
@@ -310,7 +309,7 @@ def dump_parquet(
                 click.echo(f"  跳过重复: {result['skipped_duplicates']} 条")
 
         click.echo(f"\n{'='*60}")
-        click.echo(f"✓ 转换完成")
+        click.echo("✓ 转换完成")
         click.echo(f"  总处理: {total_processed} 条")
         click.echo(f"  总新增: {total_new} 条")
         click.echo(f"{'='*60}\n")
@@ -497,7 +496,7 @@ def cleanup(
         if parquet_root is None:
             parquet_root = str(get_messages_parquet_path())
 
-        click.echo(f"清理过期 JSONL 文件")
+        click.echo("清理过期 JSONL 文件")
         click.echo(f"源目录: {raw_dir}")
         click.echo(f"Parquet 目录: {parquet_root}")
         click.echo(f"保留天数: {retention_days}")
@@ -581,7 +580,7 @@ def archive(
         if parquet_root is None:
             parquet_root = str(get_messages_parquet_path())
 
-        click.echo(f"归档旧分区")
+        click.echo("归档旧分区")
         click.echo(f"源目录: {parquet_root}")
         click.echo(f"归档目录: {archive_root}")
         click.echo(f"归档阈值: {older_than_days} 天")
@@ -597,7 +596,7 @@ def archive(
 
         # 显示结果
         click.echo(f"\n{'='*60}")
-        click.echo(f"✓ 归档完成")
+        click.echo("✓ 归档完成")
         click.echo(f"  归档分区数: {result['archived_partitions']}")
         click.echo(f"  原始大小: {result['total_size_before_mb']:.2f} MB")
         click.echo(f"  归档后大小: {result['total_size_after_mb']:.2f} MB")
