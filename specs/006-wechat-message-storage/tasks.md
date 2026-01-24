@@ -150,44 +150,44 @@
 
 ### 契约测试 for US3
 
-- [ ] T042 [P] [US3] validate_partition 契约测试 in tests/contract/test_validation_api.py
-- [ ] T043 [P] [US3] detect_duplicates 契约测试 in tests/contract/test_validation_api.py
+- [X] T042 [P] [US3] validate_partition 契约测试 in tests/contract/test_validation_api.py
+- [X] T043 [P] [US3] detect_duplicates 契约测试 in tests/contract/test_validation_api.py
 
 ### 数据验证实现 for US3
 
-- [ ] T044 [P] [US3] 实现 validate_partition (分区完整性检查) in src/services/storage/validation.py
-- [ ] T045 [P] [US3] 实现 detect_duplicates (重复检测) in src/services/storage/validation.py
-- [ ] T046 [P] [US3] 实现 validate_schema (Schema 验证) in src/services/storage/validation.py
-- [ ] T047 [US3] 实现 SchemaRegistry (Schema 版本管理) in src/services/storage/schema_registry.py
+- [X] T044 [P] [US3] 实现 validate_partition (分区完整性检查) in src/services/storage/validation.py
+- [X] T045 [P] [US3] 实现 detect_duplicates (重复检测) in src/services/storage/validation.py
+- [X] T046 [P] [US3] 实现 validate_schema (Schema 验证) in src/services/storage/validation.py
+- [X] T047 [US3] 实现 SchemaRegistry (Schema 版本管理) in src/services/storage/schema_registry.py
 
 ### 去重实现 for US3
 
-- [ ] T048 [US3] 实现 deduplicate_messages (基于 msg_id) in src/services/storage/deduplication.py
-- [ ] T049 [US3] 实现 incremental_ingest (增量摄入+去重) in src/services/storage/incremental.py
+- [X] T048 [US3] 实现 deduplicate_messages (基于 msg_id) in src/services/storage/deduplication.py
+- [X] T049 [US3] 实现 incremental_ingest (增量摄入+去重) in src/services/storage/incremental.py
 
 ### 错误处理 for US3
 
-- [ ] T050 [US3] 实现格式错误消息跳过逻辑 in src/services/storage/error_handler.py
-- [ ] T051 [US3] 实现 Schema 不兼容检测 in src/services/storage/schema_compat.py
+- [X] T050 [US3] 实现格式错误消息跳过逻辑 in src/services/storage/error_handler.py
+- [X] T051 [US3] 实现 Schema 不兼容检测 in src/services/storage/schema_compat.py
 
 ### CLI 命令 for US3
 
-- [ ] T052 [P] [US3] 实现 storage validate CLI 命令 in src/cli/storage_commands.py
-- [ ] T053 [P] [US3] 实现 storage detect-duplicates CLI 命令 in src/cli/storage_commands.py
+- [X] T052 [P] [US3] 实现 storage validate CLI 命令 in src/cli/storage_commands.py
+- [X] T053 [P] [US3] 实现 storage detect-duplicates CLI 命令 in src/cli/storage_commands.py
 
 ### 单元测试 for US3
 
-- [ ] T054 [P] [US3] 数据验证单元测试 in tests/unit/test_validation.py
-- [ ] T055 [P] [US3] 去重逻辑单元测试 in tests/unit/test_deduplication.py
-- [ ] T056 [P] [US3] Schema 演化单元测试 in tests/unit/test_schema_evolution.py
+- [X] T054 [P] [US3] 数据验证单元测试 in tests/unit/test_validation.py
+- [X] T055 [P] [US3] 去重逻辑单元测试 in tests/unit/test_deduplication.py
+- [X] T056 [P] [US3] Schema 演化单元测试 in tests/unit/test_schema_evolution.py
 
 ### 集成测试 for US3
 
-- [ ] T057 [US3] 格式错误处理集成测试 in tests/integration/test_error_handling.py
-- [ ] T058 [US3] Schema 变更集成测试 in tests/integration/test_schema_evolution.py
-- [ ] T059 [US3] 重复消息去重集成测试 in tests/integration/test_deduplication.py
+- [X] T057 [US3] 格式错误处理集成测试 in tests/integration/test_error_handling.py
+- [X] T058 [US3] Schema 变更集成测试 in tests/integration/test_schema_evolution.py
+- [X] T059 [US3] 重复消息去重集成测试 in tests/integration/test_deduplication.py
 
-**Checkpoint**: 用户故事3完全功能化,可独立测试。验收场景1-4应全部通过。
+**Checkpoint**: 用户故事3完全功能化,可独立测试。验收场景1-4应全部通过。✅
 
 ---
 
@@ -199,38 +199,38 @@
 
 ### 契约测试 for US4
 
-- [ ] T060 [P] [US4] archive_old_partitions 契约测试 in tests/contract/test_archive_api.py
-- [ ] T061 [P] [US4] cleanup_old_jsonl 契约测试 in tests/contract/test_archive_api.py
+- [X] T060 [P] [US4] archive_old_partitions 契约测试 in tests/contract/test_archive_api.py
+- [X] T061 [P] [US4] cleanup_old_jsonl 契约测试 in tests/contract/test_archive_api.py
 
 ### 归档实现 for US4
 
-- [ ] T062 [P] [US4] 实现 archive_old_partitions (Zstd-19压缩) in src/services/storage/archive.py
-- [ ] T063 [P] [US4] 实现 cleanup_old_jsonl (JSONL清理) in src/services/storage/cleanup.py
-- [ ] T064 [US4] 实现分区元数据管理 (StoragePartition) in src/services/storage/partition_metadata.py
-- [ ] T065 [US4] 实现存储使用统计 in src/services/storage/storage_stats.py
+- [X] T062 [P] [US4] 实现 archive_old_partitions (Zstd-19压缩) in src/services/storage/archive.py
+- [X] T063 [P] [US4] 实现 cleanup_old_jsonl (JSONL清理) in src/services/storage/cleanup.py
+- [X] T064 [US4] 实现分区元数据管理 (StoragePartition) in src/services/storage/partition_metadata.py
+- [X] T065 [US4] 实现存储使用统计 in src/services/storage/storage_stats.py
 
 ### 定时任务实现 for US4
 
-- [ ] T066 [US4] 创建 Systemd service 文件 in deploy/diting-parquet-dump.service
-- [ ] T067 [US4] 创建 Systemd timer 文件 in deploy/diting-parquet-dump.timer
+- [X] T066 [US4] 创建 Systemd service 文件 in deploy/diting-parquet-dump.service
+- [X] T067 [US4] 创建 Systemd timer 文件 in deploy/diting-parquet-dump.timer
 
 ### CLI 命令 for US4
 
-- [ ] T068 [P] [US4] 实现 storage dump-parquet CLI 命令 in src/cli/storage_commands.py
-- [ ] T069 [P] [US4] 实现 storage cleanup CLI 命令 in src/cli/storage_commands.py
-- [ ] T070 [P] [US4] 实现 storage archive CLI 命令 in src/cli/storage_commands.py
+- [X] T068 [P] [US4] 实现 storage dump-parquet CLI 命令 in src/cli/storage_commands.py
+- [X] T069 [P] [US4] 实现 storage cleanup CLI 命令 in src/cli/storage_commands.py
+- [X] T070 [P] [US4] 实现 storage archive CLI 命令 in src/cli/storage_commands.py
 
 ### 单元测试 for US4
 
-- [ ] T071 [P] [US4] 归档逻辑单元测试 in tests/unit/test_archive.py
-- [ ] T072 [P] [US4] 清理逻辑单元测试 in tests/unit/test_cleanup.py
-- [ ] T073 [P] [US4] 分区元数据单元测试 in tests/unit/test_partition_metadata.py
+- [X] T071 [P] [US4] 归档逻辑单元测试 in tests/unit/test_archive.py
+- [X] T072 [P] [US4] 清理逻辑单元测试 in tests/unit/test_cleanup.py
+- [X] T073 [P] [US4] 分区元数据单元测试 in tests/unit/test_partition_metadata.py
 
 ### 集成测试 for US4
 
-- [ ] T074 [US4] 归档流程集成测试 (90天数据) in tests/integration/test_archive_flow.py
-- [ ] T075 [US4] JSONL清理集成测试 (7天保留) in tests/integration/test_cleanup_flow.py
-- [ ] T076 [US4] 分区查询性能测试 (最近7天) in tests/integration/test_partition_query.py
+- [X] T074 [US4] 归档流程集成测试 (90天数据) in tests/integration/test_archive_flow.py
+- [X] T075 [US4] JSONL清理集成测试 (7天保留) in tests/integration/test_cleanup_flow.py
+- [X] T076 [US4] 分区查询性能测试 (最近7天) in tests/integration/test_partition_query.py
 
 **Checkpoint**: 用户故事4完全功能化,可独立测试。验收场景1-4应全部通过。
 
@@ -242,8 +242,8 @@
 
 - [ ] T077 [P] 更新 README.md 添加存储功能说明
 - [ ] T078 [P] 验证 quickstart.md 中的所有示例可运行
-- [ ] T079 [P] 生成测试覆盖率报告,确保 ≥80%
-- [ ] T080 代码质量检查 (ruff check, ruff format, mypy)
+- [X] T079 [P] 生成测试覆盖率报告,确保 ≥80%
+- [X] T080 代码质量检查 (ruff check, ruff format, mypy)
 - [ ] T081 [P] 性能优化: 批量大小调优
 - [ ] T082 [P] 安全审计: 敏感字段脱敏验证
 - [ ] T083 添加性能监控日志 (处理时间、记录数、压缩率)
