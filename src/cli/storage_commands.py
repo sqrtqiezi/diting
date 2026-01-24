@@ -13,6 +13,7 @@ import structlog
 
 from src.config import get_messages_parquet_path, get_messages_raw_path
 from src.services.storage.query import query_messages, query_messages_by_id
+from src.services.storage.validation import detect_duplicates, validate_partition
 
 logger = structlog.get_logger()
 
@@ -97,7 +98,7 @@ def query(
             parquet_root = str(get_messages_parquet_path())
 
         # 构建过滤条件
-        filters = {}
+        filters: dict[str, str | int] = {}
         if chatroom:
             filters["chatroom"] = chatroom
         if from_user:
@@ -285,6 +286,135 @@ def dump_parquet(
 
     except Exception as e:
         click.echo(f"✗ 转换失败: {e}", err=True)
+        sys.exit(1)
+
+
+@storage.command()
+@click.argument("partition_path", type=click.Path(exists=True))
+def validate(partition_path: str):
+    """验证 Parquet 分区完整性
+
+    检查分区目录中的 Parquet 文件是否有效，包括：
+    - 目录存在性
+    - 文件数量和大小
+    - Schema 一致性
+    - 文件完整性
+
+    示例:
+        # 验证单个分区
+        storage validate data/parquet/messages/year=2026/month=01/day=23
+
+        # 验证多个分区
+        for dir in data/parquet/messages/year=2026/month=01/day=*; do
+            storage validate "$dir"
+        done
+    """
+    try:
+        click.echo(f"验证分区: {partition_path}")
+
+        result = validate_partition(partition_path)
+
+        # 显示结果
+        click.echo(f"\n{'='*60}")
+        if result["is_valid"]:
+            click.echo("✓ 分区验证通过")
+        else:
+            click.echo("✗ 分区验证失败")
+
+        click.echo("\n统计信息:")
+        click.echo(f"  文件数量: {result['file_count']}")
+        click.echo(f"  记录总数: {result['total_records']}")
+        size_mb = result['total_size_bytes'] / 1024 / 1024
+        click.echo(
+            f"  总大小: {result['total_size_bytes']:,} 字节 ({size_mb:.2f} MB)"
+        )
+
+        if result["errors"]:
+            click.echo("\n错误列表:")
+            for error in result["errors"]:
+                click.echo(f"  • {error}")
+
+        click.echo(f"{'='*60}\n")
+
+        # 如果验证失败，返回非零退出码
+        if not result["is_valid"]:
+            sys.exit(1)
+
+    except Exception as e:
+        click.echo(f"✗ 验证失败: {e}", err=True)
+        sys.exit(1)
+
+
+@storage.command()
+@click.option(
+    "--parquet-root",
+    default=None,
+    help="Parquet 根目录 (默认从配置读取)",
+)
+@click.option(
+    "--output",
+    "-o",
+    help="输出文件路径 (CSV)",
+)
+@click.option(
+    "--show-details",
+    is_flag=True,
+    help="显示详细的重复消息列表",
+)
+def detect_duplicates_cmd(
+    parquet_root: str | None,
+    output: str | None,
+    show_details: bool,
+):
+    """检测重复消息
+
+    扫描整个 Parquet 数据集，检测基于 msg_id 的重复消息。
+
+    示例:
+        # 检测重复消息
+        storage detect-duplicates
+
+        # 显示详细信息
+        storage detect-duplicates --show-details
+
+        # 导出重复列表
+        storage detect-duplicates --output duplicates.csv
+    """
+    try:
+        # 使用配置路径（如果未指定）
+        if parquet_root is None:
+            parquet_root = str(get_messages_parquet_path())
+
+        click.echo(f"检测重复消息: {parquet_root}")
+
+        duplicates_df = detect_duplicates(parquet_root)
+
+        # 显示结果
+        click.echo(f"\n{'='*60}")
+        if len(duplicates_df) == 0:
+            click.echo("✓ 未发现重复消息")
+        else:
+            total_duplicates = duplicates_df["count"].sum() - len(duplicates_df)
+            click.echo(f"⚠ 发现 {len(duplicates_df)} 个重复的 msg_id")
+            click.echo(f"  重复记录总数: {total_duplicates}")
+
+            if show_details:
+                click.echo("\n重复消息列表:")
+                click.echo(duplicates_df.to_string(index=False))
+
+        click.echo(f"{'='*60}\n")
+
+        # 导出结果
+        if output and len(duplicates_df) > 0:
+            duplicates_df.to_csv(output, index=False)
+            click.echo(f"✓ 已导出重复列表到 {output}")
+
+        # 如果发现重复，返回非零退出码
+        if len(duplicates_df) > 0:
+            sys.exit(1)
+
+    except Exception as e:
+        click.echo(f"✗ 检测失败: {e}", err=True)
         sys.exit(1)
 
 
