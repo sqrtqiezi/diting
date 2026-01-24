@@ -24,9 +24,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15  # 超时保护
-    # environment:  # 暂时注释，使用 Repository Secrets
-    #   name: production
-    #   url: http://${{ secrets.ALIYUN_ECS_HOST }}:8000
+    environment: production
 
     steps:
       # Step 1: 检出代码
@@ -90,6 +88,20 @@ jobs:
             /home/${{ secrets.ALIYUN_SSH_USER }}/.local/bin/uv sync --frozen
 
             echo "✅ 依赖安装完成"
+          EOF
+          echo "::endgroup::"
+
+      # Step 6.5: 创建 .env 配置文件
+      - name: Create .env configuration file
+        run: |
+          echo "::group::创建 .env 配置文件"
+          ssh ${{ secrets.ALIYUN_SSH_USER }}@${{ secrets.ALIYUN_ECS_HOST }} << EOF
+            cd ${{ steps.create-release.outputs.RELEASE_DIR }}
+
+            # 创建 .env 文件
+            echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
+
+            echo "✅ .env 配置文件已创建"
           EOF
           echo "::endgroup::"
 

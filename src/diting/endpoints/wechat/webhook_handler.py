@@ -11,7 +11,23 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import parse_qs
 
+from src.config import get_messages_raw_path
+from src.services.storage.jsonl_writer import JSONLWriter
+
 from .webhook_logger import get_webhook_logger
+
+# 初始化 JSONL 写入器（全局单例）
+_jsonl_writer: JSONLWriter | None = None
+
+
+def get_jsonl_writer() -> JSONLWriter:
+    """获取 JSONL 写入器单例"""
+    global _jsonl_writer
+    if _jsonl_writer is None:
+        # 从配置中获取路径（支持 .env 文件配置）
+        base_dir = get_messages_raw_path()
+        _jsonl_writer = JSONLWriter(base_dir=base_dir)
+    return _jsonl_writer
 
 
 @dataclass
@@ -56,7 +72,7 @@ class WebhookRequest:
 
 def log_webhook_request(webhook_request: WebhookRequest, body_bytes: bytes):
     """
-    记录 webhook 请求到日志
+    记录 webhook 请求到日志并持久化到 JSONL
 
     包含多格式解析(JSON/Form/Text)和容错处理。
 
@@ -100,8 +116,27 @@ def log_webhook_request(webhook_request: WebhookRequest, body_bytes: bytes):
             # 猜测错误,不设置 parse_error(不是错误,只是猜测失败)
             pass
 
-    # 记录到日志
+    # 记录到 structlog 日志
     logger.info(
         "webhook_request_received",
         **webhook_request.to_log_dict(),
     )
+
+    # 持久化到 JSONL 文件 (FR-001: 立即追加到当日 JSONL 文件)
+    if webhook_request.parsed_json:
+        try:
+            writer = get_jsonl_writer()
+            writer.append_message(webhook_request.parsed_json)
+            logger.debug(
+                "message_persisted_to_jsonl",
+                request_id=webhook_request.request_id,
+                message_keys=list(webhook_request.parsed_json.keys()),
+            )
+        except Exception as e:
+            # 存储失败不应影响 webhook 响应
+            logger.error(
+                "jsonl_persistence_failed",
+                request_id=webhook_request.request_id,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
