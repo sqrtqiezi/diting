@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
@@ -74,7 +74,9 @@ class ChatroomMessageAnalyzer:
             int(message["seq_id"]): message["msg_id"] for message in sorted_messages
         }
         message_lookup = {
-            str(message.get("msg_id")): message for message in sorted_messages if message.get("msg_id")
+            str(message.get("msg_id")): message
+            for message in sorted_messages
+            if message.get("msg_id")
         }
         overall_date_range = self._build_date_range(sorted_messages)
         overall_total = len(sorted_messages)
@@ -408,7 +410,9 @@ class ChatroomMessageAnalyzer:
                 merged.append(topic)
         return merged, merge_logs
 
-    def _merge_decision(self, first: TopicClassification, second: TopicClassification) -> dict[str, Any]:
+    def _merge_decision(
+        self, first: TopicClassification, second: TopicClassification
+    ) -> dict[str, Any]:
         keyword_similarity = self._keyword_similarity(first.keywords, second.keywords)
         threshold = self.config.analysis.keyword_merge_threshold
         return {
@@ -506,9 +510,7 @@ class ChatroomMessageAnalyzer:
         return f"{first}；{second}"
 
     @staticmethod
-    def _pick_summary(
-        first: TopicClassification, second: TopicClassification
-    ) -> str:
+    def _pick_summary(first: TopicClassification, second: TopicClassification) -> str:
         first_summary = (first.summary or "").strip()
         second_summary = (second.summary or "").strip()
         if not first_summary:
@@ -529,7 +531,9 @@ class ChatroomMessageAnalyzer:
             return second or first
         if not second_times:
             return first
-        use_seconds = any(":" in time and time.count(":") == 2 for time in first_times + second_times)
+        use_seconds = any(
+            ":" in time and time.count(":") == 2 for time in first_times + second_times
+        )
         start_time = min(first_times + second_times, key=_time_to_seconds)
         end_time = max(first_times + second_times, key=_time_to_seconds)
         return f"{_format_time(start_time, use_seconds)}-{_format_time(end_time, use_seconds)}"
@@ -544,8 +548,11 @@ class ChatroomMessageAnalyzer:
     ) -> list[TopicClassification]:
         summarized: list[TopicClassification] = []
         for topic_index, topic in enumerate(topics, start=1):
-            full_messages = [message_lookup.get(msg_id) for msg_id in topic.message_ids]
-            full_messages = [item for item in full_messages if item]
+            full_messages = [
+                message_lookup[msg_id]
+                for msg_id in topic.message_ids
+                if msg_id in message_lookup
+            ]
             summary_messages = self._select_messages_for_summary(full_messages)
             participants = self._extract_participants(full_messages)
             time_range = self._build_time_range(full_messages)
@@ -605,8 +612,7 @@ class ChatroomMessageAnalyzer:
             )
             if self._debug_chatroom_dir:
                 self._debug_write(
-                    self._debug_chatroom_dir
-                    / f"topic_{topic_index:02d}_chunk_{index:02d}.txt",
+                    self._debug_chatroom_dir / f"topic_{topic_index:02d}_chunk_{index:02d}.txt",
                     self._format_chunk_summary_for_debug(
                         topic_index=topic_index,
                         chunk_index=index,
@@ -699,9 +705,7 @@ class ChatroomMessageAnalyzer:
             content = content[:max_length].rstrip() + "..."
         return f"{time_str} {sender}: {content}"
 
-    def _select_messages_for_summary(
-        self, messages: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def _select_messages_for_summary(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not messages:
             return messages
 
@@ -973,11 +977,11 @@ def _to_datetime(value: Any) -> datetime | None:
     elif isinstance(value, pd.Timestamp):
         dt_value = value.to_pydatetime()
     elif isinstance(value, int | float):
-        dt_value = datetime.fromtimestamp(int(value), tz=timezone.utc)
+        dt_value = datetime.fromtimestamp(int(value), tz=UTC)
     else:
         return None
     if dt_value.tzinfo:
-        return dt_value.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt_value.astimezone(UTC).replace(tzinfo=None)
     return dt_value
 
 

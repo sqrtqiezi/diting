@@ -31,7 +31,8 @@ SYSTEM_PROMPT_V2 = """你是微信群聊分析助手。请根据聊天记录，�
 输出必须严格遵循协议格式，不得输出任何额外文本。
 协议规则: 必须包含 <<<RESULT_START>>> 和 <<<RESULT_END>>>; 每个话题块以 <<<TOPIC>>> 开始;
 字段名固定为 keywords/participants/message_indices/message_count/confidence/notes;
-每个字段单行 key: value; 列表字段 keywords/participants/message_indices 必须用多行且以 '- ' 开头。"""
+每个字段单行 key: value;
+列表字段 keywords/participants/message_indices 必须用多行且以 '- ' 开头。"""
 
 
 USER_PROMPT_V1 = (
