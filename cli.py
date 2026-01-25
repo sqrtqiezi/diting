@@ -9,8 +9,15 @@
 """
 
 import json
+import math
+import re
 import sys
+from datetime import datetime
 from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 import click
 import uvicorn
@@ -152,6 +159,163 @@ def get_profile(config: Path, device_index: int, json_only: bool):
             click.echo()
 
         sys.exit(1)
+
+
+@cli.command(name="analyze-chatrooms")
+@click.option(
+    "--date",
+    "-d",
+    required=True,
+    help="分析日期 (YYYY-MM-DD)",
+)
+@click.option(
+    "--parquet-root",
+    default=None,
+    help="Parquet 根目录 (默认从配置读取)",
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="LLM 配置文件路径 (默认: config/llm.yaml)",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="输出文件路径 (JSONL)",
+)
+@click.option(
+    "--chatroom",
+    "-r",
+    multiple=True,
+    help="限定分析的群聊 ID（可重复传入）",
+)
+def analyze_chatrooms(
+    date: str,
+    parquet_root: str | None,
+    config: Path | None,
+    output: Path | None,
+    chatroom: tuple[str, ...],
+):
+    """分析群聊消息并输出话题聚合结果"""
+    from src.config import get_llm_config_path, get_messages_parquet_path
+    from src.services.llm.analysis import analyze_chatrooms_from_parquet
+
+    if parquet_root is None:
+        parquet_root = str(get_messages_parquet_path())
+    if config is None:
+        config = get_llm_config_path()
+
+    results = analyze_chatrooms_from_parquet(
+        start_date=date,
+        end_date=date,
+        parquet_root=parquet_root,
+        config_path=config,
+        chatroom_ids=list(chatroom) if chatroom else None,
+    )
+
+    report = _render_markdown_report(results, date)
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(report, encoding="utf-8")
+        click.echo(f"✓ 已输出 Markdown 报告到 {output}")
+    else:
+        click.echo(report)
+
+
+def _topic_popularity(topic) -> float:
+    participants = topic.participants or []
+    u_count = len(set(participants))
+    m_count = int(topic.message_count)
+    if u_count <= 0 or m_count <= 0:
+        return 0.0
+    ratio = m_count / u_count
+    penalty = 1 + max(0.0, ratio - 6)
+    return (
+        math.log(1 + u_count) ** 1.2
+        * math.log(1 + m_count) ** 0.8
+        * (1 / (penalty**0.7))
+    )
+
+
+def _render_markdown_report(results, date: str) -> str:
+    created_at = datetime.now().isoformat(timespec="seconds")
+    lines = [
+        "# 群聊消息分析报告",
+        "",
+        f"- 分析日期: {date}",
+        f"- 生成时间: {created_at}",
+        "",
+    ]
+
+    if not results:
+        lines.append("未找到可分析的群聊消息。")
+        return "\n".join(lines)
+
+    for result in results:
+        chatroom_title = result.chatroom_name or result.chatroom_id
+        lines.extend([f"## 群聊: {chatroom_title}", ""])
+        if chatroom_title != result.chatroom_id:
+            lines.append(f"- 群聊 ID: {result.chatroom_id}")
+        lines.extend(
+            [
+                f"- 消息总数: {result.total_messages}",
+                f"- 话题总数: {len(result.topics)}",
+                "",
+                "### 热门话题 Top 10",
+                "",
+                "| 排名 | 话题 | 分类 | 热门度 | 消息数 | 参与人数 | 时间范围 |",
+                "| --- | --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+
+        topics = sorted(
+            result.topics,
+            key=lambda item: (_topic_popularity(item), item.message_count),
+            reverse=True,
+        )
+        top_topics = topics[:10]
+
+        if not top_topics:
+            lines.append("| 1 | 无 | 无 | 0 | 0 | 0 | - |")
+            lines.append("")
+            continue
+
+        for idx, topic in enumerate(top_topics, start=1):
+            participants = topic.participants or []
+            popularity = _topic_popularity(topic)
+            time_range = _format_time_range(topic.time_range)
+            lines.append(
+                "| {idx} | {title} | {category} | {popularity:.2f} | {count} | {people} | {time} |".format(
+                    idx=idx,
+                    title=topic.title,
+                    category=topic.category,
+                    popularity=popularity,
+                    count=topic.message_count,
+                    people=len(participants),
+                    time=time_range,
+                )
+            )
+
+        lines.append("")
+        lines.append("### 话题摘要")
+        lines.append("")
+        for idx, topic in enumerate(top_topics, start=1):
+            summary = (topic.summary or "").strip()
+            lines.append(f"{idx}. {topic.title}: {summary}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _format_time_range(time_range: str) -> str:
+    if not time_range:
+        return "-"
+    # 去掉日期，仅保留时间片段
+    return re.sub(r"\d{4}-\d{2}-\d{2}\s*", "", time_range).strip()
 
 
 @cli.command()

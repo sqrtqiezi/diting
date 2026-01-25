@@ -57,3 +57,32 @@ def get_messages_parquet_path() -> Path:
     """
     base_path = get_data_base_path()
     return base_path / "messages" / "parquet"
+
+
+def get_llm_config_path() -> Path:
+    """
+    获取 LLM 配置文件路径
+
+    Returns:
+        LLM 配置文件路径 (config/llm.yaml)
+    """
+    return project_root / "config" / "llm.yaml"
+
+
+def get_deepseek_api_key() -> str:
+    """
+    获取 DeepSeek API Key
+
+    Returns:
+        DeepSeek API Key
+
+    Raises:
+        ValueError: 如果环境变量 DEEPSEEK_API_KEY 未设置
+    """
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "DEEPSEEK_API_KEY not found in environment variables. "
+            "Please set it in .env file or system environment."
+        )
+    return api_key
