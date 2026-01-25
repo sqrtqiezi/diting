@@ -26,4 +26,7 @@ Python 3.12.6(已安装)+ YAML(GitHub Actions 配置)+ Bash(部署脚本): Follo
 - 005-github-ci-aliyun-deploy: Added Python 3.12.6(已安装)+ YAML(GitHub Actions 配置)+ Bash(部署脚本) + GitHub Actions, rsync, SSH, systemd, uv
 
 <!-- MANUAL ADDITIONS START -->
+
+- 当前 python 执行环境为 .venv/
+
 <!-- MANUAL ADDITIONS END -->

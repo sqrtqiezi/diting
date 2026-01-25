@@ -80,9 +80,14 @@ def query_messages(
 
         # 精确过滤时间戳（分区过滤可能包含边界外的数据）
         if len(df) > 0 and "create_time" in df.columns:
-            start_ts = int(start_dt.timestamp())
-            end_ts = int(end_dt.replace(hour=23, minute=59, second=59).timestamp())
-            df = df[(df["create_time"] >= start_ts) & (df["create_time"] <= end_ts)]
+            if pd.api.types.is_datetime64_any_dtype(df["create_time"]):
+                start_ts = pd.Timestamp(start_dt, tz="UTC")
+                end_ts = pd.Timestamp(end_dt.replace(hour=23, minute=59, second=59), tz="UTC")
+                df = df[(df["create_time"] >= start_ts) & (df["create_time"] <= end_ts)]
+            else:
+                start_ts = int(start_dt.timestamp())
+                end_ts = int(end_dt.replace(hour=23, minute=59, second=59).timestamp())
+                df = df[(df["create_time"] >= start_ts) & (df["create_time"] <= end_ts)]
 
         logger.info("Query completed", result_count=len(df))
 
