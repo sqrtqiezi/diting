@@ -184,6 +184,12 @@ def get_profile(config: Path, device_index: int, json_only: bool):
     help="输出文件路径 (JSONL)",
 )
 @click.option(
+    "--debug-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="输出批次调试信息目录",
+)
+@click.option(
     "--chatroom",
     "-r",
     multiple=True,
@@ -194,6 +200,7 @@ def analyze_chatrooms(
     parquet_root: str | None,
     config: Path | None,
     output: Path | None,
+    debug_dir: Path | None,
     chatroom: tuple[str, ...],
 ):
     """分析群聊消息并输出话题聚合结果"""
@@ -215,6 +222,7 @@ def analyze_chatrooms(
         parquet_root=parquet_root,
         config_path=config,
         chatroom_ids=list(chatroom) if chatroom else None,
+        debug_dir=str(debug_dir) if debug_dir else None,
     )
 
     report = _render_markdown_report(results, date)
@@ -234,7 +242,7 @@ def _topic_popularity(topic) -> float:
         return 0.0
     ratio = m_count / u_count
     penalty = 1 + max(0.0, ratio - 6)
-    return math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.7))
+    return math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.4))
 
 
 def _render_markdown_report(results, date: str) -> str:

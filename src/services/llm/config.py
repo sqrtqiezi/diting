@@ -46,6 +46,18 @@ class AnalysisConfig(BaseModel):
 
     max_messages_per_batch: int | None = Field(default=None, ge=1, description="单次输入最大消息数")
     max_content_length: int | None = Field(default=None, ge=1, description="单条消息最大长度")
+    enable_xml_parsing: bool = Field(default=True, description="启用引用消息解析")
+    enable_refermsg_display: bool = Field(default=True, description="提示词中展示引用消息")
+    prompt_version: str = Field(default="v1", description="提示词版本(v1/v2)")
+    keyword_merge_threshold: float = Field(
+        default=0.4, ge=0.0, le=1.0, description="关键词相似度合并阈值"
+    )
+    summary_max_tokens: int | None = Field(
+        default=60000, ge=1000, description="单个话题摘要最大 token 预算"
+    )
+    summary_max_messages: int | None = Field(
+        default=200, ge=1, description="单个话题摘要最大消息数"
+    )
 
 
 class LLMConfig(BaseModel):

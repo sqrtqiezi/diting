@@ -18,6 +18,10 @@ class TopicClassification(BaseModel):
     time_range: str = Field(..., description="话题时间范围")
     participants: list[str] = Field(default_factory=list, description="参与者列表")
     message_count: int = Field(..., description="消息数量", ge=0)
+    keywords: list[str] = Field(default_factory=list, description="关键词列表")
+    message_ids: list[str] = Field(default_factory=list, description="消息ID列表")
+    confidence: float = Field(default=1.0, ge=0, le=1, description="归类置信度")
+    notes: str = Field(default="", description="归类依据说明")
 
 
 class ChatroomAnalysisResult(BaseModel):
