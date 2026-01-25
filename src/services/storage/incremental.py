@@ -3,12 +3,65 @@
 提供增量摄入和去重功能，支持从 JSONL 到 Parquet 的增量转换。
 """
 
+import json
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+import structlog
 
+from src.models.parquet_schemas import MESSAGE_CONTENT_SCHEMA
+from src.services.storage.data_cleaner import clean_message_data, filter_valid_messages
 from src.services.storage.checkpoint import CheckpointManager
 from src.services.storage.jsonl_reader import read_jsonl_stream
+
+logger = structlog.get_logger()
+
+
+def _extract_message_payload(message: dict[str, Any]) -> dict[str, Any]:
+    """兼容 webhook 原始格式，将 data 字段展开为消息主体"""
+    data = message.get("data")
+    if isinstance(data, dict) and "msg_id" not in message:
+        merged = dict(data)
+        if "guid" in message and "guid" not in merged:
+            merged["guid"] = message["guid"]
+        if "notify_type" in message and "notify_type" not in merged:
+            merged["notify_type"] = message["notify_type"]
+        return merged
+    return message
+
+
+def _prepare_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    cleaned = clean_message_data(messages)
+    valid = filter_valid_messages(cleaned)
+    if not valid:
+        return []
+    ingestion_time = datetime.now(UTC)
+    for msg in valid:
+        if "ingestion_time" not in msg:
+            msg["ingestion_time"] = ingestion_time
+    return valid
+
+
+def _normalize_object_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """将字典/列表对象序列化为字符串，避免 Parquet 类型冲突"""
+    for column in df.columns:
+        if df[column].dtype != "object":
+            continue
+        df[column] = df[column].apply(_normalize_cell_value)
+    return df
+
+
+def _normalize_cell_value(value: Any) -> Any:
+    if isinstance(value, (dict, list)):
+        try:
+            return json.dumps(value)
+        except TypeError:
+            return str(value)
+    return value
 
 
 def incremental_ingest(
@@ -51,9 +104,10 @@ def incremental_ingest(
     last_msg_id = ""
 
     for message in read_jsonl_stream(jsonl_file, start_line=start_line):
-        messages.append(message)
+        normalized = _extract_message_payload(message)
+        messages.append(normalized)
         current_line += 1
-        last_msg_id = message.get("msg_id", "")
+        last_msg_id = normalized.get("msg_id", "")
 
         # 批量处理
         if len(messages) >= batch_size:
@@ -95,6 +149,7 @@ def incremental_ingest(
         "total_processed": total_processed,
         "new_records": new_records,
         "duplicates_skipped": duplicates_skipped,
+        "skipped_duplicates": duplicates_skipped,
         "checkpoint_offset": current_line,
     }
 
@@ -110,45 +165,94 @@ def _process_batch(messages: list[dict], parquet_root: Path, deduplicate: bool) 
     if not messages:
         return
 
+    prepared = _prepare_messages(messages)
+    if not prepared:
+        return
+
     # 转换为 DataFrame
-    df = pd.DataFrame(messages)
+    df = pd.DataFrame(prepared)
+
+    # 清理复杂对象列，避免 Parquet 序列化失败
+    df = _normalize_object_columns(df)
+
+    if "create_time" not in df.columns:
+        logger.warning("missing_create_time_column", columns=list(df.columns))
+        return
+
+    df["create_time"] = pd.to_numeric(df["create_time"], errors="coerce")
+    df["msg_type"] = pd.to_numeric(df["msg_type"], errors="coerce")
+    df["notify_type"] = pd.to_numeric(df["notify_type"], errors="coerce")
+    df["is_chatroom_msg"] = pd.to_numeric(df["is_chatroom_msg"], errors="coerce")
+
+    required_numeric = ["create_time", "msg_type", "notify_type", "is_chatroom_msg"]
+    df = df.dropna(subset=required_numeric)
+    if "msg_id" in df.columns:
+        df = df[df["msg_id"].notna() & (df["msg_id"] != "")]
+
+    if df.empty:
+        return
 
     # 如果需要去重
     if deduplicate:
-        df = df.drop_duplicates(subset=["msg_id"], keep="first")
+        if "msg_id" in df.columns:
+            df = df.drop_duplicates(subset=["msg_id"], keep="first")
+        else:
+            logger.warning(
+                "deduplicate_skipped_missing_msg_id",
+                columns=list(df.columns),
+            )
 
-    # 按日期分组
-    if "create_time" in df.columns:
-        df["date"] = pd.to_datetime(df["create_time"], unit="s")
-        df["year"] = df["date"].dt.year
-        df["month"] = df["date"].dt.month
-        df["day"] = df["date"].dt.day
+    df["date"] = pd.to_datetime(df["create_time"], unit="s", utc=True, errors="coerce")
+    df = df[df["date"].notna()]
+    if df.empty:
+        return
 
-        # 按日期分组写入
-        for (year, month, day), group_df in df.groupby(["year", "month", "day"]):
-            partition_path = parquet_root / f"year={year}" / f"month={month:02d}" / f"day={day:02d}"
-            partition_path.mkdir(parents=True, exist_ok=True)
+    df["year"] = df["date"].dt.year
+    df["month"] = df["date"].dt.month
+    df["day"] = df["date"].dt.day
 
-            # 生成文件名
-            existing_files = list(partition_path.glob("part-*.parquet"))
-            part_num = len(existing_files)
-            output_file = partition_path / f"part-{part_num}.parquet"
+    # 按日期分组写入
+    for (year, month, day), group_df in df.groupby(["year", "month", "day"]):
+        partition_path = (
+            parquet_root
+            / f"year={int(year)}"
+            / f"month={int(month):02d}"
+            / f"day={int(day):02d}"
+        )
+        partition_path.mkdir(parents=True, exist_ok=True)
 
-            # 删除临时列
-            group_df = group_df.drop(columns=["date", "year", "month", "day"])
-
-            # 写入 Parquet
-            group_df.to_parquet(output_file, index=False)
-    else:
-        # 如果没有时间戳，写入默认分区
-        default_partition = parquet_root / "year=1970" / "month=01" / "day=01"
-        default_partition.mkdir(parents=True, exist_ok=True)
-
-        existing_files = list(default_partition.glob("part-*.parquet"))
+        # 生成文件名
+        existing_files = list(partition_path.glob("part-*.parquet"))
         part_num = len(existing_files)
-        output_file = default_partition / f"part-{part_num}.parquet"
+        output_file = partition_path / f"part-{part_num}.parquet"
 
-        df.to_parquet(output_file, index=False)
+        # 将 create_time 转为时间戳类型，确保 schema 一致
+        group_df["create_time"] = group_df["date"]
+        if "ingestion_time" in group_df.columns:
+            group_df["ingestion_time"] = pd.to_datetime(
+                group_df["ingestion_time"], utc=True
+            ).dt.floor("s")
+
+        # 删除临时列
+        group_df = group_df.drop(columns=["date", "year", "month", "day"])
+
+        # 补齐并对齐 schema 列
+        for name in MESSAGE_CONTENT_SCHEMA.names:
+            if name not in group_df.columns:
+                group_df[name] = None
+        group_df = group_df[MESSAGE_CONTENT_SCHEMA.names]
+
+        table = pa.Table.from_pandas(group_df, preserve_index=False)
+        table = table.cast(MESSAGE_CONTENT_SCHEMA)
+
+        # 写入 Parquet
+        pq.write_table(
+            table,
+            output_file,
+            compression="snappy",
+            use_dictionary=True,
+            write_statistics=True,
+        )
 
 
 def merge_and_deduplicate(
