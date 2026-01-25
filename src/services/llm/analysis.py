@@ -68,7 +68,7 @@ class ChatroomMessageAnalyzer:
         self.prompt = ChatPromptTemplate.from_messages(
             [("system", SYSTEM_PROMPT), ("human", USER_PROMPT)]
         )
-        self._token_encoder = None
+        self._token_encoder: Any = None
 
     def analyze_chatroom(
         self, chatroom_id: str, messages: list[dict[str, Any]], chatroom_name: str = ""
@@ -164,13 +164,13 @@ class ChatroomMessageAnalyzer:
         )
 
     def _build_llm(self) -> ChatOpenAI:
-        base_kwargs = {
+        base_kwargs: dict[str, Any] = {
             "model": self.config.api.model,
             "temperature": self.config.model_params.temperature,
             "max_tokens": self.config.model_params.max_tokens,
             "top_p": self.config.model_params.top_p,
         }
-        key_candidates = [
+        key_candidates: list[dict[str, Any]] = [
             {"api_key": self.config.api.api_key, "base_url": self.config.api.base_url},
             {
                 "openai_api_key": self.config.api.api_key,
@@ -181,7 +181,7 @@ class ChatroomMessageAnalyzer:
         last_error: TypeError | None = None
         for keys in key_candidates:
             for include_timeout in (True, False):
-                kwargs = base_kwargs | keys
+                kwargs: dict[str, Any] = {**base_kwargs, **keys}
                 if include_timeout:
                     kwargs["request_timeout"] = self.config.api.timeout.read
                 try:
@@ -243,9 +243,9 @@ class ChatroomMessageAnalyzer:
             value = message.get("create_time")
             if value is None or pd.isna(value):
                 continue
-            if isinstance(value, (int, float)):
+            if isinstance(value, int | float):
                 timestamps.append(int(value))
-            elif isinstance(value, (datetime, pd.Timestamp)):
+            elif isinstance(value, datetime | pd.Timestamp):
                 timestamps.append(int(value.timestamp()))
         if not timestamps:
             return ""
@@ -261,26 +261,25 @@ class ChatroomMessageAnalyzer:
             time_str = "unknown-time"
         else:
             try:
-                if isinstance(timestamp, (datetime, pd.Timestamp)):
-                    time_value = timestamp.to_pydatetime() if hasattr(timestamp, "to_pydatetime") else timestamp
+                if isinstance(timestamp, datetime | pd.Timestamp):
+                    if hasattr(timestamp, "to_pydatetime"):
+                        time_value = timestamp.to_pydatetime()
+                    else:
+                        time_value = timestamp
                     time_str = time_value.strftime("%Y-%m-%d %H:%M:%S")
                 else:
-                    time_str = datetime.fromtimestamp(int(timestamp)).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
+                    time_str = datetime.fromtimestamp(int(timestamp)).strftime("%Y-%m-%d %H:%M:%S")
             except (ValueError, OSError):
                 time_str = "unknown-time"
 
-        sender = (
-            message.get("chatroom_sender") or message.get("from_username") or "unknown"
-        )
+        sender = message.get("chatroom_sender") or message.get("from_username") or "unknown"
         content = message.get("content")
         if content is None or pd.isna(content):
             content = ""
         content = str(content).replace("\n", " ").strip()
         max_length = self.config.analysis.max_content_length
         if max_length and len(content) > max_length:
-            content = content[: max_length].rstrip() + "..."
+            content = content[:max_length].rstrip() + "..."
         return f"{time_str} {sender}: {content}"
 
     def _invoke_with_retry(self, prompt_messages: list[Any]) -> str:

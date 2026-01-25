@@ -44,12 +44,8 @@ class ModelParamsConfig(BaseModel):
 class AnalysisConfig(BaseModel):
     """分析任务配置"""
 
-    max_messages_per_batch: int | None = Field(
-        default=None, ge=1, description="单次输入最大消息数"
-    )
-    max_content_length: int | None = Field(
-        default=None, ge=1, description="单条消息最大长度"
-    )
+    max_messages_per_batch: int | None = Field(default=None, ge=1, description="单次输入最大消息数")
+    max_content_length: int | None = Field(default=None, ge=1, description="单条消息最大长度")
 
 
 class LLMConfig(BaseModel):

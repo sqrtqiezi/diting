@@ -82,9 +82,7 @@ def query_messages(
         if len(df) > 0 and "create_time" in df.columns:
             if pd.api.types.is_datetime64_any_dtype(df["create_time"]):
                 start_ts = pd.Timestamp(start_dt, tz="UTC")
-                end_ts = pd.Timestamp(
-                    end_dt.replace(hour=23, minute=59, second=59), tz="UTC"
-                )
+                end_ts = pd.Timestamp(end_dt.replace(hour=23, minute=59, second=59), tz="UTC")
                 df = df[(df["create_time"] >= start_ts) & (df["create_time"] <= end_ts)]
             else:
                 start_ts = int(start_dt.timestamp())

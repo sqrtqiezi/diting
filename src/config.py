@@ -31,7 +31,10 @@ def get_data_base_path() -> Path:
 
     if base_url:
         # 如果环境变量存在，使用环境变量指定的路径
-        return Path(base_url)
+        base_path = Path(base_url)
+        if not base_path.is_absolute():
+            return project_root / base_path
+        return base_path
     else:
         # 否则使用默认路径: 项目根目录下的 data
         return project_root / "data"

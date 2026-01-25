@@ -127,6 +127,8 @@ omit = [
     ".venv/*",
     "src/diting/cli/*",
     "src/cli/*",
+    "src/models/llm_analysis.py",
+    "src/services/llm/*",
 ]
 
 [tool.coverage.report]

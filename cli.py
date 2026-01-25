@@ -15,10 +15,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-project_root = Path(__file__).resolve().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 import click
 import uvicorn
 from diting.endpoints.wechat.client import WeChatAPIClient
@@ -201,6 +197,10 @@ def analyze_chatrooms(
     chatroom: tuple[str, ...],
 ):
     """分析群聊消息并输出话题聚合结果"""
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
     from src.config import get_llm_config_path, get_messages_parquet_path
     from src.services.llm.analysis import analyze_chatrooms_from_parquet
 
@@ -234,11 +234,7 @@ def _topic_popularity(topic) -> float:
         return 0.0
     ratio = m_count / u_count
     penalty = 1 + max(0.0, ratio - 6)
-    return (
-        math.log(1 + u_count) ** 1.2
-        * math.log(1 + m_count) ** 0.8
-        * (1 / (penalty**0.7))
-    )
+    return math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.7))
 
 
 def _render_markdown_report(results, date: str) -> str:
@@ -288,8 +284,12 @@ def _render_markdown_report(results, date: str) -> str:
             participants = topic.participants or []
             popularity = _topic_popularity(topic)
             time_range = _format_time_range(topic.time_range)
+            row_template = (
+                "| {idx} | {title} | {category} | {popularity:.2f} | "
+                "{count} | {people} | {time} |"
+            )
             lines.append(
-                "| {idx} | {title} | {category} | {popularity:.2f} | {count} | {people} | {time} |".format(
+                row_template.format(
                     idx=idx,
                     title=topic.title,
                     category=topic.category,

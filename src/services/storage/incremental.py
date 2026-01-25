@@ -14,8 +14,8 @@ import pyarrow.parquet as pq
 import structlog
 
 from src.models.parquet_schemas import MESSAGE_CONTENT_SCHEMA
-from src.services.storage.data_cleaner import clean_message_data, filter_valid_messages
 from src.services.storage.checkpoint import CheckpointManager
+from src.services.storage.data_cleaner import clean_message_data
 from src.services.storage.jsonl_reader import read_jsonl_stream
 
 logger = structlog.get_logger()
@@ -36,14 +36,36 @@ def _extract_message_payload(message: dict[str, Any]) -> dict[str, Any]:
 
 def _prepare_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     cleaned = clean_message_data(messages)
-    valid = filter_valid_messages(cleaned)
-    if not valid:
+    prepared: list[dict[str, Any]] = []
+    for msg in cleaned:
+        if not msg.get("msg_id"):
+            continue
+        if msg.get("create_time") in (None, ""):
+            continue
+        if "from_username" not in msg or msg["from_username"] is None:
+            msg["from_username"] = ""
+        if "to_username" not in msg or msg["to_username"] is None:
+            msg["to_username"] = ""
+        if "msg_type" not in msg or msg["msg_type"] is None:
+            msg["msg_type"] = 0
+        if "is_chatroom_msg" not in msg or msg["is_chatroom_msg"] is None:
+            msg["is_chatroom_msg"] = 0
+        if "source" not in msg or msg["source"] is None:
+            msg["source"] = ""
+        if "guid" not in msg or msg["guid"] is None:
+            msg["guid"] = ""
+        if "notify_type" not in msg or msg["notify_type"] is None:
+            msg["notify_type"] = 0
+        prepared.append(msg)
+
+    if not prepared:
         return []
+
     ingestion_time = datetime.now(UTC)
-    for msg in valid:
+    for msg in prepared:
         if "ingestion_time" not in msg:
             msg["ingestion_time"] = ingestion_time
-    return valid
+    return prepared
 
 
 def _normalize_object_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -56,7 +78,7 @@ def _normalize_object_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _normalize_cell_value(value: Any) -> Any:
-    if isinstance(value, (dict, list)):
+    if isinstance(value, dict | list):
         try:
             return json.dumps(value)
         except TypeError:
@@ -214,10 +236,7 @@ def _process_batch(messages: list[dict], parquet_root: Path, deduplicate: bool) 
     # 按日期分组写入
     for (year, month, day), group_df in df.groupby(["year", "month", "day"]):
         partition_path = (
-            parquet_root
-            / f"year={int(year)}"
-            / f"month={int(month):02d}"
-            / f"day={int(day):02d}"
+            parquet_root / f"year={int(year)}" / f"month={int(month):02d}" / f"day={int(day):02d}"
         )
         partition_path.mkdir(parents=True, exist_ok=True)
 
