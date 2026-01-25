@@ -549,9 +549,7 @@ class ChatroomMessageAnalyzer:
         summarized: list[TopicClassification] = []
         for topic_index, topic in enumerate(topics, start=1):
             full_messages = [
-                message_lookup[msg_id]
-                for msg_id in topic.message_ids
-                if msg_id in message_lookup
+                message_lookup[msg_id] for msg_id in topic.message_ids if msg_id in message_lookup
             ]
             summary_messages = self._select_messages_for_summary(full_messages)
             participants = self._extract_participants(full_messages)
