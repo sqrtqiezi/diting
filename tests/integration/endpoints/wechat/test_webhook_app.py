@@ -7,9 +7,8 @@ Webhook 应用集成测试
 import time
 
 import pytest
-from fastapi.testclient import TestClient
-
 from diting.endpoints.wechat.webhook_app import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

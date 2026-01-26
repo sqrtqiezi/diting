@@ -9,9 +9,8 @@ import time
 from datetime import UTC, datetime
 
 import pytest
-from fastapi.testclient import TestClient
-
 from diting.endpoints.wechat.webhook_app import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

@@ -5,9 +5,8 @@ Webhook API 契约测试
 """
 
 import pytest
-from fastapi.testclient import TestClient
-
 from diting.endpoints.wechat.webhook_app import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

@@ -5,7 +5,6 @@ webhook_handler 单元测试
 from unittest.mock import patch
 
 import pytest
-
 from diting.endpoints.wechat.webhook_handler import WebhookRequest
 
 

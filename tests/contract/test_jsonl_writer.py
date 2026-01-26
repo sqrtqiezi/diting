@@ -276,6 +276,6 @@ class TestJSONLWriterPerformanceContract:
         # 平均每条消息 <5ms
         mean_time = benchmark.stats.stats.mean
         avg_per_message = mean_time / len(messages)
-        assert avg_per_message < 0.005, (
-            f"批量写入平均每条消息超时: {avg_per_message * 1000:.2f}ms > 5ms"
-        )
+        assert (
+            avg_per_message < 0.005
+        ), f"批量写入平均每条消息超时: {avg_per_message * 1000:.2f}ms > 5ms"

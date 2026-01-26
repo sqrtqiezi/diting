@@ -25,9 +25,9 @@ class TestValidatePartitionContract:
 
         # 验证参数类型注解
         partition_path_annotation = sig.parameters["partition_path"].annotation
-        assert partition_path_annotation == str | Path, (
-            f"partition_path 类型契约变更: 期望 str | Path, 实际 {partition_path_annotation}"
-        )
+        assert (
+            partition_path_annotation == str | Path
+        ), f"partition_path 类型契约变更: 期望 str | Path, 实际 {partition_path_annotation}"
 
         # 验证返回类型注解
         return_annotation = sig.return_annotation
@@ -61,9 +61,9 @@ class TestValidatePartitionContract:
 
         # 验证返回结构契约
         required_keys = {"is_valid", "file_count", "total_records", "total_size_bytes", "errors"}
-        assert required_keys.issubset(result.keys()), (
-            f"返回结构契约变更: 期望包含 {required_keys}, 实际 {result.keys()}"
-        )
+        assert required_keys.issubset(
+            result.keys()
+        ), f"返回结构契约变更: 期望包含 {required_keys}, 实际 {result.keys()}"
 
         # 验证字段类型契约
         assert isinstance(result["is_valid"], bool), "is_valid 必须是 bool 类型"
@@ -112,15 +112,15 @@ class TestDetectDuplicatesContract:
 
         # 验证参数类型注解
         parquet_root_annotation = sig.parameters["parquet_root"].annotation
-        assert parquet_root_annotation == str | Path, (
-            f"parquet_root 类型契约变更: 期望 str | Path, 实际 {parquet_root_annotation}"
-        )
+        assert (
+            parquet_root_annotation == str | Path
+        ), f"parquet_root 类型契约变更: 期望 str | Path, 实际 {parquet_root_annotation}"
 
         # 验证返回类型注解
         return_annotation = sig.return_annotation
-        assert return_annotation == pd.DataFrame, (
-            f"返回类型契约变更: 期望 pd.DataFrame, 实际 {return_annotation}"
-        )
+        assert (
+            return_annotation == pd.DataFrame
+        ), f"返回类型契约变更: 期望 pd.DataFrame, 实际 {return_annotation}"
 
     def test_return_structure_no_duplicates(self, tmp_path):
         """测试无重复数据的返回结构契约"""
@@ -156,9 +156,9 @@ class TestDetectDuplicatesContract:
 
         # 验证列名契约（即使为空也应该有正确的列）
         expected_columns = {"msg_id", "count"}
-        assert expected_columns.issubset(result.columns), (
-            f"列名契约变更: 期望包含 {expected_columns}, 实际 {result.columns.tolist()}"
-        )
+        assert expected_columns.issubset(
+            result.columns
+        ), f"列名契约变更: 期望包含 {expected_columns}, 实际 {result.columns.tolist()}"
 
     def test_return_structure_with_duplicates(self, tmp_path):
         """测试有重复数据的返回结构契约"""
@@ -194,9 +194,9 @@ class TestDetectDuplicatesContract:
 
         # 验证列名契约
         expected_columns = {"msg_id", "count"}
-        assert set(result.columns) == expected_columns, (
-            f"列名契约变更: 期望 {expected_columns}, 实际 {set(result.columns)}"
-        )
+        assert (
+            set(result.columns) == expected_columns
+        ), f"列名契约变更: 期望 {expected_columns}, 实际 {set(result.columns)}"
 
         # 验证数据类型契约
         assert pd.api.types.is_string_dtype(result["msg_id"]), "msg_id 列必须是字符串类型"

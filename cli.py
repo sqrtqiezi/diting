@@ -16,7 +16,6 @@ from pathlib import Path
 
 import click
 import uvicorn
-
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.webhook_config import WebhookConfig
@@ -271,7 +270,7 @@ def _render_markdown_report(results, date: str) -> str:
             lines.extend(["", "无热门话题。"])
             continue
 
-        for topic in top_topics:
+        for idx, topic in enumerate(top_topics, start=1):
             participants = topic.participants or []
             popularity = _topic_popularity(topic)
             time_range = _format_time_range(topic.time_range)
@@ -293,7 +292,10 @@ def _render_markdown_report(results, date: str) -> str:
         lines.append("")
         lines.append("### 话题摘要")
         lines.append("")
-        for idx, topic in enumerate(top_topics, start=1):
+        for topic in top_topics:
+            participants = topic.participants or []
+            popularity = _topic_popularity(topic)
+            time_range = _format_time_range(topic.time_range)
             summary = (topic.summary or "").strip()
             lines.extend(
                 [
