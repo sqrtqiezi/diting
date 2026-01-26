@@ -83,7 +83,7 @@ class ChatroomMessageAnalyzer:
 
         max_messages = self.config.analysis.max_messages_per_batch
         if max_messages:
-            batches = [self._trim_messages(sorted_messages)]
+            batches = self._split_messages_by_count(sorted_messages)
         else:
             batches = self._split_messages_by_tokens(sorted_messages)
 
@@ -225,16 +225,16 @@ class ChatroomMessageAnalyzer:
                     last_error = exc
         raise last_error or TypeError("Failed to initialize ChatOpenAI")
 
-    def _trim_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _split_messages_by_count(
+        self, messages: list[dict[str, Any]]
+    ) -> list[list[dict[str, Any]]]:
         max_messages = self.config.analysis.max_messages_per_batch
-        if not max_messages or len(messages) <= max_messages:
-            return messages
-        logger.warning(
-            "chatroom_messages_trimmed",
-            original=len(messages),
-            trimmed=max_messages,
-        )
-        return messages[-max_messages:]
+        if not max_messages:
+            return [messages]
+        return [
+            messages[index : index + max_messages]
+            for index in range(0, len(messages), max_messages)
+        ]
 
     def _split_messages_by_tokens(
         self, messages: list[dict[str, Any]]
