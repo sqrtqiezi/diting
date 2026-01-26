@@ -12,7 +12,6 @@ import json
 import math
 import re
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import click
@@ -247,12 +246,10 @@ def _topic_popularity(topic) -> float:
 
 
 def _render_markdown_report(results, date: str) -> str:
-    created_at = datetime.now().isoformat(timespec="seconds")
     lines = [
         "# 群聊消息分析报告",
         "",
-        f"- 分析日期: {date}",
-        f"- 生成时间: {created_at}",
+        f"- 日期: {date}",
         "",
     ]
 
@@ -260,23 +257,9 @@ def _render_markdown_report(results, date: str) -> str:
         lines.append("未找到可分析的群聊消息。")
         return "\n".join(lines)
 
-    for result in results:
-        chatroom_title = result.chatroom_name or result.chatroom_id
-        lines.extend([f"## 群聊: {chatroom_title}", ""])
-        if chatroom_title != result.chatroom_id:
-            lines.append(f"- 群聊 ID: {result.chatroom_id}")
-        lines.extend(
-            [
-                f"- 消息总数: {result.total_messages}",
-                f"- 话题总数: {len(result.topics)}",
-                "",
-                "### 热门话题 Top 10",
-                "",
-                "| 排名 | 话题 | 分类 | 热门度 | 消息数 | 参与人数 | 时间范围 |",
-                "| --- | --- | --- | --- | --- | --- | --- |",
-            ]
-        )
+    lines.append("热门话题 Top 10")
 
+    for result in results:
         topics = sorted(
             result.topics,
             key=lambda item: (_topic_popularity(item), item.message_count),
@@ -285,11 +268,10 @@ def _render_markdown_report(results, date: str) -> str:
         top_topics = topics[:10]
 
         if not top_topics:
-            lines.append("| 1 | 无 | 无 | 0 | 0 | 0 | - |")
-            lines.append("")
+            lines.extend(["", "无热门话题。"])
             continue
 
-        for idx, topic in enumerate(top_topics, start=1):
+        for topic in top_topics:
             participants = topic.participants or []
             popularity = _topic_popularity(topic)
             time_range = _format_time_range(topic.time_range)
@@ -313,7 +295,17 @@ def _render_markdown_report(results, date: str) -> str:
         lines.append("")
         for idx, topic in enumerate(top_topics, start=1):
             summary = (topic.summary or "").strip()
-            lines.append(f"{idx}. {topic.title}: {summary}")
+            lines.extend(
+                [
+                    "",
+                    f"## {topic.title}",
+                    f"分类: {topic.category}",
+                    "热门度/消息数/参与人数: "
+                    f"{popularity:.2f} / {topic.message_count} / {len(participants)}",
+                    f"时间范围: {time_range}",
+                    f"话题摘要: {summary}",
+                ]
+            )
         lines.append("")
 
     return "\n".join(lines)
@@ -324,6 +316,88 @@ def _format_time_range(time_range: str) -> str:
         return "-"
     # 去掉日期，仅保留时间片段
     return re.sub(r"\d{4}-\d{2}-\d{2}\s*", "", time_range).strip()
+
+
+@cli.command(name="render-report-pdf")
+@click.option(
+    "--input",
+    "-i",
+    "input_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Markdown 报告路径",
+)
+@click.option(
+    "--output",
+    "-o",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    required=True,
+    help="PDF 输出路径",
+)
+@click.option(
+    "--font-path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="思源黑体字体文件路径 (可选)",
+)
+@click.option(
+    "--font-index",
+    type=int,
+    default=None,
+    help="字体集合文件的子字体索引 (TTC 可选)",
+)
+@click.option(
+    "--emoji-image-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Emoji 图片目录 (Twemoji PNG，可选)",
+)
+@click.option(
+    "--page-width",
+    type=int,
+    default=420,
+    help="PDF 页面宽度 (pt)，适配微信阅读宽度",
+)
+@click.option(
+    "--page-height",
+    type=int,
+    default=840,
+    help="PDF 页面高度 (pt)",
+)
+@click.option(
+    "--font-size",
+    type=int,
+    default=20,
+    help="正文字体大小 (pt)",
+)
+def render_report_pdf(
+    input_path: Path,
+    output_path: Path,
+    font_path: Path | None,
+    font_index: int | None,
+    emoji_image_dir: Path | None,
+    page_width: int,
+    page_height: int,
+    font_size: int,
+):
+    """将 Markdown 报告渲染为 PDF"""
+    from src.services.report.pdf_renderer import PdfRenderOptions, render_markdown_report_pdf
+
+    options = PdfRenderOptions(
+        page_width=page_width,
+        page_height=page_height,
+        base_font_size=font_size,
+    )
+    render_markdown_report_pdf(
+        markdown_path=input_path,
+        output_path=output_path,
+        font_path=font_path,
+        font_index=font_index,
+        emoji_image_dir=emoji_image_dir,
+        options=options,
+    )
+    click.echo(f"✓ 已输出 PDF 报告到 {output_path}")
 
 
 @cli.command()
