@@ -3,7 +3,7 @@
 测试完整的 JSONL 清理工作流程,包括 7 天保留期的清理。
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -23,13 +23,14 @@ class TestCleanupFlow:
         raw_dir.mkdir(parents=True)
 
         # 创建 10 天前的 JSONL 文件
-        old_date = datetime.now() - timedelta(days=10)
+        old_date = datetime.now(UTC) - timedelta(days=10)
+        base_timestamp = int(old_date.timestamp())
         jsonl_file = raw_dir / f"{old_date.strftime('%Y-%m-%d')}.jsonl"
 
         # 写入测试数据 (使用 create_time 字段以便分区)
         with jsonl_file.open("w") as f:
             for i in range(100):
-                timestamp = int(old_date.timestamp()) + i
+                timestamp = base_timestamp + i
                 f.write(
                     f'{{"msg_id": "msg_{i}", "content": "test content {i}", '
                     f'"create_time": {timestamp}}}\n'
@@ -45,11 +46,12 @@ class TestCleanupFlow:
         assert ingest_result["total_processed"] == 100
 
         # 验证 Parquet 文件已创建
+        partition_date = datetime.fromtimestamp(base_timestamp, tz=UTC)
         partition = (
             parquet_root
-            / f"year={old_date.year}"
-            / f"month={old_date.month:02d}"
-            / f"day={old_date.day:02d}"
+            / f"year={partition_date.year}"
+            / f"month={partition_date.month:02d}"
+            / f"day={partition_date.day:02d}"
         )
         assert partition.exists()
         parquet_files = list(partition.glob("*.parquet"))
