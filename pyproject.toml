@@ -132,6 +132,7 @@ omit = [
     "src/cli/*",
     "src/models/llm_analysis.py",
     "src/services/llm/*",
+    "src/services/report/*",
 ]
 
 [tool.coverage.report]

@@ -3,7 +3,7 @@
 测试完整的 JSONL 清理工作流程,包括 7 天保留期的清理。
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -23,7 +23,7 @@ class TestCleanupFlow:
         raw_dir.mkdir(parents=True)
 
         # 创建 10 天前的 JSONL 文件
-        old_date = datetime.now() - timedelta(days=10)
+        old_date = datetime.now(UTC) - timedelta(days=10)
         jsonl_file = raw_dir / f"{old_date.strftime('%Y-%m-%d')}.jsonl"
 
         # 写入测试数据 (使用 create_time 字段以便分区)
