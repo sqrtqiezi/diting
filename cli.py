@@ -17,6 +17,7 @@ from pathlib import Path
 
 import click
 import uvicorn
+
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.webhook_config import WebhookConfig
@@ -293,8 +294,7 @@ def _render_markdown_report(results, date: str) -> str:
             popularity = _topic_popularity(topic)
             time_range = _format_time_range(topic.time_range)
             row_template = (
-                "| {idx} | {title} | {category} | {popularity:.2f} | "
-                "{count} | {people} | {time} |"
+                "| {idx} | {title} | {category} | {popularity:.2f} | {count} | {people} | {time} |"
             )
             lines.append(
                 row_template.format(

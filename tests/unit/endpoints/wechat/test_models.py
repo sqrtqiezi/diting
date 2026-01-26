@@ -1,6 +1,8 @@
 """微信 API 数据模型单元测试"""
 
 import pytest
+from pydantic import ValidationError
+
 from diting.endpoints.wechat.models import (
     APICredentials,
     APIRequest,
@@ -9,7 +11,6 @@ from diting.endpoints.wechat.models import (
     UserInfo,
     WeChatInstance,
 )
-from pydantic import ValidationError
 
 
 class TestAPICredentials:

@@ -7,6 +7,7 @@ import time
 from typing import Any
 
 import httpx
+
 from diting.endpoints.base import EndpointAdapter
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.exceptions import (

@@ -6,6 +6,7 @@
 
 import click
 import uvicorn
+
 from diting.endpoints.wechat.webhook_config import WebhookConfig
 
 

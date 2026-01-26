@@ -15,8 +15,8 @@ from src.config import get_messages_parquet_path, get_messages_raw_path
 from src.lib.file_lock import file_lock
 from src.services.storage.archive import archive_old_partitions
 from src.services.storage.cleanup import cleanup_old_jsonl
-from src.services.storage.ingestion import append_to_parquet_partition
 from src.services.storage.incremental import incremental_ingest
+from src.services.storage.ingestion import append_to_parquet_partition
 from src.services.storage.query import query_messages, query_messages_by_id
 from src.services.storage.validation import detect_duplicates, validate_partition
 
@@ -311,11 +311,11 @@ def dump_parquet(
             if deduplicate:
                 click.echo(f"  跳过重复: {result['skipped_duplicates']} 条")
 
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         click.echo("✓ 转换完成")
         click.echo(f"  总处理: {total_processed} 条")
         click.echo(f"  总新增: {total_new} 条")
-        click.echo(f"{'='*60}\n")
+        click.echo(f"{'=' * 60}\n")
 
     except Exception as e:
         click.echo(f"✗ 转换失败: {e}", err=True)
@@ -367,13 +367,19 @@ def ingest_message(
 
     示例:
         # 通过参数传入消息
-        storage ingest-message --message '{"msg_id":"1","from_username":"u1","to_username":"u2","msg_type":1,"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1","notify_type":1}'
+        storage ingest-message --message '{"msg_id":"1","from_username":"u1","to_username":"u2",'
+        '"msg_type":1,"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1",'
+        '"notify_type":1}'
 
         # 通过 stdin 传入消息
-        echo '{"msg_id":"1","from_username":"u1","to_username":"u2","msg_type":1,"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1","notify_type":1}' | storage ingest-message
+        echo '{"msg_id":"1","from_username":"u1","to_username":"u2","msg_type":1,'
+        '"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1",'
+        '"notify_type":1}' | storage ingest-message
 
         # 复用检查点（写入指定 JSONL 文件并增量入库）
-        echo '{"msg_id":"1","from_username":"u1","to_username":"u2","msg_type":1,"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1","notify_type":1}' | \
+        echo '{"msg_id":"1","from_username":"u1","to_username":"u2","msg_type":1,'
+        '"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1",'
+        '"notify_type":1}' | \
           storage ingest-message --raw-file data/messages/raw/2026-01-23.jsonl
     """
     try:
@@ -386,10 +392,7 @@ def ingest_message(
         if message_file is not None:
             raw_message = message_file.read_text(encoding="utf-8")
         elif message:
-            if message == "-":
-                raw_message = sys.stdin.read()
-            else:
-                raw_message = message
+            raw_message = sys.stdin.read() if message == "-" else message
         elif not sys.stdin.isatty():
             raw_message = sys.stdin.read()
 
@@ -416,9 +419,8 @@ def ingest_message(
         if raw_file is not None:
             raw_file.parent.mkdir(parents=True, exist_ok=True)
             lock_file = raw_file.with_suffix(raw_file.suffix + ".lock")
-            with file_lock(lock_file, timeout=10):
-                with raw_file.open("a", encoding="utf-8") as f:
-                    f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            with file_lock(lock_file, timeout=10), raw_file.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
             click.echo(f"追加消息到 JSONL: {raw_file}")
             result_stats = incremental_ingest(
@@ -474,7 +476,7 @@ def validate(partition_path: str):
         result = validate_partition(partition_path)
 
         # 显示结果
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         if result["is_valid"]:
             click.echo("✓ 分区验证通过")
         else:
@@ -491,7 +493,7 @@ def validate(partition_path: str):
             for error in result["errors"]:
                 click.echo(f"  • {error}")
 
-        click.echo(f"{'='*60}\n")
+        click.echo(f"{'=' * 60}\n")
 
         # 如果验证失败，返回非零退出码
         if not result["is_valid"]:
@@ -547,7 +549,7 @@ def detect_duplicates_cmd(
         duplicates_df = detect_duplicates(parquet_root)
 
         # 显示结果
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         if len(duplicates_df) == 0:
             click.echo("✓ 未发现重复消息")
         else:
@@ -559,7 +561,7 @@ def detect_duplicates_cmd(
                 click.echo("\n重复消息列表:")
                 click.echo(duplicates_df.to_string(index=False))
 
-        click.echo(f"{'='*60}\n")
+        click.echo(f"{'=' * 60}\n")
 
         # 导出结果
         if output and len(duplicates_df) > 0:
@@ -638,7 +640,7 @@ def cleanup(
         )
 
         # 显示结果
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         click.echo(f"扫描文件: {result['total_scanned']}")
         click.echo(f"删除文件: {result['deleted']}")
         click.echo(f"跳过(无 Parquet): {result['skipped_no_parquet']}")
@@ -649,7 +651,7 @@ def cleanup(
             for file_path in result["deleted_files"]:
                 click.echo(f"  • {Path(file_path).name}")
 
-        click.echo(f"{'='*60}\n")
+        click.echo(f"{'=' * 60}\n")
 
         if dry_run and result["deleted_files"]:
             click.echo("提示: 使用 --no-dry-run 执行实际删除")
@@ -723,13 +725,13 @@ def archive(
         )
 
         # 显示结果
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         click.echo("✓ 归档完成")
         click.echo(f"  归档分区数: {result['archived_partitions']}")
         click.echo(f"  原始大小: {result['total_size_before_mb']:.2f} MB")
         click.echo(f"  归档后大小: {result['total_size_after_mb']:.2f} MB")
         click.echo(f"  压缩率: {result['compression_ratio']:.2f}x")
-        click.echo(f"{'='*60}\n")
+        click.echo(f"{'=' * 60}\n")
 
         if result["archived_partitions"] == 0:
             click.echo("提示: 没有符合归档条件的分区")

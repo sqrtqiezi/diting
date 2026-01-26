@@ -4,6 +4,7 @@
 """
 
 import pytest
+
 from diting.endpoints.base import BaseEndpointError
 from diting.endpoints.wechat.exceptions import (
     AuthenticationError,

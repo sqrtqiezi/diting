@@ -36,9 +36,9 @@ class TestMessageContentContract:
             "notify_type",
         }
 
-        assert expected_required.issubset(
-            missing_fields
-        ), f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
+        assert expected_required.issubset(missing_fields), (
+            f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
+        )
 
     def test_minimal_valid_message(self):
         """测试最小有效消息契约"""
@@ -233,9 +233,9 @@ class TestContactSyncContract:
 
         expected_required = {"username", "guid", "notify_type"}
 
-        assert expected_required.issubset(
-            missing_fields
-        ), f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
+        assert expected_required.issubset(missing_fields), (
+            f"必填字段契约变更: 期望 {expected_required}, 实际缺失 {missing_fields}"
+        )
 
     def test_minimal_valid_contact(self):
         """测试最小有效联系人契约"""

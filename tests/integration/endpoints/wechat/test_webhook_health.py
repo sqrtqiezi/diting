@@ -5,8 +5,9 @@ Webhook 健康检查集成测试
 import time
 
 import pytest
-from diting.endpoints.wechat.webhook_app import app
 from fastapi.testclient import TestClient
+
+from diting.endpoints.wechat.webhook_app import app
 
 
 class TestWebhookHealthIntegration:

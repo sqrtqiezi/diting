@@ -5,8 +5,9 @@ Webhook 应用健康检查单元测试
 from unittest.mock import patch
 
 import pytest
-from diting.endpoints.wechat.webhook_app import app
 from fastapi.testclient import TestClient
+
+from diting.endpoints.wechat.webhook_app import app
 
 
 class TestHealthCheckLogic:

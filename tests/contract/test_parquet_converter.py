@@ -85,9 +85,9 @@ class TestParquetConverterContract:
             "compression_ratio",
         }
 
-        assert (
-            set(result.keys()) >= required_fields
-        ), f"返回值契约变更: 缺少字段 {required_fields - set(result.keys())}"
+        assert set(result.keys()) >= required_fields, (
+            f"返回值契约变更: 缺少字段 {required_fields - set(result.keys())}"
+        )
 
         # 验证字段类型
         assert isinstance(result["source_file"], str)
@@ -168,9 +168,9 @@ class TestParquetConverterContract:
         }
 
         actual_fields = set(table.schema.names)
-        assert expected_fields.issubset(
-            actual_fields
-        ), f"Schema 契约变更: 缺少字段 {expected_fields - actual_fields}"
+        assert expected_fields.issubset(actual_fields), (
+            f"Schema 契约变更: 缺少字段 {expected_fields - actual_fields}"
+        )
 
         # 验证关键字段类型
         assert table.schema.field("msg_id").type == pa.string()
@@ -196,9 +196,9 @@ class TestParquetConverterContract:
         df = table.to_pandas()
 
         # 验证记录数一致
-        assert len(df) == len(
-            original_messages
-        ), f"记录数不一致: Parquet {len(df)} vs JSONL {len(original_messages)}"
+        assert len(df) == len(original_messages), (
+            f"记录数不一致: Parquet {len(df)} vs JSONL {len(original_messages)}"
+        )
 
         # 验证关键字段数据一致
         for i, original_msg in enumerate(original_messages):
@@ -392,9 +392,9 @@ class TestParquetConverterPerformanceContract:
         )
 
         # 压缩率契约: 应该至少有 1.5x 压缩
-        assert (
-            result["compression_ratio"] >= 1.5
-        ), f"压缩率不足: {result['compression_ratio']:.2f}x < 1.5x"
+        assert result["compression_ratio"] >= 1.5, (
+            f"压缩率不足: {result['compression_ratio']:.2f}x < 1.5x"
+        )
 
     def test_memory_efficiency(self, large_jsonl_file: Path, tmp_path: Path):
         """测试内存效率契约 (峰值内存 < 500MB)"""

@@ -3,8 +3,9 @@ WebhookConfig 单元测试
 """
 
 import pytest
-from diting.endpoints.wechat.webhook_config import WebhookConfig
 from pydantic import ValidationError
+
+from diting.endpoints.wechat.webhook_config import WebhookConfig
 
 
 def test_webhook_config_defaults():

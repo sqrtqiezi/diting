@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 import pytest
+
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.exceptions import AuthenticationError, BusinessError

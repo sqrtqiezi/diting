@@ -1,6 +1,8 @@
 """微信 API 客户端单元测试"""
 
 import pytest
+from pytest_httpx import HTTPXMock
+
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import APIConfig, WeChatConfig
 from diting.endpoints.wechat.exceptions import (
@@ -10,7 +12,6 @@ from diting.endpoints.wechat.exceptions import (
     TimeoutError,
 )
 from diting.endpoints.wechat.models import APIRequest, UserInfo
-from pytest_httpx import HTTPXMock
 
 
 @pytest.fixture
