@@ -111,6 +111,14 @@ CLI 命令会自动使用配置的路径:
 # 查询消息（自动使用配置路径）
 uv run diting storage query --start 2026-01-20 --end 2026-01-23
 
+# 单条消息入库（JSON -> Parquet）
+echo '{"msg_id":"1","from_username":"u1","to_username":"u2","msg_type":1,"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1","notify_type":1}' | \
+  uv run diting storage ingest-message
+
+# 复用检查点（写入 JSONL 后增量入库）
+echo '{"msg_id":"1","from_username":"u1","to_username":"u2","msg_type":1,"create_time":1736000000,"is_chatroom_msg":0,"source":"api","guid":"g1","notify_type":1}' | \
+  uv run diting storage ingest-message --raw-file data/messages/raw/2026-01-23.jsonl
+
 # 也可以手动指定路径（覆盖配置）
 uv run diting storage query \
   --start 2026-01-20 \
