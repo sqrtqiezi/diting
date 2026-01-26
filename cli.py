@@ -270,6 +270,28 @@ def _render_markdown_report(results, date: str) -> str:
             lines.extend(["", "无热门话题。"])
             continue
 
+        for idx, topic in enumerate(top_topics, start=1):
+            participants = topic.participants or []
+            popularity = _topic_popularity(topic)
+            time_range = _format_time_range(topic.time_range)
+            row_template = (
+                "| {idx} | {title} | {category} | {popularity:.2f} | {count} | {people} | {time} |"
+            )
+            lines.append(
+                row_template.format(
+                    idx=idx,
+                    title=topic.title,
+                    category=topic.category,
+                    popularity=popularity,
+                    count=topic.message_count,
+                    people=len(participants),
+                    time=time_range,
+                )
+            )
+
+        lines.append("")
+        lines.append("### 话题摘要")
+        lines.append("")
         for topic in top_topics:
             participants = topic.participants or []
             popularity = _topic_popularity(topic)

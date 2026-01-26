@@ -220,7 +220,7 @@ class TestPartitionQueryPerformance:
         # 创建原始 JSONL 数据
         raw_dir.mkdir(parents=True)
         for i in range(5):
-            jsonl_file = raw_dir / f"2026-01-{i+1:02d}.jsonl"
+            jsonl_file = raw_dir / f"2026-01-{i + 1:02d}.jsonl"
             jsonl_file.write_text('{"msg_id": "msg_001"}\n' * 100)
 
         # 测试存储使用统计性能

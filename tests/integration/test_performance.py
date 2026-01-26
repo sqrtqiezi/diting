@@ -287,7 +287,7 @@ class TestStoragePerformance:
         print(f"  源文件大小: {result['source_size_mb']:.2f} MB")
         print(f"  目标文件大小: {result['target_size_mb']:.2f} MB")
         print(f"  压缩比: {result['compression_ratio']:.2f}x")
-        print(f"  空间节省: {(1 - 1/result['compression_ratio']) * 100:.1f}%")
+        print(f"  空间节省: {(1 - 1 / result['compression_ratio']) * 100:.1f}%")
 
         # Parquet 应该比 JSONL 小（压缩比 > 1）
         assert result["compression_ratio"] > 1.0, "Parquet 文件应该比 JSONL 小"

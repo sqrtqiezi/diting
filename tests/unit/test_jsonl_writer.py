@@ -132,7 +132,7 @@ class TestJSONLWriterAppendMessage:
 
         for i, line in enumerate(lines):
             parsed = json.loads(line)
-            assert parsed["msg_id"] == f"msg_{i+1}"
+            assert parsed["msg_id"] == f"msg_{i + 1}"
 
     def test_append_message_with_unicode(self, writer: JSONLWriter):
         """测试追加包含 Unicode 字符的消息"""
@@ -211,7 +211,7 @@ class TestJSONLWriterAppendBatch:
 
         for i, line in enumerate(lines):
             parsed = json.loads(line)
-            assert parsed["msg_id"] == f"msg_{i+1}"
+            assert parsed["msg_id"] == f"msg_{i + 1}"
 
     def test_append_batch_returns_none(self, writer: JSONLWriter):
         """测试 append_batch 返回 None"""

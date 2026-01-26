@@ -57,9 +57,7 @@ def file_lock(
                 time.sleep(check_interval)
 
         if not acquired:
-            raise OSError(
-                f"Failed to acquire file lock for {file_path} " f"within {timeout} seconds"
-            )
+            raise OSError(f"Failed to acquire file lock for {file_path} within {timeout} seconds")
 
         # 锁已获取,执行用户代码
         yield
@@ -135,9 +133,7 @@ class FileLock:
         if self.lock_file:
             self.lock_file.close()
         self.lock_file = None
-        raise OSError(
-            f"Failed to acquire file lock for {self.file_path} " f"within {timeout} seconds"
-        )
+        raise OSError(f"Failed to acquire file lock for {self.file_path} within {timeout} seconds")
 
     def release(self) -> None:
         """释放文件锁"""

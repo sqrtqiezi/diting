@@ -98,9 +98,7 @@ def validate_schema_compatibility(
         else:
             new_field = new_schema.field(field.name)
             if field.type != new_field.type:
-                errors.append(
-                    f"字段 '{field.name}' 类型不兼容: " f"{field.type} -> {new_field.type}"
-                )
+                errors.append(f"字段 '{field.name}' 类型不兼容: {field.type} -> {new_field.type}")
 
     is_compatible = len(errors) == 0
     return is_compatible, errors

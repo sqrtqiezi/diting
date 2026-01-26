@@ -7,7 +7,7 @@ import time
 from datetime import UTC, datetime
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import structlog
@@ -189,7 +189,7 @@ class ChatroomMessageAnalyzer:
             topics=len(result.topics),
         )
 
-        return result.model_copy(
+        updated = result.model_copy(
             update={
                 "chatroom_id": chatroom_id,
                 "chatroom_name": chatroom_name,
@@ -197,6 +197,7 @@ class ChatroomMessageAnalyzer:
                 "total_messages": total_messages,
             }
         )
+        return cast(ChatroomAnalysisResult, updated)
 
     def _build_llm(self) -> ChatOpenAI:
         base_kwargs: dict[str, Any] = {

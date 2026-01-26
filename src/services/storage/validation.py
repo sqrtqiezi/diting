@@ -88,7 +88,7 @@ def validate_partition(partition_path: str | Path) -> dict:
             if first_schema is None:
                 first_schema = parquet_table.schema
             elif not parquet_table.schema.equals(first_schema):
-                errors.append(f"Schema 不一致: {parquet_file.name} " f"与第一个文件的 schema 不同")
+                errors.append(f"Schema 不一致: {parquet_file.name} 与第一个文件的 schema 不同")
 
         except Exception as e:
             errors.append(f"读取文件失败 {parquet_file.name}: {str(e)}")

@@ -172,7 +172,7 @@ class TestJSONLWriterContract:
         # 验证内容
         for i, line in enumerate(lines):
             msg = json.loads(line)
-            assert msg["msg_id"] == f"msg_{i+1}"
+            assert msg["msg_id"] == f"msg_{i + 1}"
 
     def test_append_batch_empty_list(self, writer: "JSONLWriter"):
         """测试 append_batch 空列表契约"""
@@ -263,7 +263,7 @@ class TestJSONLWriterPerformanceContract:
         # 性能契约: 单条消息写入应该 <10ms
         # 注意: benchmark.stats.stats.mean 单位是秒 (pytest-benchmark 4.0+)
         mean_time = benchmark.stats.stats.mean
-        assert mean_time < 0.01, f"单条消息写入超时: {mean_time*1000:.2f}ms > 10ms"
+        assert mean_time < 0.01, f"单条消息写入超时: {mean_time * 1000:.2f}ms > 10ms"
 
     def test_batch_write_performance(self, writer: "JSONLWriter", benchmark):
         """测试批量写入性能契约"""
@@ -278,4 +278,4 @@ class TestJSONLWriterPerformanceContract:
         avg_per_message = mean_time / len(messages)
         assert (
             avg_per_message < 0.005
-        ), f"批量写入平均每条消息超时: {avg_per_message*1000:.2f}ms > 5ms"
+        ), f"批量写入平均每条消息超时: {avg_per_message * 1000:.2f}ms > 5ms"
