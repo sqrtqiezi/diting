@@ -213,6 +213,64 @@ class WeChatAPIClient(EndpointAdapter):
         response_data = self._send_request(request)
         return response_data
 
+    def download(
+        self,
+        guid: str,
+        aes_key: str,
+        file_id: str,
+        file_name: str,
+        file_type: int,
+    ) -> dict[str, Any]:
+        """通用文件下载
+
+        自动获取 CDN 信息作为 base_request，然后调用下载 API。
+        适用于 30 开头的文件 ID。
+
+        Args:
+            guid: 设备 GUID
+            aes_key: AES 解密密钥
+            file_id: 文件 ID (30 开头)
+            file_name: 文件名
+            file_type: 文件类型 (整数)
+
+        Returns:
+            dict[str, Any]: API 原始响应数据
+
+        Raises:
+            WeChatAPIError: API 调用失败
+        """
+        # 先获取 CDN 信息作为 base_request
+        cdn_info_response = self.get_cdn_info(guid)
+        if cdn_info_response.get("errcode") != 0:
+            raise BusinessError(
+                message=cdn_info_response.get("errmsg") or "获取 CDN 信息失败",
+                error_code=cdn_info_response.get("errcode", -1),
+            )
+
+        cdn_data = cdn_info_response.get("data", {})
+        base_request = {
+            "cdn_info": cdn_data.get("cdn_info", ""),
+            "client_version": cdn_data.get("client_version", 0),
+            "device_type": cdn_data.get("device_type", ""),
+            "username": cdn_data.get("username", ""),
+        }
+
+        # 构建下载请求
+        request = self._build_request(
+            path="/cloud/download",
+            data={
+                "guid": guid,
+                "base_request": base_request,
+                "aes_key": aes_key,
+                "file_id": file_id,
+                "file_name": file_name,
+                "file_type": file_type,
+            },
+        )
+
+        response_data = self._send_request(request)
+        return response_data
+
     def _extract_string_value(self, field: dict[str, Any] | Any) -> str:
         """从微信 API 的字段格式中提取字符串值
 
