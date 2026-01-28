@@ -277,7 +277,10 @@ def _render_markdown_report(results, date: str) -> str:
                 [
                     "",
                     f"## {topic.title}",
-                    f"🏷️ {topic.category} 🔥 {popularity:.2f} 💬 {topic.message_count} 👥 {len(participants)}",
+                    (
+                        f"🏷️ {topic.category} 🔥 {popularity:.2f} "
+                        f"💬 {topic.message_count} 👥 {len(participants)}"
+                    ),
                     f"🕒 {time_range}",
                     f"话题摘要: {summary}",
                 ]

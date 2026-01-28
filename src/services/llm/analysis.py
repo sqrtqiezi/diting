@@ -30,14 +30,15 @@ DEFAULT_POPULARITY_THRESHOLD = 5.0
 
 
 def _topic_popularity(topic: TopicClassification) -> float:
-    participants = topic.participants or []
+    participants = cast(list[str], topic.participants or [])
     u_count = len(set(participants))
-    m_count = int(topic.message_count or 0)
+    m_count = int(cast(int, topic.message_count or 0))
     if u_count <= 0 or m_count <= 0:
         return 0.0
     ratio = m_count / u_count
     penalty = 1 + max(0.0, ratio - 6)
-    return math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.4))
+    score = math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.4))
+    return float(score)
 
 
 class ChatroomMessageAnalyzer:
@@ -131,9 +132,7 @@ class ChatroomMessageAnalyzer:
             self._write_merge_report(merge_logs)
 
         topics = [
-            topic
-            for topic in topics
-            if _topic_popularity(topic) > DEFAULT_POPULARITY_THRESHOLD
+            topic for topic in topics if _topic_popularity(topic) > DEFAULT_POPULARITY_THRESHOLD
         ]
         if not topics:
             return ChatroomAnalysisResult(
