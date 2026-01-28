@@ -32,6 +32,10 @@ class APIConfig(BaseModel):
     """API 配置"""
 
     base_url: str = Field(..., description="API 基础 URL")
+    cloud_base_url: str = Field(
+        default="http://101.132.162.209:35789/",
+        description="Cloud API 基础 URL (用于 /cloud 开头的接口)",
+    )
     app_key: str = Field(..., min_length=10, description="API Key")
     app_secret: str = Field(..., min_length=20, description="API Secret")
     timeout: TimeoutConfig = Field(default_factory=TimeoutConfig, description="超时配置")

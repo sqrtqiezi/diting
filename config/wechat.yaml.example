@@ -3,6 +3,7 @@
 
 api:
   base_url: "https://chat-api.juhebot.com/open/GuidRequest"
+  cloud_base_url: "http://host:port/"  # Cloud API (用于 /cloud 开头的接口)
   app_key: "YOUR_APP_KEY_HERE"
   app_secret: "YOUR_APP_SECRET_HERE"
 

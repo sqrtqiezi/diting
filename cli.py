@@ -9,16 +9,30 @@
 """
 
 import json
+import logging
 import math
 import re
 import sys
 from pathlib import Path
 
 import click
+import structlog
 import uvicorn
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.webhook_config import WebhookConfig
+
+
+def _disable_logging():
+    """禁用所有日志输出,避免污染 stdout"""
+    # 禁用 structlog
+    structlog.configure(
+        processors=[],
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
+        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
+    )
+    # 禁用标准库 logging
+    logging.basicConfig(level=logging.CRITICAL, stream=sys.stderr)
 
 
 @click.group()
@@ -302,21 +316,130 @@ def get_cdn_file(config: Path, device_index: int, guid: str | None, json_only: b
     default=0,
     help="设备索引 (默认: 0 - 第一个设备)",
 )
+def get_cdn_info(config: Path, device_index: int):
+    """获取 CDN 信息
+
+    通过调用 /cdn/get_cdn_info 接口获取设备的 CDN 信息（每 3 小时更新一次）。
+    直接输出 API 返回的原始 JSON 数据。
+
+    示例:
+        python cli.py get-cdn-info
+        python cli.py get-cdn-info --device-index 1
+    """
+    # 禁用日志输出,避免污染 stdout
+    _disable_logging()
+
+    # 加载配置
+    if not config.exists():
+        click.secho(f"❌ 配置文件不存在: {config}", fg="red", err=True)
+        click.echo("请先创建配置文件,参考: config/wechat.yaml.example", err=True)
+        sys.exit(1)
+
+    try:
+        wechat_config = WeChatConfig.load_from_yaml(config)
+    except Exception as e:
+        click.secho(f"❌ 配置文件加载失败: {e}", fg="red", err=True)
+        sys.exit(1)
+
+    # 检查设备配置
+    if not wechat_config.devices:
+        click.secho("❌ 配置中没有设备信息", fg="red", err=True)
+        click.echo("请在 config/wechat.yaml 的 devices 部分添加设备 GUID", err=True)
+        sys.exit(1)
+
+    if device_index >= len(wechat_config.devices):
+        click.secho(
+            f"❌ 设备索引 {device_index} 超出范围 (共 {len(wechat_config.devices)} 个设备)",
+            fg="red",
+            err=True,
+        )
+        sys.exit(1)
+
+    device = wechat_config.devices[device_index]
+
+    # 创建客户端并获取 CDN 信息
+    try:
+        with WeChatAPIClient(wechat_config) as client:
+            response_data = client.get_cdn_info(device.guid)
+
+            # 检查是否成功
+            if response_data.get("errcode") == 0 and "data" in response_data:
+                # 成功时只输出 data 的完整内容
+                click.echo(json.dumps(response_data["data"], ensure_ascii=False))
+            else:
+                # 失败时输出完整响应
+                click.echo(json.dumps(response_data, ensure_ascii=False))
+
+        sys.exit(0)
+
+    except Exception as e:
+        # 异常时输出到 stderr,不影响 stdout
+        click.secho(f"错误: {e}", fg="red", err=True)
+        sys.exit(1)
+
+
+@cli.command(name="download")
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=Path("config/wechat.yaml"),
+    help="配置文件路径 (默认: config/wechat.yaml)",
+)
+@click.option(
+    "--device-index",
+    "-d",
+    type=int,
+    default=0,
+    help="设备索引 (默认: 0 - 第一个设备)",
+)
+@click.option(
+    "--aes-key",
+    "-a",
+    required=True,
+    help="AES 解密密钥",
+)
+@click.option(
+    "--file-id",
+    "-i",
+    required=True,
+    help="文件 ID (30 开头)",
+)
+@click.option(
+    "--file-name",
+    "-f",
+    required=True,
+    help="文件名",
+)
+@click.option(
+    "--file-type",
+    "-t",
+    type=int,
+    required=True,
+    help="文件类型 (整数)",
+)
 @click.option(
     "--json-only",
     "-j",
     is_flag=True,
     help="仅输出 JSON 格式的响应数据",
 )
-def get_cdn_info(config: Path, device_index: int, json_only: bool):
-    """获取 CDN 信息
+def download(
+    config: Path,
+    device_index: int,
+    aes_key: str,
+    file_id: str,
+    file_name: str,
+    file_type: int,
+    json_only: bool,
+):
+    """通用文件下载
 
-    通过调用 /cdn/get_cdn_info 接口获取设备的 CDN 信息（每 3 小时更新一次）。
+    通过调用 /cloud/download 接口下载文件 (适用于 30 开头的文件 ID)。
+    自动从 get-cdn-info 获取 base_request 参数。
 
     示例:
-        python cli.py get-cdn-info
-        python cli.py get-cdn-info --device-index 1
-        python cli.py get-cdn-info --json-only
+        diting download -a "aes_key" -i "30xxx" -f "file.jpg" -t 1
     """
     # 加载配置
     if not config.exists():
@@ -350,43 +473,36 @@ def get_cdn_info(config: Path, device_index: int, json_only: bool):
         click.secho("📡 加载配置...", fg="blue")
         click.echo(f"📱 设备: {device.name or '未命名设备'}")
         click.echo(f"🔑 GUID: {device.guid}")
+        click.echo(f"📄 文件 ID: {file_id}")
+        click.echo(f"📝 文件名: {file_name}")
+        click.echo(f"📦 文件类型: {file_type}")
         click.echo()
-        click.secho("🔄 正在获取 CDN 信息...", fg="blue")
+        click.secho("🔄 正在下载文件...", fg="blue")
         click.echo()
 
-    # 创建客户端并获取 CDN 信息
+    # 创建客户端并下载文件
     try:
         with WeChatAPIClient(wechat_config) as client:
-            response_data = client.get_cdn_info(device.guid)
+            response_data = client.download(
+                guid=device.guid,
+                aes_key=aes_key,
+                file_id=file_id,
+                file_name=file_name,
+                file_type=file_type,
+            )
 
             if json_only:
-                # 仅输出 JSON
                 click.echo(json.dumps(response_data, indent=2, ensure_ascii=False))
             else:
-                # 详细输出
                 click.secho("=" * 80, fg="cyan")
                 click.secho("📦 完整 API 响应内容", fg="cyan", bold=True)
                 click.secho("=" * 80, fg="cyan")
                 click.echo()
                 click.echo(json.dumps(response_data, indent=2, ensure_ascii=False))
                 click.echo()
-
-                # 解析并显示关键信息
-                if response_data.get("errcode") == 0 and "data" in response_data:
-                    data = response_data["data"]
-                    click.secho("=" * 80, fg="green")
-                    click.secho("✅ CDN 信息", fg="green", bold=True)
-                    click.secho("=" * 80, fg="green")
-                    click.echo()
-                    click.echo(f"用户名:        {data.get('username', '-')}")
-                    click.echo(f"设备类型:      {data.get('device_type', '-')}")
-                    click.echo(f"客户端版本:    {data.get('client_version', '-')}")
-                    click.echo(f"CDN 信息:      {data.get('cdn_info', '-')[:50]}...")
-                    click.echo()
-                else:
-                    click.secho("=" * 80, fg="green")
-                    click.secho("✅ 获取成功", fg="green", bold=True)
-                    click.secho("=" * 80, fg="green")
+                click.secho("=" * 80, fg="green")
+                click.secho("✅ 下载请求完成", fg="green", bold=True)
+                click.secho("=" * 80, fg="green")
 
         sys.exit(0)
 
@@ -396,15 +512,16 @@ def get_cdn_info(config: Path, device_index: int, json_only: bool):
             click.echo(json.dumps(error_data, indent=2, ensure_ascii=False))
         else:
             click.secho("=" * 80, fg="red")
-            click.secho("❌ 获取失败", fg="red", bold=True)
+            click.secho("❌ 下载失败", fg="red", bold=True)
             click.secho("=" * 80, fg="red")
             click.echo()
             click.echo(f"错误信息: {e}")
             click.echo()
             click.secho("排查建议:", fg="yellow")
             click.echo("  1. 检查网络连接")
-            click.echo("  2. 确认 app_key 和 app_secret 是否正确")
-            click.echo("  3. 确认设备 GUID 是否有效")
+            click.echo("  2. 确认文件 ID 是否有效 (30 开头)")
+            click.echo("  3. 确认 aes_key 参数是否正确")
+            click.echo("  4. 确认设备 GUID 是否有效")
             click.echo()
 
         sys.exit(1)

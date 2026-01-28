@@ -43,6 +43,7 @@ class WeChatAPIClient(EndpointAdapter):
         """
         self.config = config
         self.base_url = config.api.base_url
+        self.cloud_base_url = config.api.cloud_base_url
 
         # 配置 HTTP 客户端超时
         timeout = httpx.Timeout(
@@ -213,6 +214,143 @@ class WeChatAPIClient(EndpointAdapter):
         response_data = self._send_request(request)
         return response_data
 
+    def download(
+        self,
+        guid: str,
+        aes_key: str,
+        file_id: str,
+        file_name: str,
+        file_type: int,
+    ) -> dict[str, Any]:
+        """通用文件下载
+
+        自动获取 CDN 信息作为 base_request，然后调用下载 API。
+        适用于 30 开头的文件 ID。
+
+        注意: /cloud 开头的 API 使用不同的调用方式,直接 POST JSON body,
+        不需要 app_key/app_secret 包装。
+
+        Args:
+            guid: 设备 GUID
+            aes_key: AES 解密密钥
+            file_id: 文件 ID (30 开头)
+            file_name: 文件名
+            file_type: 文件类型 (整数)
+
+        Returns:
+            dict[str, Any]: API 原始响应数据
+
+        Raises:
+            WeChatAPIError: API 调用失败
+        """
+        # 先获取 CDN 信息作为 base_request
+        cdn_info_response = self.get_cdn_info(guid)
+        if cdn_info_response.get("errcode") != 0:
+            raise BusinessError(
+                message=cdn_info_response.get("errmsg") or "获取 CDN 信息失败",
+                error_code=cdn_info_response.get("errcode", -1),
+            )
+
+        cdn_data = cdn_info_response.get("data", {})
+        base_request = {
+            "cdn_info": cdn_data.get("cdn_info", ""),
+            "client_version": cdn_data.get("client_version", 0),
+            "device_type": cdn_data.get("device_type", ""),
+            "username": cdn_data.get("username", ""),
+        }
+
+        # Cloud API 直接 POST JSON body,不需要 app_key/app_secret 包装
+        response_data = self._send_cloud_request(
+            path="/cloud/download",
+            data={
+                "base_request": base_request,
+                "aes_key": aes_key,
+                "file_id": file_id,
+                "file_name": file_name,
+                "file_type": file_type,
+            },
+        )
+        return response_data
+
+    def _send_cloud_request(self, path: str, data: dict[str, Any]) -> dict[str, Any]:
+        """发送 Cloud API 请求
+
+        Cloud API 使用不同的调用方式:直接 POST JSON body 到 cloud_base_url + path,
+        不需要 app_key/app_secret 包装。
+
+        Args:
+            path: API 路径 (如 /cloud/download)
+            data: 请求数据
+
+        Returns:
+            dict[str, Any]: 响应 JSON 数据
+
+        Raises:
+            WeChatAPIError: HTTP 请求失败
+        """
+        start_time = time.time()
+        url = self.cloud_base_url.rstrip("/") + path
+
+        logger.info("cloud_api_request_sending", path=path, url=url)
+
+        try:
+            response = self.client.post(
+                url,
+                json=data,
+                headers={"Content-Type": "application/json"},
+            )
+
+            response_time_ms = int((time.time() - start_time) * 1000)
+
+            if response.status_code != 200:
+                logger.error(
+                    "cloud_api_request_failed",
+                    path=path,
+                    status_code=response.status_code,
+                    response_time_ms=response_time_ms,
+                )
+                raise WeChatAPIError(
+                    f"HTTP 错误: {response.status_code}",
+                    status_code=response.status_code,
+                )
+
+            response_data: dict[str, Any] = response.json()
+
+            logger.info(
+                "cloud_api_response_received",
+                path=path,
+                response_time_ms=response_time_ms,
+            )
+
+            return response_data
+
+        except httpx.TimeoutException as e:
+            logger.error(
+                "cloud_api_timeout",
+                path=path,
+                response_time_ms=int((time.time() - start_time) * 1000),
+                error=str(e),
+            )
+            raise TimeoutError("请求超时,请检查网络连接或增加超时时间") from e
+
+        except httpx.ConnectError as e:
+            logger.error(
+                "cloud_api_connect_error",
+                path=path,
+                response_time_ms=int((time.time() - start_time) * 1000),
+                error=str(e),
+            )
+            raise NetworkError("网络连接失败,请检查网络连接") from e
+
+        except httpx.RequestError as e:
+            logger.error(
+                "cloud_api_request_error",
+                path=path,
+                response_time_ms=int((time.time() - start_time) * 1000),
+                error=str(e),
+            )
+            raise NetworkError(f"网络请求错误: {e}") from e
+
     def _extract_string_value(self, field: dict[str, Any] | Any) -> str:
         """从微信 API 的字段格式中提取字符串值
 
@@ -266,12 +404,15 @@ class WeChatAPIClient(EndpointAdapter):
         """
         start_time = time.time()
 
+        # 普通 API 使用 base_url
+        url = self.base_url
+
         # 记录请求日志(脱敏)
         self._log_request(request, "sending")
 
         try:
             response = self.client.post(
-                self.base_url,
+                url,
                 json=request.to_json(),
                 headers={"Content-Type": "application/json"},
             )
