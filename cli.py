@@ -9,16 +9,30 @@
 """
 
 import json
+import logging
 import math
 import re
 import sys
 from pathlib import Path
 
 import click
+import structlog
 import uvicorn
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.webhook_config import WebhookConfig
+
+
+def _disable_logging():
+    """禁用所有日志输出,避免污染 stdout"""
+    # 禁用 structlog
+    structlog.configure(
+        processors=[],
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
+        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
+    )
+    # 禁用标准库 logging
+    logging.basicConfig(level=logging.CRITICAL, stream=sys.stderr)
 
 
 @click.group()
@@ -302,22 +316,19 @@ def get_cdn_file(config: Path, device_index: int, guid: str | None, json_only: b
     default=0,
     help="设备索引 (默认: 0 - 第一个设备)",
 )
-@click.option(
-    "--json-only",
-    "-j",
-    is_flag=True,
-    help="仅输出 JSON 格式的响应数据",
-)
-def get_cdn_info(config: Path, device_index: int, json_only: bool):
+def get_cdn_info(config: Path, device_index: int):
     """获取 CDN 信息
 
     通过调用 /cdn/get_cdn_info 接口获取设备的 CDN 信息（每 3 小时更新一次）。
+    直接输出 API 返回的原始 JSON 数据。
 
     示例:
         python cli.py get-cdn-info
         python cli.py get-cdn-info --device-index 1
-        python cli.py get-cdn-info --json-only
     """
+    # 禁用日志输出,避免污染 stdout
+    _disable_logging()
+
     # 加载配置
     if not config.exists():
         click.secho(f"❌ 配置文件不存在: {config}", fg="red", err=True)
@@ -346,67 +357,24 @@ def get_cdn_info(config: Path, device_index: int, json_only: bool):
 
     device = wechat_config.devices[device_index]
 
-    if not json_only:
-        click.secho("📡 加载配置...", fg="blue")
-        click.echo(f"📱 设备: {device.name or '未命名设备'}")
-        click.echo(f"🔑 GUID: {device.guid}")
-        click.echo()
-        click.secho("🔄 正在获取 CDN 信息...", fg="blue")
-        click.echo()
-
     # 创建客户端并获取 CDN 信息
     try:
         with WeChatAPIClient(wechat_config) as client:
             response_data = client.get_cdn_info(device.guid)
 
-            if json_only:
-                # 仅输出 JSON
-                click.echo(json.dumps(response_data, indent=2, ensure_ascii=False))
+            # 检查是否成功
+            if response_data.get("errcode") == 0 and "data" in response_data:
+                # 成功时只输出 data 的完整内容
+                click.echo(json.dumps(response_data["data"], ensure_ascii=False))
             else:
-                # 详细输出
-                click.secho("=" * 80, fg="cyan")
-                click.secho("📦 完整 API 响应内容", fg="cyan", bold=True)
-                click.secho("=" * 80, fg="cyan")
-                click.echo()
-                click.echo(json.dumps(response_data, indent=2, ensure_ascii=False))
-                click.echo()
-
-                # 解析并显示关键信息
-                if response_data.get("errcode") == 0 and "data" in response_data:
-                    data = response_data["data"]
-                    click.secho("=" * 80, fg="green")
-                    click.secho("✅ CDN 信息", fg="green", bold=True)
-                    click.secho("=" * 80, fg="green")
-                    click.echo()
-                    click.echo(f"用户名:        {data.get('username', '-')}")
-                    click.echo(f"设备类型:      {data.get('device_type', '-')}")
-                    click.echo(f"客户端版本:    {data.get('client_version', '-')}")
-                    click.echo(f"CDN 信息:      {data.get('cdn_info', '-')[:50]}...")
-                    click.echo()
-                else:
-                    click.secho("=" * 80, fg="green")
-                    click.secho("✅ 获取成功", fg="green", bold=True)
-                    click.secho("=" * 80, fg="green")
+                # 失败时输出完整响应
+                click.echo(json.dumps(response_data, ensure_ascii=False))
 
         sys.exit(0)
 
     except Exception as e:
-        if json_only:
-            error_data = {"error": str(e), "success": False}
-            click.echo(json.dumps(error_data, indent=2, ensure_ascii=False))
-        else:
-            click.secho("=" * 80, fg="red")
-            click.secho("❌ 获取失败", fg="red", bold=True)
-            click.secho("=" * 80, fg="red")
-            click.echo()
-            click.echo(f"错误信息: {e}")
-            click.echo()
-            click.secho("排查建议:", fg="yellow")
-            click.echo("  1. 检查网络连接")
-            click.echo("  2. 确认 app_key 和 app_secret 是否正确")
-            click.echo("  3. 确认设备 GUID 是否有效")
-            click.echo()
-
+        # 异常时输出到 stderr,不影响 stdout
+        click.secho(f"错误: {e}", fg="red", err=True)
         sys.exit(1)
 
 
