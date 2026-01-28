@@ -173,6 +173,46 @@ class WeChatAPIClient(EndpointAdapter):
         logger.warning("get_user_info is deprecated, use get_profile instead")
         return self.get_profile(guid)
 
+    def get_cdn_file(self, guid: str) -> dict[str, Any]:
+        """获取 CDN 文件下载地址
+
+        Args:
+            guid: 文件 GUID
+
+        Returns:
+            dict[str, Any]: API 原始响应数据
+
+        Raises:
+            WeChatAPIError: API 调用失败
+        """
+        request = self._build_request(
+            path="/cdn/get_cdn_file",
+            data={"guid": guid},
+        )
+
+        response_data = self._send_request(request)
+        return response_data
+
+    def get_cdn_info(self, guid: str) -> dict[str, Any]:
+        """获取 CDN 信息
+
+        Args:
+            guid: 设备 GUID
+
+        Returns:
+            dict[str, Any]: API 原始响应数据，包含 cdn_info, username, device_type, client_version
+
+        Raises:
+            WeChatAPIError: API 调用失败
+        """
+        request = self._build_request(
+            path="/cdn/get_cdn_info",
+            data={"guid": guid},
+        )
+
+        response_data = self._send_request(request)
+        return response_data
+
     def _extract_string_value(self, field: dict[str, Any] | Any) -> str:
         """从微信 API 的字段格式中提取字符串值
 

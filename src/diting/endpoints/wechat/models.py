@@ -157,6 +157,18 @@ class UserInfo(BaseModel):
     avatar: HttpUrl | None = Field(default=None, description="头像 URL")
 
 
+class CDNFileInfo(BaseModel):
+    """CDN 文件信息模型
+
+    从 CDN API 获取的文件下载信息。
+    """
+
+    download_url: str = Field(..., description="文件下载地址")
+    guid: str = Field(..., description="文件 GUID")
+    file_size: int | None = Field(default=None, description="文件大小(字节)")
+    content_type: str | None = Field(default=None, description="文件类型")
+
+
 class RequestLog(BaseModel):
     """API 请求日志模型
 
