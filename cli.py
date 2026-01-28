@@ -256,43 +256,19 @@ def _render_markdown_report(results, date: str) -> str:
         lines.append("未找到可分析的群聊消息。")
         return "\n".join(lines)
 
-    lines.append("热门话题 Top 10")
-
     for result in results:
         topics = sorted(
             result.topics,
             key=lambda item: (_topic_popularity(item), item.message_count),
             reverse=True,
         )
-        top_topics = topics[:10]
+        filtered_topics = [topic for topic in topics if _topic_popularity(topic) > 5]
 
-        if not top_topics:
+        if not filtered_topics:
             lines.extend(["", "无热门话题。"])
             continue
 
-        for idx, topic in enumerate(top_topics, start=1):
-            participants = topic.participants or []
-            popularity = _topic_popularity(topic)
-            time_range = _format_time_range(topic.time_range)
-            row_template = (
-                "| {idx} | {title} | {category} | {popularity:.2f} | {count} | {people} | {time} |"
-            )
-            lines.append(
-                row_template.format(
-                    idx=idx,
-                    title=topic.title,
-                    category=topic.category,
-                    popularity=popularity,
-                    count=topic.message_count,
-                    people=len(participants),
-                    time=time_range,
-                )
-            )
-
-        lines.append("")
-        lines.append("### 话题摘要")
-        lines.append("")
-        for topic in top_topics:
+        for topic in filtered_topics:
             participants = topic.participants or []
             popularity = _topic_popularity(topic)
             time_range = _format_time_range(topic.time_range)
@@ -301,10 +277,11 @@ def _render_markdown_report(results, date: str) -> str:
                 [
                     "",
                     f"## {topic.title}",
-                    f"分类: {topic.category}",
-                    "热门度/消息数/参与人数: "
-                    f"{popularity:.2f} / {topic.message_count} / {len(participants)}",
-                    f"时间范围: {time_range}",
+                    (
+                        f"🏷️ {topic.category} 🔥 {popularity:.2f} "
+                        f"💬 {topic.message_count} 👥 {len(participants)}"
+                    ),
+                    f"🕒 {time_range}",
                     f"话题摘要: {summary}",
                 ]
             )
