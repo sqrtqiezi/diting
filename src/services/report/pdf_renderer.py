@@ -528,6 +528,24 @@ def _build_flowables(
             continue
 
         stripped = line.strip()
+        if stripped.startswith("🏷️"):
+            flowables.append(
+                Paragraph(
+                    format_text(stripped, styles["meta_small"]),
+                    styles["meta_small"],
+                )
+            )
+            index += 1
+            continue
+        if stripped.startswith("🕒"):
+            flowables.append(
+                Paragraph(
+                    format_text(stripped, styles["meta"]),
+                    styles["meta"],
+                )
+            )
+            index += 1
+            continue
         if stripped.startswith("分类:"):
             label, value = _split_label_value(stripped)
             flowables.append(

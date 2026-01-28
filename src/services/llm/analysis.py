@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from datetime import UTC, datetime
@@ -25,6 +26,18 @@ from src.services.storage.query import query_messages
 logger = structlog.get_logger()
 
 DEFAULT_MAX_INPUT_TOKENS = 120_000
+DEFAULT_POPULARITY_THRESHOLD = 5.0
+
+
+def _topic_popularity(topic: TopicClassification) -> float:
+    participants = topic.participants or []
+    u_count = len(set(participants))
+    m_count = int(topic.message_count or 0)
+    if u_count <= 0 or m_count <= 0:
+        return 0.0
+    ratio = m_count / u_count
+    penalty = 1 + max(0.0, ratio - 6)
+    return math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.4))
 
 
 class ChatroomMessageAnalyzer:
@@ -116,6 +129,20 @@ class ChatroomMessageAnalyzer:
         topics, merge_logs = self._merge_topics(topics)
         if self._debug_chatroom_dir:
             self._write_merge_report(merge_logs)
+
+        topics = [
+            topic
+            for topic in topics
+            if _topic_popularity(topic) > DEFAULT_POPULARITY_THRESHOLD
+        ]
+        if not topics:
+            return ChatroomAnalysisResult(
+                chatroom_id=chatroom_id,
+                chatroom_name=chatroom_name,
+                date_range=overall_date_range,
+                total_messages=overall_total,
+                topics=[],
+            )
 
         topics = self._summarize_topics(
             chatroom_id=chatroom_id,
