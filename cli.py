@@ -853,62 +853,30 @@ def serve(config, host, port, log_level):
     help="DuckDB 数据库路径 (默认: data/metadata/images.duckdb)",
 )
 @click.option(
-    "--batch-size",
-    type=int,
-    default=100,
-    help="每批下载数量 (默认: 100)",
-)
-@click.option(
-    "--download/--no-download",
-    default=True,
-    help="是否下载图片 URL (默认: --download)",
-)
-@click.option(
     "--dry-run",
     is_flag=True,
     help="试运行,不修改文件",
-)
-@click.option(
-    "--config",
-    "-c",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    default=Path("config/wechat.yaml"),
-    help="微信配置文件 (默认: config/wechat.yaml)",
-)
-@click.option(
-    "--device-index",
-    "-d",
-    type=int,
-    default=0,
-    help="设备索引 (默认: 0)",
 )
 def extract_images(
     from_username: str,
     parquet_root: Path,
     db_path: Path,
-    batch_size: int,
-    download: bool,
     dry_run: bool,
-    config: Path,
-    device_index: int,
 ):
     """从 Parquet 消息存储中提取图片元数据
 
     扫描 Parquet 文件,提取指定用户发送的图片消息,
-    将元数据存入 DuckDB,并可选下载图片 URL。
+    将元数据存入 DuckDB。
 
     示例:
         diting extract-images -u wxid_test
         diting extract-images -u wxid_test --dry-run
-        diting extract-images -u wxid_test --no-download
     """
     project_root = Path(__file__).resolve().parent
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
-    from src.models.image_schema import DownloadResult, ExtractionResult
     from src.services.storage.duckdb_manager import DuckDBManager
-    from src.services.storage.image_downloader import ImageDownloader
     from src.services.storage.image_extractor import ImageExtractor
 
     # 显示配置信息
@@ -919,8 +887,6 @@ def extract_images(
     click.echo(f"📁 Parquet 根目录: {parquet_root}")
     click.echo(f"🗄️  数据库路径: {db_path}")
     click.echo(f"👤 发送者: {from_username}")
-    click.echo(f"📦 批次大小: {batch_size}")
-    click.echo(f"⬇️  下载图片: {'是' if download else '否'}")
     click.echo(f"🔬 试运行: {'是' if dry_run else '否'}")
     click.echo()
 
@@ -955,42 +921,208 @@ def extract_images(
     click.echo(f"🖼️  提取图片数: {result.total_images_extracted}")
     click.echo(f"❌ 失败文件数: {result.failed_files}")
 
-    # 下载图片 URL
-    if download and not dry_run and result.total_images_extracted > 0:
-        click.echo()
-        click.secho("⬇️  正在下载图片 URL...", fg="blue")
-
-        # 加载微信配置
-        if not config.exists():
-            click.secho(f"❌ 配置文件不存在: {config}", fg="red", err=True)
-            click.echo("跳过下载步骤", err=True)
-        else:
-            try:
-                from diting.endpoints.wechat.config import WeChatConfig
-
-                wechat_config = WeChatConfig.load_from_yaml(config)
-                downloader = ImageDownloader(
-                    db_manager=db_manager,
-                    wechat_config=wechat_config,
-                    device_index=device_index,
-                )
-
-                download_result = downloader.download_pending_images(batch_size=batch_size)
-
-                click.echo()
-                click.secho("=" * 60, fg="green")
-                click.secho("📊 下载结果", fg="green", bold=True)
-                click.secho("=" * 60, fg="green")
-                click.echo(f"📤 尝试下载: {download_result.total_attempted}")
-                click.echo(f"✅ 成功: {download_result.successful}")
-                click.echo(f"❌ 失败: {download_result.failed}")
-
-            except Exception as e:
-                click.secho(f"❌ 下载失败: {e}", fg="red", err=True)
-
     # 显示数据库统计
     click.echo()
     stats = db_manager.get_statistics()
+    click.secho("=" * 60, fg="cyan")
+    click.secho("📈 数据库统计", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo(f"🖼️  总图片数: {stats['images']['total']}")
+    click.echo(f"⏳ 待下载: {stats['images']['pending']}")
+    click.echo(f"✅ 已完成: {stats['images']['completed']}")
+    click.echo(f"❌ 失败: {stats['images']['failed']}")
+    click.echo()
+    click.secho("✅ 完成!", fg="green", bold=True)
+
+
+@cli.command(name="download-images")
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("data/metadata/images.duckdb"),
+    help="DuckDB 数据库路径 (默认: data/metadata/images.duckdb)",
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=Path("config/wechat.yaml"),
+    help="微信配置文件 (默认: config/wechat.yaml)",
+)
+@click.option(
+    "--device-index",
+    "-d",
+    type=int,
+    default=0,
+    help="设备索引 (默认: 0)",
+)
+@click.option(
+    "--retry",
+    is_flag=True,
+    help="重试之前失败的图片下载",
+)
+@click.option(
+    "--rate-limit",
+    type=int,
+    default=50,
+    help="每分钟最大下载次数 (默认: 50)",
+)
+def download_images(
+    db_path: Path,
+    config: Path,
+    device_index: int,
+    retry: bool,
+    rate_limit: int,
+):
+    """下载待处理的图片 URL
+
+    持续运行直到所有图片下载完成或收到 Ctrl+C 退出信号。
+    支持流量限制和失败重试。
+
+    示例:
+        diting download-images
+        diting download-images --retry
+        diting download-images --rate-limit 30
+    """
+    import signal
+    import time
+
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from diting.endpoints.wechat.config import WeChatConfig
+
+    from src.models.image_schema import ImageStatus
+    from src.services.storage.duckdb_manager import DuckDBManager
+    from src.services.storage.image_downloader import ImageDownloader
+
+    # 显示配置信息
+    click.secho("=" * 60, fg="cyan")
+    click.secho("⬇️  图片下载工具", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+    click.echo(f"🗄️  数据库路径: {db_path}")
+    click.echo(f"📝 配置文件: {config}")
+    click.echo(f"🔄 重试模式: {'是' if retry else '否'}")
+    click.echo(f"⏱️  流量限制: {rate_limit} 次/分钟")
+    click.echo()
+
+    # 检查数据库文件
+    if not db_path.exists():
+        click.secho(f"❌ 数据库文件不存在: {db_path}", fg="red", err=True)
+        click.echo("请先运行 extract-images 命令提取图片元数据", err=True)
+        sys.exit(1)
+
+    # 加载配置
+    try:
+        wechat_config = WeChatConfig.load_from_yaml(config)
+    except Exception as e:
+        click.secho(f"❌ 配置文件加载失败: {e}", fg="red", err=True)
+        sys.exit(1)
+
+    # 初始化
+    db_manager = DuckDBManager(db_path)
+    downloader = ImageDownloader(
+        db_manager=db_manager,
+        wechat_config=wechat_config,
+        device_index=device_index,
+    )
+
+    # 计算下载间隔 (毫秒)
+    interval_seconds = 60.0 / rate_limit
+
+    # 退出标志
+    should_exit = False
+
+    def signal_handler(signum, frame):
+        nonlocal should_exit
+        click.echo()
+        click.secho("🛑 收到退出信号,正在停止...", fg="yellow")
+        should_exit = True
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    click.secho("🚀 开始下载 (按 Ctrl+C 停止)...", fg="green")
+    click.echo()
+
+    # 统计
+    total_success = 0
+    total_failed = 0
+    start_time = time.time()
+
+    try:
+        while not should_exit:
+            # 获取待下载图片
+            if retry:
+                # 重试模式: 获取失败的图片
+                with db_manager.get_connection() as conn:
+                    rows = conn.execute(
+                        """
+                        SELECT image_id, msg_id, from_username, chatroom, create_time,
+                               aes_key, cdn_mid_img_url, status, extracted_at
+                        FROM images
+                        WHERE status = ?
+                        ORDER BY extracted_at ASC
+                        LIMIT 1
+                        """,
+                        [ImageStatus.FAILED.value],
+                    ).fetchall()
+
+                    if not rows:
+                        click.secho("✅ 没有失败的图片需要重试", fg="green")
+                        break
+
+                    columns = [
+                        "image_id", "msg_id", "from_username", "chatroom",
+                        "create_time", "aes_key", "cdn_mid_img_url", "status",
+                        "extracted_at",
+                    ]
+                    image = dict(zip(columns, rows[0], strict=False))
+
+                # 重置状态为 pending 再下载
+                db_manager.update_image_status(image["image_id"], ImageStatus.PENDING)
+            else:
+                # 正常模式: 获取待下载图片
+                pending = db_manager.get_pending_images(limit=1)
+                if not pending:
+                    click.secho("✅ 所有图片已下载完成", fg="green")
+                    break
+                image = pending[0]
+
+            # 下载单张图片
+            success = downloader.download_single_image(image)
+
+            count = total_success + total_failed
+            img_id = image['image_id'][:8]
+            if success:
+                total_success += 1
+                click.echo(f"✅ [{count}] {img_id}... 下载成功")
+            else:
+                total_failed += 1
+                click.echo(f"❌ [{count}] {img_id}... 下载失败")
+
+            # 流量限制
+            if not should_exit:
+                time.sleep(interval_seconds)
+
+    except Exception as e:
+        click.secho(f"❌ 下载过程出错: {e}", fg="red", err=True)
+
+    # 显示统计
+    elapsed = time.time() - start_time
+    click.echo()
+    click.secho("=" * 60, fg="green")
+    click.secho("📊 下载统计", fg="green", bold=True)
+    click.secho("=" * 60, fg="green")
+    click.echo(f"✅ 成功: {total_success}")
+    click.echo(f"❌ 失败: {total_failed}")
+    click.echo(f"⏱️  耗时: {elapsed:.1f} 秒")
+
+    # 显示数据库统计
+    stats = db_manager.get_statistics()
+    click.echo()
     click.secho("=" * 60, fg="cyan")
     click.secho("📈 数据库统计", fg="cyan", bold=True)
     click.secho("=" * 60, fg="cyan")
