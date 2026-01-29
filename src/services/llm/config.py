@@ -58,6 +58,7 @@ class AnalysisConfig(BaseModel):
     summary_max_messages: int | None = Field(
         default=200, ge=1, description="单个话题摘要最大消息数"
     )
+    timezone: str = Field(default="UTC", description="报告显示时区 (如 Asia/Shanghai, UTC)")
 
 
 class LLMConfig(BaseModel):
