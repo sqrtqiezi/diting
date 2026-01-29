@@ -833,5 +833,174 @@ def serve(config, host, port, log_level):
         sys.exit(0)
 
 
+@cli.command(name="extract-images")
+@click.option(
+    "--from-username",
+    "-u",
+    required=True,
+    help="发送者用户名 (必填)",
+)
+@click.option(
+    "--parquet-root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=Path("data/messages/parquet"),
+    help="Parquet 根目录 (默认: data/messages/parquet)",
+)
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("data/metadata/images.duckdb"),
+    help="DuckDB 数据库路径 (默认: data/metadata/images.duckdb)",
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=100,
+    help="每批下载数量 (默认: 100)",
+)
+@click.option(
+    "--download/--no-download",
+    default=True,
+    help="是否下载图片 URL (默认: --download)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="试运行,不修改文件",
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=Path("config/wechat.yaml"),
+    help="微信配置文件 (默认: config/wechat.yaml)",
+)
+@click.option(
+    "--device-index",
+    "-d",
+    type=int,
+    default=0,
+    help="设备索引 (默认: 0)",
+)
+def extract_images(
+    from_username: str,
+    parquet_root: Path,
+    db_path: Path,
+    batch_size: int,
+    download: bool,
+    dry_run: bool,
+    config: Path,
+    device_index: int,
+):
+    """从 Parquet 消息存储中提取图片元数据
+
+    扫描 Parquet 文件,提取指定用户发送的图片消息,
+    将元数据存入 DuckDB,并可选下载图片 URL。
+
+    示例:
+        diting extract-images -u wxid_test
+        diting extract-images -u wxid_test --dry-run
+        diting extract-images -u wxid_test --no-download
+    """
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from src.models.image_schema import DownloadResult, ExtractionResult
+    from src.services.storage.duckdb_manager import DuckDBManager
+    from src.services.storage.image_downloader import ImageDownloader
+    from src.services.storage.image_extractor import ImageExtractor
+
+    # 显示配置信息
+    click.secho("=" * 60, fg="cyan")
+    click.secho("🖼️  图片提取工具", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+    click.echo(f"📁 Parquet 根目录: {parquet_root}")
+    click.echo(f"🗄️  数据库路径: {db_path}")
+    click.echo(f"👤 发送者: {from_username}")
+    click.echo(f"📦 批次大小: {batch_size}")
+    click.echo(f"⬇️  下载图片: {'是' if download else '否'}")
+    click.echo(f"🔬 试运行: {'是' if dry_run else '否'}")
+    click.echo()
+
+    # 检查 Parquet 目录
+    if not parquet_root.exists():
+        click.secho(f"❌ Parquet 目录不存在: {parquet_root}", fg="red", err=True)
+        sys.exit(1)
+
+    # 初始化 DuckDB 管理器
+    db_manager = DuckDBManager(db_path)
+    click.secho("✓ 数据库初始化完成", fg="green")
+
+    # 初始化图片提取器
+    extractor = ImageExtractor(
+        db_manager=db_manager,
+        parquet_root=parquet_root,
+        dry_run=dry_run,
+    )
+
+    # 执行提取
+    click.echo()
+    click.secho("🔍 正在扫描 Parquet 文件...", fg="blue")
+
+    result = extractor.extract_all(from_username, update_content=not dry_run)
+
+    click.echo()
+    click.secho("=" * 60, fg="green")
+    click.secho("📊 提取结果", fg="green", bold=True)
+    click.secho("=" * 60, fg="green")
+    click.echo(f"📂 扫描文件数: {result.total_files_scanned}")
+    click.echo(f"⏭️  跳过文件数: {result.skipped_files}")
+    click.echo(f"🖼️  提取图片数: {result.total_images_extracted}")
+    click.echo(f"❌ 失败文件数: {result.failed_files}")
+
+    # 下载图片 URL
+    if download and not dry_run and result.total_images_extracted > 0:
+        click.echo()
+        click.secho("⬇️  正在下载图片 URL...", fg="blue")
+
+        # 加载微信配置
+        if not config.exists():
+            click.secho(f"❌ 配置文件不存在: {config}", fg="red", err=True)
+            click.echo("跳过下载步骤", err=True)
+        else:
+            try:
+                from diting.endpoints.wechat.config import WeChatConfig
+
+                wechat_config = WeChatConfig.load_from_yaml(config)
+                downloader = ImageDownloader(
+                    db_manager=db_manager,
+                    wechat_config=wechat_config,
+                    device_index=device_index,
+                )
+
+                download_result = downloader.download_pending_images(batch_size=batch_size)
+
+                click.echo()
+                click.secho("=" * 60, fg="green")
+                click.secho("📊 下载结果", fg="green", bold=True)
+                click.secho("=" * 60, fg="green")
+                click.echo(f"📤 尝试下载: {download_result.total_attempted}")
+                click.echo(f"✅ 成功: {download_result.successful}")
+                click.echo(f"❌ 失败: {download_result.failed}")
+
+            except Exception as e:
+                click.secho(f"❌ 下载失败: {e}", fg="red", err=True)
+
+    # 显示数据库统计
+    click.echo()
+    stats = db_manager.get_statistics()
+    click.secho("=" * 60, fg="cyan")
+    click.secho("📈 数据库统计", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo(f"🖼️  总图片数: {stats['images']['total']}")
+    click.echo(f"⏳ 待下载: {stats['images']['pending']}")
+    click.echo(f"✅ 已完成: {stats['images']['completed']}")
+    click.echo(f"❌ 失败: {stats['images']['failed']}")
+    click.echo()
+    click.secho("✅ 完成!", fg="green", bold=True)
+
+
 if __name__ == "__main__":
     cli()
