@@ -5,10 +5,11 @@ from __future__ import annotations
 import math
 import re
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, tzinfo
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, cast
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import structlog
@@ -49,6 +50,9 @@ class ChatroomMessageAnalyzer:
         self.debug_dir = debug_dir
         self._debug_chatroom_dir: Path | None = None
         self._seq_to_msg_id: dict[int, str] = {}
+        # 解析时区配置
+        tz_name = config.analysis.timezone
+        self._tz: tzinfo | None = ZoneInfo(tz_name) if tz_name and tz_name != "UTC" else None
         self.llm = self._build_llm()
         system_prompt, user_prompt = get_prompts(config.analysis.prompt_version)
         self.prompt = ChatPromptTemplate.from_messages(
@@ -303,7 +307,7 @@ class ChatroomMessageAnalyzer:
         timestamps: list[datetime] = []
         for message in messages:
             value = message.get("create_time")
-            dt = _to_datetime(value)
+            dt = _to_datetime(value, self._tz)
             if dt is not None:
                 timestamps.append(dt)
         if not timestamps:
@@ -320,7 +324,7 @@ class ChatroomMessageAnalyzer:
             time_str = "unknown-time"
         else:
             try:
-                time_value = _to_datetime(timestamp)
+                time_value = _to_datetime(timestamp, self._tz)
                 if time_value is None:
                     raise ValueError("invalid timestamp")
                 time_str = time_value.strftime("%Y-%m-%d %H:%M:%S")
@@ -696,7 +700,7 @@ class ChatroomMessageAnalyzer:
         timestamps: list[datetime] = []
         for message in messages:
             value = message.get("create_time")
-            dt = _to_datetime(value)
+            dt = _to_datetime(value, self._tz)
             if dt is not None:
                 timestamps.append(dt)
         if not timestamps:
@@ -713,7 +717,7 @@ class ChatroomMessageAnalyzer:
             time_str = "unknown-time"
         else:
             try:
-                time_value = _to_datetime(timestamp)
+                time_value = _to_datetime(timestamp, self._tz)
                 if time_value is None:
                     raise ValueError("invalid timestamp")
                 time_str = time_value.strftime("%Y-%m-%d %H:%M:%S")
@@ -992,7 +996,16 @@ def _extract_times(value: str) -> list[str]:
     return re.findall(r"\d{1,2}:\d{2}(?::\d{2})?", value)
 
 
-def _to_datetime(value: Any) -> datetime | None:
+def _to_datetime(value: Any, tz: tzinfo | None = None) -> datetime | None:
+    """将时间戳转换为 datetime 对象
+
+    Args:
+        value: 时间戳值 (datetime, pd.Timestamp, int/float Unix 时间戳)
+        tz: 目标时区，如果为 None 则返回 UTC 时间（无时区信息）
+
+    Returns:
+        转换后的 datetime 对象，如果转换失败则返回 None
+    """
     if value is None or pd.isna(value):
         return None
     if isinstance(value, datetime):
@@ -1005,9 +1018,13 @@ def _to_datetime(value: Any) -> datetime | None:
         dt_value = datetime.fromtimestamp(int(value), tz=UTC)
     else:
         return None
-    if dt_value.tzinfo:
-        return dt_value.astimezone(UTC).replace(tzinfo=None)
-    return dt_value
+    # 确保有时区信息
+    if dt_value.tzinfo is None:
+        dt_value = dt_value.replace(tzinfo=UTC)
+    # 转换到目标时区
+    if tz is not None:
+        return dt_value.astimezone(tz).replace(tzinfo=None)
+    return dt_value.astimezone(UTC).replace(tzinfo=None)
 
 
 def _time_to_seconds(value: str) -> int:
