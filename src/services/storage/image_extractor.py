@@ -98,8 +98,9 @@ class ImageExtractor:
         """
         logger.info("extracting_images_from_parquet", file=str(parquet_file))
 
-        # 读取 Parquet 文件
-        table = pq.read_table(parquet_file)
+        # 使用 ParquetFile 读取单个文件，避免触发 dataset API 的 schema 合并
+        parquet_reader = pq.ParquetFile(parquet_file)
+        table = parquet_reader.read()
         df = table.to_pandas()
 
         # 过滤发送者匹配的记录
@@ -208,9 +209,11 @@ class ImageExtractor:
             return True
 
         try:
-            # 读取原始 Parquet
-            table = pq.read_table(parquet_file)
-            df = table.to_pandas()
+            # 使用 ParquetFile 读取单个文件，避免触发 dataset API 的 schema 合并
+            parquet_reader = pq.ParquetFile(parquet_file)
+            original_table = parquet_reader.read()
+            original_schema = original_table.schema  # 保存原始 schema
+            df = original_table.to_pandas()
 
             # 更新 content 列
             updated_count = 0
@@ -225,12 +228,22 @@ class ImageExtractor:
                 logger.debug("no_content_updated", file=str(parquet_file))
                 return True
 
-            # 转换回 PyArrow Table
-            new_table = pa.Table.from_pandas(df, preserve_index=False)
+            # 转换回 PyArrow Table，使用原始 schema
+            new_table = pa.Table.from_pandas(
+                df,
+                schema=original_schema,  # 使用原始 schema 保持类型一致
+                preserve_index=False,
+            )
 
-            # 原子写入新文件
+            # 原子写入新文件，使用与 ingestion.py 一致的参数
             temp_path = parquet_file.with_suffix(".parquet.tmp")
-            pq.write_table(new_table, temp_path, compression="snappy")
+            pq.write_table(
+                new_table,
+                temp_path,
+                compression="snappy",
+                use_dictionary=True,  # 与 ingestion.py 一致
+                write_statistics=True,  # 与 ingestion.py 一致
+            )
 
             # 替换原文件
             temp_path.replace(parquet_file)

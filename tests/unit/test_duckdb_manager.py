@@ -385,3 +385,150 @@ class TestGetStatistics:
         assert stats["images"]["failed"] == 1
         assert stats["checkpoints"]["total"] == 1
         assert stats["checkpoints"]["completed"] == 1
+
+
+class TestOCRMethods:
+    """OCR 相关方法测试"""
+
+    def test_get_pending_ocr_images_empty(self, db_manager):
+        """测试空数据库获取待 OCR 图片"""
+        pending = db_manager.get_pending_ocr_images(limit=10)
+        assert len(pending) == 0
+
+    def test_get_pending_ocr_images_filters_correctly(self, db_manager):
+        """测试正确过滤待 OCR 图片"""
+        # 插入图片
+        images = [
+            ImageMetadata(
+                image_id=f"img-{i}",
+                msg_id=f"msg-{i}",
+                from_username="user1",
+                aes_key=f"key{i}",
+                cdn_mid_img_url=f"30xxx{i}",
+            )
+            for i in range(4)
+        ]
+        db_manager.insert_images(images)
+
+        # img-0: 已下载,未 OCR (应该返回)
+        db_manager.update_image_status(
+            "img-0", ImageStatus.COMPLETED, download_url="http://example.com/0.jpg"
+        )
+
+        # img-1: 已下载,已 OCR (不应返回)
+        db_manager.update_image_status(
+            "img-1", ImageStatus.COMPLETED, download_url="http://example.com/1.jpg"
+        )
+        db_manager.update_ocr_result("img-1", has_text=True, ocr_content="some text")
+
+        # img-2: 已下载,OCR 无文字 (不应返回)
+        db_manager.update_image_status(
+            "img-2", ImageStatus.COMPLETED, download_url="http://example.com/2.jpg"
+        )
+        db_manager.update_ocr_result("img-2", has_text=False)
+
+        # img-3: 未下载 (不应返回)
+        # 保持 pending 状态
+
+        pending = db_manager.get_pending_ocr_images(limit=10)
+        assert len(pending) == 1
+        assert pending[0]["image_id"] == "img-0"
+
+    def test_get_pending_ocr_images_respects_limit(self, db_manager):
+        """测试限制返回数量"""
+        images = [
+            ImageMetadata(
+                image_id=f"img-{i}",
+                msg_id=f"msg-{i}",
+                from_username="user1",
+                aes_key=f"key{i}",
+                cdn_mid_img_url=f"30xxx{i}",
+            )
+            for i in range(10)
+        ]
+        db_manager.insert_images(images)
+
+        # 全部设为已下载
+        for i in range(10):
+            db_manager.update_image_status(
+                f"img-{i}", ImageStatus.COMPLETED, download_url=f"http://example.com/{i}.jpg"
+            )
+
+        pending = db_manager.get_pending_ocr_images(limit=3)
+        assert len(pending) == 3
+
+    def test_update_ocr_result_with_text(self, db_manager):
+        """测试更新 OCR 结果 - 有文字"""
+        image = ImageMetadata(
+            image_id="img-001",
+            msg_id="msg-001",
+            from_username="user1",
+            aes_key="key123",
+            cdn_mid_img_url="30xxx",
+        )
+        db_manager.insert_images([image])
+        db_manager.update_image_status(
+            "img-001", ImageStatus.COMPLETED, download_url="http://example.com/img.jpg"
+        )
+
+        result = db_manager.update_ocr_result(
+            image_id="img-001",
+            has_text=True,
+            ocr_content="识别出的文字内容",
+        )
+
+        assert result is True
+
+        # 验证更新
+        updated = db_manager.get_image_by_id("img-001")
+        assert updated is not None
+        assert updated["has_text"] is True
+        assert updated["ocr_content"] == "识别出的文字内容"
+
+    def test_update_ocr_result_without_text(self, db_manager):
+        """测试更新 OCR 结果 - 无文字"""
+        image = ImageMetadata(
+            image_id="img-001",
+            msg_id="msg-001",
+            from_username="user1",
+            aes_key="key123",
+            cdn_mid_img_url="30xxx",
+        )
+        db_manager.insert_images([image])
+        db_manager.update_image_status(
+            "img-001", ImageStatus.COMPLETED, download_url="http://example.com/img.jpg"
+        )
+
+        result = db_manager.update_ocr_result(
+            image_id="img-001",
+            has_text=False,
+            ocr_content=None,
+        )
+
+        assert result is True
+
+        updated = db_manager.get_image_by_id("img-001")
+        assert updated is not None
+        assert updated["has_text"] is False
+        assert updated["ocr_content"] is None
+
+    def test_get_image_by_id(self, db_manager):
+        """测试根据 ID 获取图片"""
+        image = ImageMetadata(
+            image_id="img-001",
+            msg_id="msg-001",
+            from_username="user1",
+            aes_key="key123",
+            cdn_mid_img_url="30xxx",
+        )
+        db_manager.insert_images([image])
+
+        result = db_manager.get_image_by_id("img-001")
+        assert result is not None
+        assert result["image_id"] == "img-001"
+        assert result["msg_id"] == "msg-001"
+
+    def test_get_image_by_id_not_found(self, db_manager):
+        """测试获取不存在的图片"""
+        result = db_manager.get_image_by_id("nonexistent")
+        assert result is None

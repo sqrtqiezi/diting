@@ -59,6 +59,7 @@ class AnalysisConfig(BaseModel):
         default=200, ge=1, description="单个话题摘要最大消息数"
     )
     timezone: str = Field(default="UTC", description="报告显示时区 (如 Asia/Shanghai, UTC)")
+    enable_image_ocr_display: bool = Field(default=True, description="启用图片 OCR 内容替换")
 
 
 class LLMConfig(BaseModel):

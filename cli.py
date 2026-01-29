@@ -565,6 +565,12 @@ def download(
     multiple=True,
     help="限定分析的群聊 ID（可重复传入）",
 )
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="DuckDB 数据库路径 (启用图片 OCR 内容替换)",
+)
 def analyze_chatrooms(
     date: str,
     parquet_root: str | None,
@@ -572,6 +578,7 @@ def analyze_chatrooms(
     output: Path | None,
     debug_dir: Path | None,
     chatroom: tuple[str, ...],
+    db_path: Path | None,
 ):
     """分析群聊消息并输出话题聚合结果"""
     project_root = Path(__file__).resolve().parent
@@ -586,6 +593,12 @@ def analyze_chatrooms(
     if config is None:
         config = get_llm_config_path()
 
+    db_manager = None
+    if db_path and db_path.exists():
+        from src.services.storage.duckdb_manager import DuckDBManager
+
+        db_manager = DuckDBManager(db_path)
+
     results = analyze_chatrooms_from_parquet(
         start_date=date,
         end_date=date,
@@ -593,6 +606,7 @@ def analyze_chatrooms(
         config_path=config,
         chatroom_ids=list(chatroom) if chatroom else None,
         debug_dir=str(debug_dir) if debug_dir else None,
+        db_manager=db_manager,
     )
 
     report = _render_markdown_report(results, date)
@@ -1135,6 +1149,152 @@ def download_images(
     click.echo(f"⏳ 待下载: {stats['images']['pending']}")
     click.echo(f"✅ 已完成: {stats['images']['completed']}")
     click.echo(f"❌ 失败: {stats['images']['failed']}")
+    click.echo()
+    click.secho("✅ 完成!", fg="green", bold=True)
+
+
+@cli.command(name="process-ocr")
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("data/metadata/images.duckdb"),
+    help="DuckDB 数据库路径 (默认: data/metadata/images.duckdb)",
+)
+@click.option(
+    "--rate-limit",
+    type=int,
+    default=30,
+    help="每分钟最大处理次数 (默认: 30)",
+)
+def process_ocr(db_path: Path, rate_limit: int):
+    """处理图片 OCR 识别
+
+    从 images 表读取已下载但未 OCR 处理的图片，
+    调用阿里云 OCR API 进行识别。
+
+    需要设置环境变量:
+        ALIYUN_ACCESS_KEY_ID
+        ALIYUN_ACCESS_KEY_SECRET
+
+    示例:
+        diting process-ocr
+        diting process-ocr --rate-limit 20
+    """
+    import os
+    import signal
+    import time
+
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from src.services.storage.duckdb_manager import DuckDBManager
+    from src.services.storage.image_ocr_processor import ImageOCRProcessor
+
+    # 检查环境变量
+    access_key_id = os.environ.get("ALIYUN_ACCESS_KEY_ID")
+    access_key_secret = os.environ.get("ALIYUN_ACCESS_KEY_SECRET")
+
+    if not access_key_id or not access_key_secret:
+        click.secho(
+            "❌ 请设置环境变量 ALIYUN_ACCESS_KEY_ID 和 ALIYUN_ACCESS_KEY_SECRET",
+            fg="red",
+            err=True,
+        )
+        sys.exit(1)
+
+    # 显示配置信息
+    click.secho("=" * 60, fg="cyan")
+    click.secho("🔍 图片 OCR 处理工具", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+    click.echo(f"🗄️  数据库路径: {db_path}")
+    click.echo(f"⏱️  流量限制: {rate_limit} 次/分钟")
+    click.echo()
+
+    # 检查数据库文件
+    if not db_path.exists():
+        click.secho(f"❌ 数据库文件不存在: {db_path}", fg="red", err=True)
+        click.echo("请先运行 extract-images 和 download-images 命令", err=True)
+        sys.exit(1)
+
+    # 初始化
+    db_manager = DuckDBManager(db_path)
+    processor = ImageOCRProcessor(
+        db_manager=db_manager,
+        access_key_id=access_key_id,
+        access_key_secret=access_key_secret,
+    )
+
+    # 计算处理间隔
+    interval_seconds = 60.0 / rate_limit
+
+    # 退出标志
+    should_exit = False
+
+    def signal_handler(signum, frame):
+        nonlocal should_exit
+        click.echo()
+        click.secho("🛑 收到退出信号,正在停止...", fg="yellow")
+        should_exit = True
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    click.secho("🚀 开始 OCR 处理 (按 Ctrl+C 停止)...", fg="green")
+    click.echo()
+
+    # 统计
+    total_success = 0
+    total_failed = 0
+    with_text = 0
+    without_text = 0
+    start_time = time.time()
+
+    try:
+        while not should_exit:
+            # 获取待处理图片
+            pending = db_manager.get_pending_ocr_images(limit=1)
+
+            if not pending:
+                click.secho("✅ 所有图片 OCR 处理完成", fg="green")
+                break
+
+            image = pending[0]
+            success, has_text_result = processor.process_single_image(image)
+
+            count = total_success + total_failed
+            img_id = image["image_id"][:8]
+            if success:
+                total_success += 1
+                if has_text_result:
+                    with_text += 1
+                    click.echo(f"📝 [{count}] {img_id}... 有文字")
+                else:
+                    without_text += 1
+                    click.echo(f"🖼️  [{count}] {img_id}... 无文字")
+            else:
+                total_failed += 1
+                click.echo(f"❌ [{count}] {img_id}... 处理失败")
+
+            # 流量限制
+            if not should_exit:
+                time.sleep(interval_seconds)
+
+    except Exception as e:
+        click.secho(f"❌ OCR 处理过程出错: {e}", fg="red", err=True)
+
+    # 显示统计
+    elapsed = time.time() - start_time
+    click.echo()
+    click.secho("=" * 60, fg="green")
+    click.secho("📊 OCR 处理统计", fg="green", bold=True)
+    click.secho("=" * 60, fg="green")
+    click.echo(f"✅ 成功: {total_success}")
+    click.echo(f"❌ 失败: {total_failed}")
+    click.echo(f"📝 有文字: {with_text}")
+    click.echo(f"🖼️  无文字: {without_text}")
+    click.echo(f"⏱️  耗时: {elapsed:.1f} 秒")
     click.echo()
     click.secho("✅ 完成!", fg="green", bold=True)
 

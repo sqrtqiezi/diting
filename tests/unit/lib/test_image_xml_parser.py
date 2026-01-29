@@ -1,6 +1,5 @@
 """图片 XML 解析器单元测试"""
 
-import pytest
 
 from src.lib.image_xml_parser import ImageInfo, is_encrypted_image_xml, parse_image_xml
 

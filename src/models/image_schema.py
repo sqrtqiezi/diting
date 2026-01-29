@@ -114,3 +114,21 @@ class DownloadResult(BaseModel):
     total_attempted: int = Field(default=0, description="尝试下载数")
     successful: int = Field(default=0, description="成功数")
     failed: int = Field(default=0, description="失败数")
+
+
+class OCRResult(BaseModel):
+    """OCR 处理结果统计
+
+    Attributes:
+        total_attempted: 尝试处理的图片数
+        successful: 成功处理的图片数
+        failed: 处理失败的图片数
+        with_text: 有文字的图片数
+        without_text: 无文字的图片数
+    """
+
+    total_attempted: int = Field(default=0, description="尝试处理数")
+    successful: int = Field(default=0, description="成功数")
+    failed: int = Field(default=0, description="失败数")
+    with_text: int = Field(default=0, description="有文字的图片数")
+    without_text: int = Field(default=0, description="无文字的图片数")

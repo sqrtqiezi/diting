@@ -396,3 +396,99 @@ class DuckDBManager:
                     "completed": completed_checkpoints,
                 },
             }
+
+    def get_pending_ocr_images(self, limit: int = 100) -> list[dict[str, Any]]:
+        """获取待 OCR 处理的图片
+
+        条件: download_url 不为空 AND has_text 为 NULL
+
+        Args:
+            limit: 返回的最大记录数
+
+        Returns:
+            图片记录字典列表
+        """
+        with self.get_connection() as conn:
+            result = conn.execute(
+                """
+                SELECT image_id, download_url, extracted_at
+                FROM images
+                WHERE download_url IS NOT NULL
+                  AND has_text IS NULL
+                ORDER BY extracted_at ASC
+                LIMIT ?
+                """,
+                [limit],
+            ).fetchall()
+
+            columns = ["image_id", "download_url", "extracted_at"]
+            return [dict(zip(columns, row, strict=False)) for row in result]
+
+    def update_ocr_result(
+        self,
+        image_id: str,
+        has_text: bool,
+        ocr_content: str | None = None,
+    ) -> bool:
+        """更新 OCR 识别结果
+
+        Args:
+            image_id: 图片 ID
+            has_text: 是否包含文字
+            ocr_content: OCR 识别的文字内容
+
+        Returns:
+            更新是否成功
+        """
+        with self.get_connection() as conn:
+            conn.execute(
+                """
+                UPDATE images
+                SET has_text = ?,
+                    ocr_content = ?
+                WHERE image_id = ?
+                """,
+                [has_text, ocr_content, image_id],
+            )
+            return True
+
+    def get_image_by_id(self, image_id: str) -> dict[str, Any] | None:
+        """根据图片 ID 获取图片记录
+
+        Args:
+            image_id: 图片 ID
+
+        Returns:
+            图片记录字典,不存在返回 None
+        """
+        with self.get_connection() as conn:
+            result = conn.execute(
+                """
+                SELECT image_id, msg_id, from_username, create_time,
+                       aes_key, cdn_mid_img_url, status, download_url, error_message,
+                       ocr_content, has_text, extracted_at, downloaded_at
+                FROM images
+                WHERE image_id = ?
+                """,
+                [image_id],
+            ).fetchone()
+
+            if not result:
+                return None
+
+            columns = [
+                "image_id",
+                "msg_id",
+                "from_username",
+                "create_time",
+                "aes_key",
+                "cdn_mid_img_url",
+                "status",
+                "download_url",
+                "error_message",
+                "ocr_content",
+                "has_text",
+                "extracted_at",
+                "downloaded_at",
+            ]
+            return dict(zip(columns, result, strict=False))
