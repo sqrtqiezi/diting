@@ -29,7 +29,9 @@ class ImageInfo:
 
 
 def is_encrypted_image_xml(xml_str: str) -> bool:
-    """快速检查是否为加密图片消息
+    """检查是否为加密图片消息
+
+    通过 XML 解析判断是否为 <msg><img encryver="1"> 结构。
 
     Args:
         xml_str: XML 字符串
@@ -40,16 +42,27 @@ def is_encrypted_image_xml(xml_str: str) -> bool:
     if not xml_str or not xml_str.strip():
         return False
 
-    content = xml_str.strip()
-    # 检查是否以 <msg><img 开头
-    if not content.startswith("<msg>"):
-        return False
+    try:
+        root = ET.fromstring(xml_str.strip())
 
-    # 检查是否包含 encryver="1" 表示加密图片
-    if 'encryver="1"' not in content and "encryver='1'" not in content:
-        return False
+        # 检查根元素是否为 <msg>
+        if root.tag != "msg":
+            return False
 
-    return True
+        # 检查是否有 <img> 子元素
+        img_elem = root.find("img")
+        if img_elem is None:
+            return False
+
+        # 检查 encryver="1" 属性
+        encryver = img_elem.get("encryver")
+        if encryver != "1":
+            return False
+
+        return True
+
+    except ET.ParseError:
+        return False
 
 
 def parse_image_xml(xml_str: str) -> ImageInfo | None:
@@ -59,6 +72,7 @@ def parse_image_xml(xml_str: str) -> ImageInfo | None:
     仅处理加密图片 (encryver="1")。
 
     典型的图片 XML 格式:
+    <?xml version="1.0"?>
     <msg>
         <img aeskey="..." cdnmidimgurl="..." encryver="1" .../>
     </msg>
@@ -69,21 +83,24 @@ def parse_image_xml(xml_str: str) -> ImageInfo | None:
     Returns:
         ImageInfo 对象,解析失败返回 None
     """
-    if not is_encrypted_image_xml(xml_str):
+    if not xml_str or not xml_str.strip():
         return None
 
     try:
         root = ET.fromstring(xml_str.strip())
-        img_elem = root.find("img")
 
+        # 检查根元素是否为 <msg>
+        if root.tag != "msg":
+            return None
+
+        # 查找 <img> 子元素
+        img_elem = root.find("img")
         if img_elem is None:
-            logger.debug("image_xml_no_img_element", xml=xml_str[:100])
             return None
 
         # 验证加密版本
         encryver = img_elem.get("encryver")
         if encryver != "1":
-            logger.debug("image_xml_not_encrypted", encryver=encryver)
             return None
 
         # 提取必需字段
