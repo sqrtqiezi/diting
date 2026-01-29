@@ -199,7 +199,7 @@ class ImageDownloader:
             # 查询失败的图片
             rows = conn.execute(
                 """
-                SELECT image_id, msg_id, from_username, chatroom, create_time,
+                SELECT image_id, msg_id, from_username, create_time,
                        aes_key, cdn_mid_img_url, status, extracted_at
                 FROM images
                 WHERE status = ?
@@ -213,7 +213,6 @@ class ImageDownloader:
                 "image_id",
                 "msg_id",
                 "from_username",
-                "chatroom",
                 "create_time",
                 "aes_key",
                 "cdn_mid_img_url",

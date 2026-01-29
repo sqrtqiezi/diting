@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS images (
     image_id VARCHAR PRIMARY KEY,
     msg_id VARCHAR NOT NULL UNIQUE,
     from_username VARCHAR NOT NULL,
-    chatroom VARCHAR,
     create_time TIMESTAMP,
     aes_key VARCHAR NOT NULL,
     cdn_mid_img_url VARCHAR NOT NULL,
@@ -36,6 +35,7 @@ CREATE TABLE IF NOT EXISTS images (
     download_url VARCHAR,
     error_message VARCHAR,
     ocr_content TEXT,
+    has_text BOOLEAN,
     extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     downloaded_at TIMESTAMP
 )
@@ -133,15 +133,14 @@ class DuckDBManager:
                     conn.execute(
                         """
                         INSERT INTO images (
-                            image_id, msg_id, from_username, chatroom, create_time,
+                            image_id, msg_id, from_username, create_time,
                             aes_key, cdn_mid_img_url, status, extracted_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         [
                             img.image_id,
                             img.msg_id,
                             img.from_username,
-                            img.chatroom,
                             img.create_time,
                             img.aes_key,
                             img.cdn_mid_img_url,
@@ -168,7 +167,7 @@ class DuckDBManager:
         with self.get_connection() as conn:
             result = conn.execute(
                 """
-                SELECT image_id, msg_id, from_username, chatroom, create_time,
+                SELECT image_id, msg_id, from_username, create_time,
                        aes_key, cdn_mid_img_url, status, extracted_at
                 FROM images
                 WHERE status = ?
@@ -182,7 +181,6 @@ class DuckDBManager:
                 "image_id",
                 "msg_id",
                 "from_username",
-                "chatroom",
                 "create_time",
                 "aes_key",
                 "cdn_mid_img_url",
@@ -237,9 +235,9 @@ class DuckDBManager:
         with self.get_connection() as conn:
             result = conn.execute(
                 """
-                SELECT image_id, msg_id, from_username, chatroom, create_time,
+                SELECT image_id, msg_id, from_username, create_time,
                        aes_key, cdn_mid_img_url, status, download_url, error_message,
-                       ocr_content, extracted_at, downloaded_at
+                       ocr_content, has_text, extracted_at, downloaded_at
                 FROM images
                 WHERE msg_id = ?
                 """,
@@ -253,7 +251,6 @@ class DuckDBManager:
                 "image_id",
                 "msg_id",
                 "from_username",
-                "chatroom",
                 "create_time",
                 "aes_key",
                 "cdn_mid_img_url",
@@ -261,6 +258,7 @@ class DuckDBManager:
                 "download_url",
                 "error_message",
                 "ocr_content",
+                "has_text",
                 "extracted_at",
                 "downloaded_at",
             ]
@@ -377,9 +375,7 @@ class DuckDBManager:
             failed_images = row[0] if row else 0
 
             # 检查点统计
-            row = conn.execute(
-                "SELECT COUNT(*) FROM image_extraction_checkpoints"
-            ).fetchone()
+            row = conn.execute("SELECT COUNT(*) FROM image_extraction_checkpoints").fetchone()
             total_checkpoints = row[0] if row else 0
 
             row = conn.execute(

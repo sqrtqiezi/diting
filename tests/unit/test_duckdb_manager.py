@@ -1,8 +1,6 @@
 """DuckDB 管理器单元测试"""
 
-import tempfile
 from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -32,7 +30,7 @@ class TestDuckDBManagerInit:
 
     def test_creates_database_file(self, temp_db_path):
         """测试创建数据库文件"""
-        manager = DuckDBManager(temp_db_path)
+        _manager = DuckDBManager(temp_db_path)
         assert temp_db_path.exists()
 
     def test_creates_parent_directory(self, tmp_path):
@@ -125,7 +123,6 @@ class TestInsertImages:
             image_id="img-001",
             msg_id="msg-001",
             from_username="user1",
-            chatroom="room@chatroom",
             create_time=datetime(2024, 1, 1, 12, 0, 0),
             aes_key="key123",
             cdn_mid_img_url="30xxx",
@@ -137,7 +134,7 @@ class TestInsertImages:
         # 验证数据正确存储
         result = db_manager.get_image_by_msg_id("msg-001")
         assert result is not None
-        assert result["chatroom"] == "room@chatroom"
+        assert result["create_time"] is not None
 
 
 class TestGetPendingImages:

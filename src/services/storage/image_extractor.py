@@ -71,9 +71,7 @@ class ImageExtractor:
             all_files = sorted(self.parquet_root.rglob("*.parquet"))
 
         # 过滤出未处理的文件
-        unprocessed = [
-            f for f in all_files if str(f) not in completed_files
-        ]
+        unprocessed = [f for f in all_files if str(f) not in completed_files]
 
         logger.info(
             "unprocessed_files_found",
@@ -155,7 +153,6 @@ class ImageExtractor:
                 image_id=image_id,
                 msg_id=msg_id,
                 from_username=from_username,
-                chatroom=row.get("chatroom") or None,
                 create_time=create_time,
                 aes_key=image_info.aes_key,
                 cdn_mid_img_url=image_info.cdn_mid_img_url,

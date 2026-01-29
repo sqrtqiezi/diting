@@ -32,8 +32,7 @@ class ImageMetadata(BaseModel):
     Attributes:
         image_id: 图片唯一 ID (UUID)
         msg_id: 原始消息 ID
-        from_username: 发送者用户名
-        chatroom: 群聊 ID (私聊为空)
+        from_username: 发送者用户名 (群组消息时为群组 ID)
         create_time: 消息创建时间
         aes_key: AES 解密密钥
         cdn_mid_img_url: CDN 文件 ID
@@ -41,14 +40,14 @@ class ImageMetadata(BaseModel):
         download_url: 下载 URL (下载完成后填充)
         error_message: 错误信息 (失败时填充)
         ocr_content: OCR 提取的文字内容 (扩展字段)
+        has_text: 图片是否包含文字 (OCR 检测后填充)
         extracted_at: 提取时间
         downloaded_at: 下载完成时间
     """
 
     image_id: str = Field(..., description="图片唯一 ID (UUID)")
     msg_id: str = Field(..., description="原始消息 ID")
-    from_username: str = Field(..., description="发送者用户名")
-    chatroom: str | None = Field(default=None, description="群聊 ID")
+    from_username: str = Field(..., description="发送者用户名 (群组消息时为群组 ID)")
     create_time: datetime | None = Field(default=None, description="消息创建时间")
     aes_key: str = Field(..., description="AES 解密密钥")
     cdn_mid_img_url: str = Field(..., description="CDN 文件 ID")
@@ -56,6 +55,7 @@ class ImageMetadata(BaseModel):
     download_url: str | None = Field(default=None, description="下载 URL")
     error_message: str | None = Field(default=None, description="错误信息")
     ocr_content: str | None = Field(default=None, description="OCR 内容")
+    has_text: bool | None = Field(default=None, description="图片是否包含文字")
     extracted_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC), description="提取时间"
     )
@@ -79,9 +79,7 @@ class ImageExtractionCheckpoint(BaseModel):
     parquet_file: str = Field(..., description="Parquet 文件路径")
     from_username: str = Field(..., description="发送者用户名")
     total_images_extracted: int = Field(default=0, description="已提取图片数")
-    status: CheckpointStatus = Field(
-        default=CheckpointStatus.PROCESSING, description="处理状态"
-    )
+    status: CheckpointStatus = Field(default=CheckpointStatus.PROCESSING, description="处理状态")
     checkpoint_time: datetime = Field(
         default_factory=lambda: datetime.now(UTC), description="检查点时间"
     )
