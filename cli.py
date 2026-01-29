@@ -1060,7 +1060,7 @@ def download_images(
                 with db_manager.get_connection() as conn:
                     rows = conn.execute(
                         """
-                        SELECT image_id, msg_id, from_username, chatroom, create_time,
+                        SELECT image_id, msg_id, from_username, create_time,
                                aes_key, cdn_mid_img_url, status, extracted_at
                         FROM images
                         WHERE status = ?
@@ -1075,8 +1075,13 @@ def download_images(
                         break
 
                     columns = [
-                        "image_id", "msg_id", "from_username", "chatroom",
-                        "create_time", "aes_key", "cdn_mid_img_url", "status",
+                        "image_id",
+                        "msg_id",
+                        "from_username",
+                        "create_time",
+                        "aes_key",
+                        "cdn_mid_img_url",
+                        "status",
                         "extracted_at",
                     ]
                     image = dict(zip(columns, rows[0], strict=False))
@@ -1095,7 +1100,7 @@ def download_images(
             success = downloader.download_single_image(image)
 
             count = total_success + total_failed
-            img_id = image['image_id'][:8]
+            img_id = image["image_id"][:8]
             if success:
                 total_success += 1
                 click.echo(f"✅ [{count}] {img_id}... 下载成功")
