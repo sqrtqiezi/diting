@@ -92,9 +92,12 @@ class ImageOCRProcessor:
             return True, has_text
 
         except Exception as e:
+            error_msg = str(e)
             logger.error(
                 "ocr_failed",
                 image_id=image_id,
-                error=str(e),
+                error=error_msg,
             )
+            # 记录错误信息，避免重复处理
+            self.db_manager.update_ocr_error(image_id, error_msg)
             return False, None

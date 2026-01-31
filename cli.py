@@ -746,6 +746,10 @@ def render_report_pdf(
     font_size: int,
 ):
     """将 Markdown 报告渲染为 PDF"""
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
     from src.services.report.pdf_renderer import PdfRenderOptions, render_markdown_report_pdf
 
     options = PdfRenderOptions(

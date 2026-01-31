@@ -532,3 +532,63 @@ class TestOCRMethods:
         """测试获取不存在的图片"""
         result = db_manager.get_image_by_id("nonexistent")
         assert result is None
+
+    def test_update_ocr_error(self, db_manager):
+        """测试更新 OCR 错误信息"""
+        image = ImageMetadata(
+            image_id="img-001",
+            msg_id="msg-001",
+            from_username="user1",
+            aes_key="key123",
+            cdn_mid_img_url="30xxx",
+        )
+        db_manager.insert_images([image])
+        db_manager.update_image_status(
+            "img-001", ImageStatus.COMPLETED, download_url="http://example.com/img.jpg"
+        )
+
+        result = db_manager.update_ocr_error(
+            image_id="img-001",
+            error_message="illegalImageSize: The image size must not be less than 5px",
+        )
+
+        assert result is True
+
+        # 验证错误信息已更新
+        updated = db_manager.get_image_by_id("img-001")
+        assert updated is not None
+        assert (
+            updated["error_message"] == "illegalImageSize: The image size must not be less than 5px"
+        )
+        assert updated["has_text"] is None  # OCR 未完成
+
+    def test_get_pending_ocr_images_excludes_errors(self, db_manager):
+        """测试待 OCR 图片查询排除有错误的图片"""
+        images = [
+            ImageMetadata(
+                image_id=f"img-{i}",
+                msg_id=f"msg-{i}",
+                from_username="user1",
+                aes_key=f"key{i}",
+                cdn_mid_img_url=f"30xxx{i}",
+            )
+            for i in range(3)
+        ]
+        db_manager.insert_images(images)
+
+        # 全部设为已下载
+        for i in range(3):
+            db_manager.update_image_status(
+                f"img-{i}", ImageStatus.COMPLETED, download_url=f"http://example.com/{i}.jpg"
+            )
+
+        # img-1 设置 OCR 错误
+        db_manager.update_ocr_error("img-1", "illegalImageSize")
+
+        # 查询待 OCR 图片，应该排除 img-1
+        pending = db_manager.get_pending_ocr_images(limit=10)
+        assert len(pending) == 2
+        image_ids = [p["image_id"] for p in pending]
+        assert "img-0" in image_ids
+        assert "img-1" not in image_ids  # 有错误的图片被排除
+        assert "img-2" in image_ids

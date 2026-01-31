@@ -415,6 +415,7 @@ class DuckDBManager:
                 FROM images
                 WHERE download_url IS NOT NULL
                   AND has_text IS NULL
+                  AND error_message IS NULL
                 ORDER BY extracted_at ASC
                 LIMIT ?
                 """,
@@ -449,6 +450,27 @@ class DuckDBManager:
                 WHERE image_id = ?
                 """,
                 [has_text, ocr_content, image_id],
+            )
+            return True
+
+    def update_ocr_error(self, image_id: str, error_message: str) -> bool:
+        """更新 OCR 处理错误信息
+
+        Args:
+            image_id: 图片 ID
+            error_message: 错误信息
+
+        Returns:
+            更新是否成功
+        """
+        with self.get_connection() as conn:
+            conn.execute(
+                """
+                UPDATE images
+                SET error_message = ?
+                WHERE image_id = ?
+                """,
+                [error_message, image_id],
             )
             return True
 
