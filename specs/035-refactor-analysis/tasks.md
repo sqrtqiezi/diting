@@ -24,8 +24,8 @@
 
 **Purpose**: 项目初始化和基础结构准备
 
-- [ ] T001 备份原始 analysis.py 文件到 src/services/llm/analysis.py.backup
-- [ ] T002 验证现有测试套件运行正常：uv run pytest tests/unit/services/llm/ -v
+- [x] T001 备份原始 analysis.py 文件到 src/services/llm/analysis.py.backup
+- [x] T002 验证现有测试套件运行正常：uv run pytest tests/unit/services/llm/ -v
 
 ---
 
@@ -35,9 +35,9 @@
 
 **⚠️ CRITICAL**: 所有用户故事工作必须在此阶段完成后才能开始
 
-- [ ] T003 [P] 创建 time_utils.py 模块，迁移时间处理函数（to_datetime, extract_times, time_to_seconds, format_time, build_date_range, build_time_range）到 src/services/llm/time_utils.py
-- [ ] T004 [P] 创建 debug_writer.py 模块，实现 DebugWriter 类（debug_write, safe_dirname, format_keywords, write_merge_report, format_topics_for_debug, format_chunk_summary_for_debug, format_merged_summary_for_debug, render_batch_debug_header）到 src/services/llm/debug_writer.py
-- [ ] T005 验证基础模块：运行 uv run mypy src/services/llm/time_utils.py src/services/llm/debug_writer.py
+- [x] T003 [P] 创建 time_utils.py 模块，迁移时间处理函数（to_datetime, extract_times, time_to_seconds, format_time, build_date_range, build_time_range）到 src/services/llm/time_utils.py
+- [x] T004 [P] 创建 debug_writer.py 模块，实现 DebugWriter 类（debug_write, safe_dirname, format_keywords, write_merge_report, format_topics_for_debug, format_chunk_summary_for_debug, format_merged_summary_for_debug, render_batch_debug_header）到 src/services/llm/debug_writer.py
+- [x] T005 验证基础模块：运行 uv run mypy src/services/llm/time_utils.py src/services/llm/debug_writer.py
 
 **Checkpoint**: 基础工具模块就绪 - 用户故事实现可以并行开始
 
@@ -51,19 +51,19 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] 创建 message_formatter.py 模块，实现 MessageFormatter 类和工具函数（ensure_message_ids, assign_sequence_ids, load_image_ocr_cache, format_message_line, format_message_line_for_summary）到 src/services/llm/message_formatter.py
-- [ ] T007 [P] [US1] 创建 message_batcher.py 模块，实现 MessageBatcher 类（split_messages_by_count, split_messages_by_tokens, estimate_tokens）到 src/services/llm/message_batcher.py
-- [ ] T008 [P] [US1] 创建 llm_client.py 模块，定义 LLMProvider Protocol，实现 LangChainProvider 和 LLMClient 类（build_llm, invoke_with_retry, parse_response, resolve_message_ids, parse_indices）到 src/services/llm/llm_client.py
-- [ ] T009 [P] [US1] 创建 topic_merger.py 模块，定义 MergeStrategy Protocol，实现 KeywordSimilarityStrategy 和 TopicMerger 类（normalize_keyword, keyword_similarity, merge_topics, merge_decision, combine_topics, merge_confidence, merge_notes, pick_summary, merge_time_range）到 src/services/llm/topic_merger.py
-- [ ] T010 [US1] 创建 topic_summarizer.py 模块，实现 TopicSummarizer 类（summarize_topics, summarize_cluster, summarize_chunk, merge_chunk_summaries, chunk_messages_for_summary, select_messages_for_summary, extract_participants）到 src/services/llm/topic_summarizer.py
-- [ ] T011 [US1] 重构 analysis.py，保留 IMAGE_CONTENT_PATTERN、_topic_popularity、ChatroomMessageAnalyzer 类（作为协调器）、analyze_chatrooms_from_parquet 函数，委托新模块完成具体工作，更新 src/services/llm/analysis.py
-- [ ] T012 [US1] 更新 __init__.py，确保公共 API 导出（analyze_chatrooms_from_parquet, ChatroomMessageAnalyzer, IMAGE_CONTENT_PATTERN）到 src/services/llm/__init__.py
-- [ ] T013 [US1] 验证模块行数：wc -l src/services/llm/*.py，确认每个新模块 100-200 行
-- [ ] T014 [US1] 验证方法数量：grep "def " src/services/llm/*.py | wc -l，确认每个模块 5-10 个方法
-- [ ] T015 [US1] 运行类型检查：uv run mypy src/services/llm/
-- [ ] T016 [US1] 运行代码检查：uv run ruff check src/services/llm/
-- [ ] T017 [US1] 验证现有测试套件通过：uv run pytest tests/unit/services/llm/ -v
-- [ ] T018 [US1] 验证向后兼容性：python -c "from src.services.llm.analysis import analyze_chatrooms_from_parquet, IMAGE_CONTENT_PATTERN, ChatroomMessageAnalyzer; print('OK')"
+- [x] T006 [P] [US1] 创建 message_formatter.py 模块，实现 MessageFormatter 类和工具函数（ensure_message_ids, assign_sequence_ids, load_image_ocr_cache, format_message_line, format_message_line_for_summary）到 src/services/llm/message_formatter.py
+- [x] T007 [P] [US1] 创建 message_batcher.py 模块，实现 MessageBatcher 类（split_messages_by_count, split_messages_by_tokens, estimate_tokens）到 src/services/llm/message_batcher.py
+- [x] T008 [P] [US1] 创建 llm_client.py 模块，定义 LLMProvider Protocol，实现 LangChainProvider 和 LLMClient 类（build_llm, invoke_with_retry, parse_response, resolve_message_ids, parse_indices）到 src/services/llm/llm_client.py
+- [x] T009 [P] [US1] 创建 topic_merger.py 模块，定义 MergeStrategy Protocol，实现 KeywordSimilarityStrategy 和 TopicMerger 类（normalize_keyword, keyword_similarity, merge_topics, merge_decision, combine_topics, merge_confidence, merge_notes, pick_summary, merge_time_range）到 src/services/llm/topic_merger.py
+- [x] T010 [US1] 创建 topic_summarizer.py 模块，实现 TopicSummarizer 类（summarize_topics, summarize_cluster, summarize_chunk, merge_chunk_summaries, chunk_messages_for_summary, select_messages_for_summary, extract_participants）到 src/services/llm/topic_summarizer.py
+- [x] T011 [US1] 重构 analysis.py，保留 IMAGE_CONTENT_PATTERN、_topic_popularity、ChatroomMessageAnalyzer 类（作为协调器）、analyze_chatrooms_from_parquet 函数，委托新模块完成具体工作，更新 src/services/llm/analysis.py
+- [x] T012 [US1] 更新 __init__.py，确保公共 API 导出（analyze_chatrooms_from_parquet, ChatroomMessageAnalyzer, IMAGE_CONTENT_PATTERN）到 src/services/llm/__init__.py
+- [x] T013 [US1] 验证模块行数：wc -l src/services/llm/*.py，确认每个新模块 100-200 行
+- [x] T014 [US1] 验证方法数量：grep "def " src/services/llm/*.py | wc -l，确认每个模块 5-10 个方法
+- [x] T015 [US1] 运行类型检查：uv run mypy src/services/llm/
+- [x] T016 [US1] 运行代码检查：uv run ruff check src/services/llm/
+- [x] T017 [US1] 验证现有测试套件通过：uv run pytest tests/unit/services/llm/ -v
+- [x] T018 [US1] 验证向后兼容性：python -c "from src.services.llm.analysis import analyze_chatrooms_from_parquet, IMAGE_CONTENT_PATTERN, ChatroomMessageAnalyzer; print('OK')"
 
 **Checkpoint**: User Story 1 完成 - 模块已拆分，代码可维护性显著提升
 
