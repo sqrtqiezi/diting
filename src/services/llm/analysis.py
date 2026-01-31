@@ -8,7 +8,7 @@ import time
 from datetime import UTC, datetime, tzinfo
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -24,10 +24,14 @@ from src.services.llm.prompts import get_prompts, get_summary_prompts
 from src.services.llm.response_parser import parse_topics_from_text
 from src.services.storage.query import query_messages
 
+if TYPE_CHECKING:
+    from src.services.storage.duckdb_manager import DuckDBManager
+
 logger = structlog.get_logger()
 
 DEFAULT_MAX_INPUT_TOKENS = 120_000
 DEFAULT_POPULARITY_THRESHOLD = 5.0
+IMAGE_CONTENT_PATTERN = re.compile(r"^image#([a-f0-9-]+)$")
 
 
 def _topic_popularity(topic: TopicClassification) -> float:
@@ -45,11 +49,18 @@ def _topic_popularity(topic: TopicClassification) -> float:
 class ChatroomMessageAnalyzer:
     """群聊消息分析器"""
 
-    def __init__(self, config: LLMConfig, debug_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        config: LLMConfig,
+        debug_dir: Path | None = None,
+        db_manager: DuckDBManager | None = None,
+    ) -> None:
         self.config = config
         self.debug_dir = debug_dir
         self._debug_chatroom_dir: Path | None = None
         self._seq_to_msg_id: dict[int, str] = {}
+        self._db_manager = db_manager
+        self._image_ocr_cache: dict[str, str] = {}
         # 解析时区配置
         tz_name = config.analysis.timezone
         self._tz: tzinfo | None = ZoneInfo(tz_name) if tz_name and tz_name != "UTC" else None
@@ -72,6 +83,41 @@ class ChatroomMessageAnalyzer:
         )
         self._token_encoder: Any = None
 
+    def _load_image_ocr_cache(self, messages: list[dict[str, Any]]) -> dict[str, str]:
+        """批量预加载图片 OCR 内容
+
+        Args:
+            messages: 消息列表
+
+        Returns:
+            图片 ID 到 OCR 内容的映射
+        """
+        if not self._db_manager or not self.config.analysis.enable_image_ocr_display:
+            return {}
+
+        image_ids = []
+        for msg in messages:
+            content = str(msg.get("content") or "")
+            match = IMAGE_CONTENT_PATTERN.match(content)
+            if match:
+                image_ids.append(match.group(1))
+
+        if not image_ids:
+            return {}
+
+        cache: dict[str, str] = {}
+        for image_id in image_ids:
+            record = self._db_manager.get_image_by_id(image_id)
+            if record and record.get("ocr_content"):
+                cache[image_id] = record["ocr_content"]
+
+        logger.debug(
+            "image_ocr_cache_loaded",
+            total_images=len(image_ids),
+            cached_count=len(cache),
+        )
+        return cache
+
     def analyze_chatroom(
         self, chatroom_id: str, messages: list[dict[str, Any]], chatroom_name: str = ""
     ) -> ChatroomAnalysisResult:
@@ -91,6 +137,7 @@ class ChatroomMessageAnalyzer:
         self._seq_to_msg_id = {
             int(message["seq_id"]): message["msg_id"] for message in sorted_messages
         }
+        self._image_ocr_cache = self._load_image_ocr_cache(sorted_messages)
         message_lookup = {
             str(message.get("msg_id")): message
             for message in sorted_messages
@@ -336,7 +383,17 @@ class ChatroomMessageAnalyzer:
         content = message.get("content") or ""
         if pd.isna(content):
             content = ""
-        content = str(content).replace("\n", " ").strip()
+        content = str(content).strip()
+
+        # 图片 OCR 内容替换
+        if self.config.analysis.enable_image_ocr_display:
+            match = IMAGE_CONTENT_PATTERN.match(content)
+            if match:
+                image_id = match.group(1)
+                ocr_content = self._image_ocr_cache.get(image_id)
+                content = f"[图片文字: {ocr_content}]" if ocr_content else "[图片]"
+
+        content = content.replace("\n", " ")
 
         refermsg = message.get("refermsg")
         if refermsg and self.config.analysis.enable_refermsg_display:
@@ -1051,15 +1108,33 @@ def analyze_chatrooms_from_parquet(
     config_path: str | Path | None = None,
     chatroom_ids: list[str] | None = None,
     debug_dir: str | Path | None = None,
+    db_manager: DuckDBManager | None = None,
 ) -> list[ChatroomAnalysisResult]:
-    """从 Parquet 中读取群聊消息并分析"""
+    """从 Parquet 中读取群聊消息并分析
+
+    Args:
+        start_date: 开始日期
+        end_date: 结束日期
+        parquet_root: Parquet 根目录
+        config_path: LLM 配置文件路径
+        chatroom_ids: 限定的群聊 ID 列表
+        debug_dir: 调试输出目录
+        db_manager: DuckDB 管理器 (用于图片 OCR 内容替换)
+
+    Returns:
+        群聊分析结果列表
+    """
     if parquet_root is None:
         parquet_root = get_messages_parquet_path()
     if config_path is None:
         config_path = get_llm_config_path()
 
     config = LLMConfig.load_from_yaml(config_path)
-    analyzer = ChatroomMessageAnalyzer(config, Path(debug_dir) if debug_dir else None)
+    analyzer = ChatroomMessageAnalyzer(
+        config,
+        Path(debug_dir) if debug_dir else None,
+        db_manager=db_manager,
+    )
 
     df = query_messages(
         start_date=start_date,

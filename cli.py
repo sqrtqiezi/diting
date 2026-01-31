@@ -565,6 +565,12 @@ def download(
     multiple=True,
     help="限定分析的群聊 ID（可重复传入）",
 )
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="DuckDB 数据库路径 (启用图片 OCR 内容替换)",
+)
 def analyze_chatrooms(
     date: str,
     parquet_root: str | None,
@@ -572,6 +578,7 @@ def analyze_chatrooms(
     output: Path | None,
     debug_dir: Path | None,
     chatroom: tuple[str, ...],
+    db_path: Path | None,
 ):
     """分析群聊消息并输出话题聚合结果"""
     project_root = Path(__file__).resolve().parent
@@ -586,6 +593,12 @@ def analyze_chatrooms(
     if config is None:
         config = get_llm_config_path()
 
+    db_manager = None
+    if db_path and db_path.exists():
+        from src.services.storage.duckdb_manager import DuckDBManager
+
+        db_manager = DuckDBManager(db_path)
+
     results = analyze_chatrooms_from_parquet(
         start_date=date,
         end_date=date,
@@ -593,6 +606,7 @@ def analyze_chatrooms(
         config_path=config,
         chatroom_ids=list(chatroom) if chatroom else None,
         debug_dir=str(debug_dir) if debug_dir else None,
+        db_manager=db_manager,
     )
 
     report = _render_markdown_report(results, date)
@@ -732,6 +746,10 @@ def render_report_pdf(
     font_size: int,
 ):
     """将 Markdown 报告渲染为 PDF"""
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
     from src.services.report.pdf_renderer import PdfRenderOptions, render_markdown_report_pdf
 
     options = PdfRenderOptions(
@@ -831,6 +849,458 @@ def serve(config, host, port, log_level):
         click.echo()
         click.secho("🛑 Server stopped by user", fg="yellow")
         sys.exit(0)
+
+
+@cli.command(name="extract-images")
+@click.option(
+    "--from-username",
+    "-u",
+    required=True,
+    help="发送者用户名 (必填)",
+)
+@click.option(
+    "--parquet-root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=Path("data/messages/parquet"),
+    help="Parquet 根目录 (默认: data/messages/parquet)",
+)
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("data/metadata/images.duckdb"),
+    help="DuckDB 数据库路径 (默认: data/metadata/images.duckdb)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="试运行,不修改文件",
+)
+def extract_images(
+    from_username: str,
+    parquet_root: Path,
+    db_path: Path,
+    dry_run: bool,
+):
+    """从 Parquet 消息存储中提取图片元数据
+
+    扫描 Parquet 文件,提取指定用户发送的图片消息,
+    将元数据存入 DuckDB。
+
+    示例:
+        diting extract-images -u wxid_test
+        diting extract-images -u wxid_test --dry-run
+    """
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from src.services.storage.duckdb_manager import DuckDBManager
+    from src.services.storage.image_extractor import ImageExtractor
+
+    # 显示配置信息
+    click.secho("=" * 60, fg="cyan")
+    click.secho("🖼️  图片提取工具", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+    click.echo(f"📁 Parquet 根目录: {parquet_root}")
+    click.echo(f"🗄️  数据库路径: {db_path}")
+    click.echo(f"👤 发送者: {from_username}")
+    click.echo(f"🔬 试运行: {'是' if dry_run else '否'}")
+    click.echo()
+
+    # 检查 Parquet 目录
+    if not parquet_root.exists():
+        click.secho(f"❌ Parquet 目录不存在: {parquet_root}", fg="red", err=True)
+        sys.exit(1)
+
+    # 初始化 DuckDB 管理器
+    db_manager = DuckDBManager(db_path)
+    click.secho("✓ 数据库初始化完成", fg="green")
+
+    # 初始化图片提取器
+    extractor = ImageExtractor(
+        db_manager=db_manager,
+        parquet_root=parquet_root,
+        dry_run=dry_run,
+    )
+
+    # 执行提取
+    click.echo()
+    click.secho("🔍 正在扫描 Parquet 文件...", fg="blue")
+
+    result = extractor.extract_all(from_username, update_content=not dry_run)
+
+    click.echo()
+    click.secho("=" * 60, fg="green")
+    click.secho("📊 提取结果", fg="green", bold=True)
+    click.secho("=" * 60, fg="green")
+    click.echo(f"📂 扫描文件数: {result.total_files_scanned}")
+    click.echo(f"⏭️  跳过文件数: {result.skipped_files}")
+    click.echo(f"🖼️  提取图片数: {result.total_images_extracted}")
+    click.echo(f"❌ 失败文件数: {result.failed_files}")
+
+    # 显示数据库统计
+    click.echo()
+    stats = db_manager.get_statistics()
+    click.secho("=" * 60, fg="cyan")
+    click.secho("📈 数据库统计", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo(f"🖼️  总图片数: {stats['images']['total']}")
+    click.echo(f"⏳ 待下载: {stats['images']['pending']}")
+    click.echo(f"✅ 已完成: {stats['images']['completed']}")
+    click.echo(f"❌ 失败: {stats['images']['failed']}")
+    click.echo()
+    click.secho("✅ 完成!", fg="green", bold=True)
+
+
+@cli.command(name="download-images")
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("data/metadata/images.duckdb"),
+    help="DuckDB 数据库路径 (默认: data/metadata/images.duckdb)",
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=Path("config/wechat.yaml"),
+    help="微信配置文件 (默认: config/wechat.yaml)",
+)
+@click.option(
+    "--device-index",
+    "-d",
+    type=int,
+    default=0,
+    help="设备索引 (默认: 0)",
+)
+@click.option(
+    "--retry",
+    is_flag=True,
+    help="重试之前失败的图片下载",
+)
+@click.option(
+    "--rate-limit",
+    type=int,
+    default=50,
+    help="每分钟最大下载次数 (默认: 50)",
+)
+def download_images(
+    db_path: Path,
+    config: Path,
+    device_index: int,
+    retry: bool,
+    rate_limit: int,
+):
+    """下载待处理的图片 URL
+
+    持续运行直到所有图片下载完成或收到 Ctrl+C 退出信号。
+    支持流量限制和失败重试。
+
+    示例:
+        diting download-images
+        diting download-images --retry
+        diting download-images --rate-limit 30
+    """
+    import signal
+    import time
+
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from diting.endpoints.wechat.config import WeChatConfig
+
+    from src.models.image_schema import ImageStatus
+    from src.services.storage.duckdb_manager import DuckDBManager
+    from src.services.storage.image_downloader import ImageDownloader
+
+    # 显示配置信息
+    click.secho("=" * 60, fg="cyan")
+    click.secho("⬇️  图片下载工具", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+    click.echo(f"🗄️  数据库路径: {db_path}")
+    click.echo(f"📝 配置文件: {config}")
+    click.echo(f"🔄 重试模式: {'是' if retry else '否'}")
+    click.echo(f"⏱️  流量限制: {rate_limit} 次/分钟")
+    click.echo()
+
+    # 检查数据库文件
+    if not db_path.exists():
+        click.secho(f"❌ 数据库文件不存在: {db_path}", fg="red", err=True)
+        click.echo("请先运行 extract-images 命令提取图片元数据", err=True)
+        sys.exit(1)
+
+    # 加载配置
+    try:
+        wechat_config = WeChatConfig.load_from_yaml(config)
+    except Exception as e:
+        click.secho(f"❌ 配置文件加载失败: {e}", fg="red", err=True)
+        sys.exit(1)
+
+    # 初始化
+    db_manager = DuckDBManager(db_path)
+    downloader = ImageDownloader(
+        db_manager=db_manager,
+        wechat_config=wechat_config,
+        device_index=device_index,
+    )
+
+    # 计算下载间隔 (毫秒)
+    interval_seconds = 60.0 / rate_limit
+
+    # 退出标志
+    should_exit = False
+
+    def signal_handler(signum, frame):
+        nonlocal should_exit
+        click.echo()
+        click.secho("🛑 收到退出信号,正在停止...", fg="yellow")
+        should_exit = True
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    click.secho("🚀 开始下载 (按 Ctrl+C 停止)...", fg="green")
+    click.echo()
+
+    # 统计
+    total_success = 0
+    total_failed = 0
+    start_time = time.time()
+
+    try:
+        while not should_exit:
+            # 获取待下载图片
+            if retry:
+                # 重试模式: 获取失败的图片
+                with db_manager.get_connection() as conn:
+                    rows = conn.execute(
+                        """
+                        SELECT image_id, msg_id, from_username, create_time,
+                               aes_key, cdn_mid_img_url, status, extracted_at
+                        FROM images
+                        WHERE status = ?
+                        ORDER BY extracted_at ASC
+                        LIMIT 1
+                        """,
+                        [ImageStatus.FAILED.value],
+                    ).fetchall()
+
+                    if not rows:
+                        click.secho("✅ 没有失败的图片需要重试", fg="green")
+                        break
+
+                    columns = [
+                        "image_id",
+                        "msg_id",
+                        "from_username",
+                        "create_time",
+                        "aes_key",
+                        "cdn_mid_img_url",
+                        "status",
+                        "extracted_at",
+                    ]
+                    image = dict(zip(columns, rows[0], strict=False))
+
+                # 重置状态为 pending 再下载
+                db_manager.update_image_status(image["image_id"], ImageStatus.PENDING)
+            else:
+                # 正常模式: 获取待下载图片
+                pending = db_manager.get_pending_images(limit=1)
+                if not pending:
+                    click.secho("✅ 所有图片已下载完成", fg="green")
+                    break
+                image = pending[0]
+
+            # 下载单张图片
+            success = downloader.download_single_image(image)
+
+            count = total_success + total_failed
+            img_id = image["image_id"][:8]
+            if success:
+                total_success += 1
+                click.echo(f"✅ [{count}] {img_id}... 下载成功")
+            else:
+                total_failed += 1
+                click.echo(f"❌ [{count}] {img_id}... 下载失败")
+
+            # 流量限制
+            if not should_exit:
+                time.sleep(interval_seconds)
+
+    except Exception as e:
+        click.secho(f"❌ 下载过程出错: {e}", fg="red", err=True)
+
+    # 显示统计
+    elapsed = time.time() - start_time
+    click.echo()
+    click.secho("=" * 60, fg="green")
+    click.secho("📊 下载统计", fg="green", bold=True)
+    click.secho("=" * 60, fg="green")
+    click.echo(f"✅ 成功: {total_success}")
+    click.echo(f"❌ 失败: {total_failed}")
+    click.echo(f"⏱️  耗时: {elapsed:.1f} 秒")
+
+    # 显示数据库统计
+    stats = db_manager.get_statistics()
+    click.echo()
+    click.secho("=" * 60, fg="cyan")
+    click.secho("📈 数据库统计", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo(f"🖼️  总图片数: {stats['images']['total']}")
+    click.echo(f"⏳ 待下载: {stats['images']['pending']}")
+    click.echo(f"✅ 已完成: {stats['images']['completed']}")
+    click.echo(f"❌ 失败: {stats['images']['failed']}")
+    click.echo()
+    click.secho("✅ 完成!", fg="green", bold=True)
+
+
+@cli.command(name="process-ocr")
+@click.option(
+    "--db-path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("data/metadata/images.duckdb"),
+    help="DuckDB 数据库路径 (默认: data/metadata/images.duckdb)",
+)
+@click.option(
+    "--rate-limit",
+    type=int,
+    default=30,
+    help="每分钟最大处理次数 (默认: 30)",
+)
+def process_ocr(db_path: Path, rate_limit: int):
+    """处理图片 OCR 识别
+
+    从 images 表读取已下载但未 OCR 处理的图片，
+    调用阿里云 OCR API 进行识别。
+
+    需要设置环境变量:
+        ALIYUN_ACCESS_KEY_ID
+        ALIYUN_ACCESS_KEY_SECRET
+
+    示例:
+        diting process-ocr
+        diting process-ocr --rate-limit 20
+    """
+    import os
+    import signal
+    import time
+
+    project_root = Path(__file__).resolve().parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from src.services.storage.duckdb_manager import DuckDBManager
+    from src.services.storage.image_ocr_processor import ImageOCRProcessor
+
+    # 检查环境变量
+    access_key_id = os.environ.get("ALIYUN_ACCESS_KEY_ID")
+    access_key_secret = os.environ.get("ALIYUN_ACCESS_KEY_SECRET")
+
+    if not access_key_id or not access_key_secret:
+        click.secho(
+            "❌ 请设置环境变量 ALIYUN_ACCESS_KEY_ID 和 ALIYUN_ACCESS_KEY_SECRET",
+            fg="red",
+            err=True,
+        )
+        sys.exit(1)
+
+    # 显示配置信息
+    click.secho("=" * 60, fg="cyan")
+    click.secho("🔍 图片 OCR 处理工具", fg="cyan", bold=True)
+    click.secho("=" * 60, fg="cyan")
+    click.echo()
+    click.echo(f"🗄️  数据库路径: {db_path}")
+    click.echo(f"⏱️  流量限制: {rate_limit} 次/分钟")
+    click.echo()
+
+    # 检查数据库文件
+    if not db_path.exists():
+        click.secho(f"❌ 数据库文件不存在: {db_path}", fg="red", err=True)
+        click.echo("请先运行 extract-images 和 download-images 命令", err=True)
+        sys.exit(1)
+
+    # 初始化
+    db_manager = DuckDBManager(db_path)
+    processor = ImageOCRProcessor(
+        db_manager=db_manager,
+        access_key_id=access_key_id,
+        access_key_secret=access_key_secret,
+    )
+
+    # 计算处理间隔
+    interval_seconds = 60.0 / rate_limit
+
+    # 退出标志
+    should_exit = False
+
+    def signal_handler(signum, frame):
+        nonlocal should_exit
+        click.echo()
+        click.secho("🛑 收到退出信号,正在停止...", fg="yellow")
+        should_exit = True
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    click.secho("🚀 开始 OCR 处理 (按 Ctrl+C 停止)...", fg="green")
+    click.echo()
+
+    # 统计
+    total_success = 0
+    total_failed = 0
+    with_text = 0
+    without_text = 0
+    start_time = time.time()
+
+    try:
+        while not should_exit:
+            # 获取待处理图片
+            pending = db_manager.get_pending_ocr_images(limit=1)
+
+            if not pending:
+                click.secho("✅ 所有图片 OCR 处理完成", fg="green")
+                break
+
+            image = pending[0]
+            success, has_text_result = processor.process_single_image(image)
+
+            count = total_success + total_failed
+            img_id = image["image_id"][:8]
+            if success:
+                total_success += 1
+                if has_text_result:
+                    with_text += 1
+                    click.echo(f"📝 [{count}] {img_id}... 有文字")
+                else:
+                    without_text += 1
+                    click.echo(f"🖼️  [{count}] {img_id}... 无文字")
+            else:
+                total_failed += 1
+                click.echo(f"❌ [{count}] {img_id}... 处理失败")
+
+            # 流量限制
+            if not should_exit:
+                time.sleep(interval_seconds)
+
+    except Exception as e:
+        click.secho(f"❌ OCR 处理过程出错: {e}", fg="red", err=True)
+
+    # 显示统计
+    elapsed = time.time() - start_time
+    click.echo()
+    click.secho("=" * 60, fg="green")
+    click.secho("📊 OCR 处理统计", fg="green", bold=True)
+    click.secho("=" * 60, fg="green")
+    click.echo(f"✅ 成功: {total_success}")
+    click.echo(f"❌ 失败: {total_failed}")
+    click.echo(f"📝 有文字: {with_text}")
+    click.echo(f"🖼️  无文字: {without_text}")
+    click.echo(f"⏱️  耗时: {elapsed:.1f} 秒")
+    click.echo()
+    click.secho("✅ 完成!", fg="green", bold=True)
 
 
 if __name__ == "__main__":
