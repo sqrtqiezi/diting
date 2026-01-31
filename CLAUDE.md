@@ -9,6 +9,8 @@ Auto-generated from all feature plans. Last updated: 2025-11-02
 - GitHub Actions (CI/CD 平台) + SSH + rsync (部署工具) + systemd (服务管理) + Ubuntu 22.04 on 阿里云 ECS (部署目标) (005-github-ci-aliyun-deploy)
 - Python 3.12.6 (已安装并配置虚拟环境) + PyArrow (Parquet I/O), Pandas (数据操作), Pydantic (schema 验证), structlog (结构化日志), click (CLI 框架) (006-wechat-message-storage)
 - 文件系统 - JSONL (临时原始数据) + Parquet (持久化结构化存储), 按日期分区 (006-wechat-message-storage)
+- Python 3.12.6 + LangChain (langchain-openai), pandas, structlog, tiktoken (035-refactor-analysis)
+- N/A（纯代码重构，不涉及存储变更） (035-refactor-analysis)
 
 ## Project Structure
 
@@ -63,9 +65,9 @@ ssh deploy@ECS_IP "systemctl status diting"
 Python 3.12.6 (已安装并配置虚拟环境): Follow standard conventions
 
 ## Recent Changes
+- 035-refactor-analysis: Added Python 3.12.6 + LangChain (langchain-openai), pandas, structlog, tiktoken
 - 006-wechat-message-storage: Added Python 3.12.6 (已安装并配置虚拟环境) + PyArrow (Parquet I/O), Pandas (数据操作), Pydantic (schema 验证), structlog (结构化日志), click (CLI 框架)
 - 005-github-ci-aliyun-deploy: Added GitHub Actions (CI/CD 平台) + SSH + rsync (部署工具) + systemd (服务管理) + Ubuntu 22.04 on 阿里云 ECS (部署目标)
-- 003-wechat-notification-webhook: Added Python 3.12.6 (项目已安装并配置虚拟环境) + FastAPI (web框架), httpx (已有,用于调用微信API), pydantic (已有,数据验证), structlog (已有,结构化日志), uvicorn (ASGI服务器) + click (已有,CLI框架)
 
 <!-- MANUAL ADDITIONS START -->
 
