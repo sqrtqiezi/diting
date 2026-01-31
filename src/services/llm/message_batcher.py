@@ -37,9 +37,7 @@ class MessageBatcher:
         self.formatter = formatter
         self._token_encoder: Any = None
 
-    def split_messages(
-        self, messages: list[dict[str, Any]]
-    ) -> list[list[dict[str, Any]]]:
+    def split_messages(self, messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
         """根据配置分批消息
 
         Args:
@@ -52,9 +50,7 @@ class MessageBatcher:
             return self.split_by_count(messages)
         return self.split_by_tokens(messages)
 
-    def split_by_count(
-        self, messages: list[dict[str, Any]]
-    ) -> list[list[dict[str, Any]]]:
+    def split_by_count(self, messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
         """按数量分批消息
 
         Args:
@@ -71,9 +67,7 @@ class MessageBatcher:
             for index in range(0, len(messages), max_messages)
         ]
 
-    def split_by_tokens(
-        self, messages: list[dict[str, Any]]
-    ) -> list[list[dict[str, Any]]]:
+    def split_by_tokens(self, messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
         """按 Token 数分批消息
 
         Args:

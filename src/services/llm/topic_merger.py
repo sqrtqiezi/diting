@@ -71,9 +71,7 @@ class MergeStrategy(Protocol):
     定义话题合并的判断接口。
     """
 
-    def should_merge(
-        self, topic1: TopicClassification, topic2: TopicClassification
-    ) -> bool:
+    def should_merge(self, topic1: TopicClassification, topic2: TopicClassification) -> bool:
         """判断两个话题是否应该合并
 
         Args:
@@ -100,9 +98,7 @@ class KeywordSimilarityStrategy:
         """
         self.threshold = threshold
 
-    def should_merge(
-        self, topic1: TopicClassification, topic2: TopicClassification
-    ) -> bool:
+    def should_merge(self, topic1: TopicClassification, topic2: TopicClassification) -> bool:
         """判断两个话题是否应该合并
 
         Args:
@@ -137,9 +133,7 @@ class TopicMerger:
         if strategy is not None:
             self.strategy = strategy
         elif config is not None:
-            self.strategy = KeywordSimilarityStrategy(
-                config.analysis.keyword_merge_threshold
-            )
+            self.strategy = KeywordSimilarityStrategy(config.analysis.keyword_merge_threshold)
         else:
             self.strategy = KeywordSimilarityStrategy()
 

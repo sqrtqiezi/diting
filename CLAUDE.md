@@ -65,7 +65,7 @@ ssh deploy@ECS_IP "systemctl status diting"
 Python 3.12.6 (已安装并配置虚拟环境): Follow standard conventions
 
 ## Recent Changes
-- 035-refactor-analysis: Added Python 3.12.6 + LangChain (langchain-openai), pandas, structlog, tiktoken
+- 035-refactor-analysis: Completed - analysis.py (1176 lines) refactored into 7 modular components (time_utils, debug_writer, message_formatter, message_batcher, llm_client, topic_merger, topic_summarizer) with Protocol + Factory pattern for extensibility
 - 006-wechat-message-storage: Added Python 3.12.6 (已安装并配置虚拟环境) + PyArrow (Parquet I/O), Pandas (数据操作), Pydantic (schema 验证), structlog (结构化日志), click (CLI 框架)
 - 005-github-ci-aliyun-deploy: Added GitHub Actions (CI/CD 平台) + SSH + rsync (部署工具) + systemd (服务管理) + Ubuntu 22.04 on 阿里云 ECS (部署目标)
 

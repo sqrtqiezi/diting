@@ -1,12 +1,11 @@
 """图片 OCR 集成单元测试"""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from src.services.llm.analysis import IMAGE_CONTENT_PATTERN, ChatroomMessageAnalyzer
+from src.services.llm.analysis import IMAGE_CONTENT_PATTERN
 from src.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
-from src.services.llm.llm_client import LangChainProvider
 from src.services.llm.message_formatter import MessageFormatter, load_image_ocr_cache
 
 

@@ -91,9 +91,7 @@ def format_time(value: str, use_seconds: bool) -> str:
     return f"{parts[0]}:{parts[1]}"
 
 
-def build_date_range(
-    messages: list[dict[str, Any]], tz: tzinfo | None = None
-) -> str:
+def build_date_range(messages: list[dict[str, Any]], tz: tzinfo | None = None) -> str:
     """构建消息的日期范围字符串
 
     Args:
@@ -118,9 +116,7 @@ def build_date_range(
     return f"{start} to {end}"
 
 
-def build_time_range(
-    messages: list[dict[str, Any]], tz: tzinfo | None = None
-) -> str:
+def build_time_range(messages: list[dict[str, Any]], tz: tzinfo | None = None) -> str:
     """构建消息的时间范围字符串
 
     Args:
@@ -161,9 +157,7 @@ def merge_time_range(first: str, second: str) -> str:
         return second or first
     if not second_times:
         return first
-    use_seconds = any(
-        ":" in time and time.count(":") == 2 for time in first_times + second_times
-    )
+    use_seconds = any(":" in time and time.count(":") == 2 for time in first_times + second_times)
     start_time = min(first_times + second_times, key=time_to_seconds)
     end_time = max(first_times + second_times, key=time_to_seconds)
     return f"{format_time(start_time, use_seconds)}-{format_time(end_time, use_seconds)}"

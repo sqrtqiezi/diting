@@ -77,12 +77,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [P] [US2] 创建 time_utils 单元测试示例，演示模块级函数的独立测试到 tests/unit/services/llm/test_time_utils.py
-- [ ] T020 [P] [US2] 创建 llm_client 单元测试示例，演示 Protocol 模式的 Mock 注入到 tests/unit/services/llm/test_llm_client.py
-- [ ] T021 [P] [US2] 创建 topic_merger 单元测试示例，演示策略模式的 Mock 注入到 tests/unit/services/llm/test_topic_merger.py
-- [ ] T022 [P] [US2] 创建 message_formatter 单元测试示例，演示独立测试消息格式化逻辑到 tests/unit/services/llm/test_message_formatter.py
-- [ ] T023 [US2] 运行新增单元测试：uv run pytest tests/unit/services/llm/test_time_utils.py tests/unit/services/llm/test_llm_client.py tests/unit/services/llm/test_topic_merger.py tests/unit/services/llm/test_message_formatter.py -v
-- [ ] T024 [US2] 验证测试覆盖率：uv run pytest tests/unit/services/llm/ --cov=src/services/llm --cov-report=term-missing
+- [x] T019 [P] [US2] 创建 time_utils 单元测试示例，演示模块级函数的独立测试到 tests/unit/services/llm/test_time_utils.py
+- [x] T020 [P] [US2] 创建 llm_client 单元测试示例，演示 Protocol 模式的 Mock 注入到 tests/unit/services/llm/test_llm_client.py
+- [x] T021 [P] [US2] 创建 topic_merger 单元测试示例，演示策略模式的 Mock 注入到 tests/unit/services/llm/test_topic_merger.py
+- [x] T022 [P] [US2] 创建 message_formatter 单元测试示例，演示独立测试消息格式化逻辑到 tests/unit/services/llm/test_message_formatter.py
+- [x] T023 [US2] 运行新增单元测试：uv run pytest tests/unit/services/llm/test_time_utils.py tests/unit/services/llm/test_llm_client.py tests/unit/services/llm/test_topic_merger.py tests/unit/services/llm/test_message_formatter.py -v
+- [x] T024 [US2] 验证测试覆盖率：uv run pytest tests/unit/services/llm/ --cov=src/services/llm --cov-report=term-missing
 
 **Checkpoint**: User Story 2 完成 - 新模块可独立测试，无需真实 API 调用
 
@@ -96,10 +96,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] 创建示例：自定义 LLM 提供者实现（MockProvider），演示如何实现 LLMProvider Protocol 到 tests/unit/services/llm/test_custom_provider.py
-- [ ] T026 [US3] 创建示例：自定义合并策略实现（MockMergeStrategy），演示如何实现 MergeStrategy Protocol 到 tests/unit/services/llm/test_custom_strategy.py
-- [ ] T027 [US3] 更新 quickstart.md，添加扩展指南示例代码到 specs/035-refactor-analysis/quickstart.md
-- [ ] T028 [US3] 验证扩展示例运行正常：uv run pytest tests/unit/services/llm/test_custom_provider.py tests/unit/services/llm/test_custom_strategy.py -v
+- [x] T025 [US3] 创建示例：自定义 LLM 提供者实现（MockProvider），演示如何实现 LLMProvider Protocol 到 tests/unit/services/llm/test_custom_provider.py
+- [x] T026 [US3] 创建示例：自定义合并策略实现（MockMergeStrategy），演示如何实现 MergeStrategy Protocol 到 tests/unit/services/llm/test_custom_strategy.py
+- [x] T027 [US3] 更新 quickstart.md，添加扩展指南示例代码到 specs/035-refactor-analysis/quickstart.md
+- [x] T028 [US3] 验证扩展示例运行正常：uv run pytest tests/unit/services/llm/test_custom_provider.py tests/unit/services/llm/test_custom_strategy.py -v
 
 **Checkpoint**: User Story 3 完成 - Protocol 设计验证成功，支持扩展
 
@@ -113,12 +113,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] 验证公共 API 导入：python -c "from src.services.llm.analysis import analyze_chatrooms_from_parquet; print('analyze_chatrooms_from_parquet OK')"
-- [ ] T030 [US4] 验证类导入：python -c "from src.services.llm.analysis import ChatroomMessageAnalyzer; print('ChatroomMessageAnalyzer OK')"
-- [ ] T031 [US4] 验证常量导入：python -c "from src.services.llm.analysis import IMAGE_CONTENT_PATTERN; print('IMAGE_CONTENT_PATTERN OK')"
-- [ ] T032 [US4] 运行完整测试套件：uv run pytest tests/unit/services/llm/ -v
-- [ ] T033 [US4] 验证集成测试（如果存在）：uv run pytest tests/integration/ -k llm -v || echo "No integration tests"
-- [ ] T034 [US4] 验证代码行数减少：wc -l src/services/llm/analysis.py（目标约 250 行）
+- [x] T029 [US4] 验证公共 API 导入：python -c "from src.services.llm.analysis import analyze_chatrooms_from_parquet; print('analyze_chatrooms_from_parquet OK')"
+- [x] T030 [US4] 验证类导入：python -c "from src.services.llm.analysis import ChatroomMessageAnalyzer; print('ChatroomMessageAnalyzer OK')"
+- [x] T031 [US4] 验证常量导入：python -c "from src.services.llm.analysis import IMAGE_CONTENT_PATTERN; print('IMAGE_CONTENT_PATTERN OK')"
+- [x] T032 [US4] 运行完整测试套件：uv run pytest tests/unit/services/llm/ -v
+- [x] T033 [US4] 验证集成测试（如果存在）：uv run pytest tests/integration/ -k llm -v || echo "No integration tests"
+- [x] T034 [US4] 验证代码行数减少：wc -l src/services/llm/analysis.py（目标约 250 行）
 
 **Checkpoint**: User Story 4 完成 - 向后兼容性验证通过
 
@@ -128,11 +128,11 @@
 
 **Purpose**: 最终优化和文档更新
 
-- [ ] T035 [P] 添加模块级 docstring 到所有新模块（time_utils.py, debug_writer.py, message_formatter.py, message_batcher.py, llm_client.py, topic_merger.py, topic_summarizer.py）
-- [ ] T036 [P] 更新 CLAUDE.md 中的 Recent Changes 部分，记录重构完成
-- [ ] T037 验证所有验证命令：运行 specs/035-refactor-analysis/plan.md 中的 Verification Plan
-- [ ] T038 删除备份文件：rm src/services/llm/analysis.py.backup
-- [ ] T039 最终代码检查：uv run ruff check src/services/llm/ && uv run mypy src/services/llm/
+- [x] T035 [P] 添加模块级 docstring 到所有新模块（time_utils.py, debug_writer.py, message_formatter.py, message_batcher.py, llm_client.py, topic_merger.py, topic_summarizer.py）
+- [x] T036 [P] 更新 CLAUDE.md 中的 Recent Changes 部分，记录重构完成
+- [x] T037 验证所有验证命令：运行 specs/035-refactor-analysis/plan.md 中的 Verification Plan
+- [x] T038 删除备份文件：rm src/services/llm/analysis.py.backup
+- [x] T039 最终代码检查：uv run ruff check src/services/llm/ && uv run mypy src/services/llm/
 
 ---
 
