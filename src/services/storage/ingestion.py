@@ -3,19 +3,17 @@
 提供 JSONL 到 Parquet 的转换功能。
 """
 
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import pyarrow as pa
-import pyarrow.parquet as pq
 import structlog
 
 from src.models.parquet_schemas import MESSAGE_CONTENT_SCHEMA
 from src.services.storage.data_cleaner import clean_message_data, filter_valid_messages
 from src.services.storage.jsonl_reader import read_jsonl_stream
-from src.services.storage.partition import extract_partition_fields, get_partition_path
+from src.services.storage.parquet_writer import ParquetWriter
+from src.services.storage.partition import group_messages_by_partition
 
 logger = structlog.get_logger()
 
@@ -110,79 +108,20 @@ def convert_jsonl_to_parquet(
             "compression_ratio": 0.0,
         }
 
-    # 写入每个分区
-    total_batches = 0
+    # 使用 ParquetWriter 写入分区
+    writer = ParquetWriter(parquet_root, schema, compression)
     target_files = []
     total_target_size = 0
+    total_batches = 0
 
     for partition_key, partition_messages in partitions.items():
-        # 提取分区字段
-        first_message = partition_messages[0]
-        partition_fields = extract_partition_fields(first_message)
-
-        # 生成分区路径
-        partition_dir = get_partition_path(
-            parquet_root,
-            partition_fields["year"],
-            partition_fields["month"],
-            partition_fields["day"],
-        )
-        partition_dir.mkdir(parents=True, exist_ok=True)
-
-        # 生成 Parquet 文件路径
-        parquet_file = partition_dir / "data.parquet"
-
-        # 添加 ingestion_time 字段
-        ingestion_time = datetime.now(UTC)
-        for msg in partition_messages:
-            if "ingestion_time" not in msg:
-                msg["ingestion_time"] = ingestion_time
-
-        # 转换为 DataFrame
-        df = pd.DataFrame(partition_messages)
-
-        # 转换时间戳字段为 datetime（秒精度）
-        if "create_time" in df.columns:
-            df["create_time"] = pd.to_datetime(df["create_time"], unit="s", utc=True)
-        if "ingestion_time" in df.columns:
-            # 确保 ingestion_time 是秒精度
-            df["ingestion_time"] = pd.to_datetime(df["ingestion_time"], utc=True).dt.floor("s")
-
-        # 转换为 PyArrow Table（不使用 schema 参数，让 PyArrow 自动推断）
-        table = pa.Table.from_pandas(df)
-
-        # 手动转换为目标 schema（处理精度问题）
-        if schema is not None:
-            # 只保留 schema 中定义的列
-            columns_to_keep = [name for name in schema.names if name in table.column_names]
-            table = table.select(columns_to_keep)
-
-            # 转换类型
-            table = table.cast(schema)
-
-        # 写入 Parquet 文件
-        pq.write_table(
-            table,
-            parquet_file,
-            compression=compression,
-            use_dictionary=True,  # 启用字典编码
-            write_statistics=True,
-        )
-
+        parquet_file, _ = writer.write_partition(partition_messages, partition_key)
         target_files.append(str(parquet_file))
         total_target_size += parquet_file.stat().st_size
 
         # 计算批次数
         batches = (len(partition_messages) + batch_size - 1) // batch_size
         total_batches += batches
-
-        logger.info(
-            "partition_written",
-            partition_key=partition_key,
-            file=str(parquet_file),
-            records=len(partition_messages),
-            size_mb=parquet_file.stat().st_size / (1024 * 1024),
-        )
 
     # 计算统计信息
     target_size_mb = total_target_size / (1024 * 1024)
@@ -230,72 +169,8 @@ def append_to_parquet_partition(
     valid_messages = filter_valid_messages(cleaned_messages)
 
     # 按分区分组
-    from src.services.storage.partition import group_messages_by_partition
-
     partitions = group_messages_by_partition(valid_messages)
 
-    partition_counts = {}
-
-    for partition_key, partition_messages in partitions.items():
-        # 提取分区字段
-        first_message = partition_messages[0]
-        partition_fields = extract_partition_fields(first_message)
-
-        # 生成分区路径
-        partition_dir = get_partition_path(
-            parquet_root,
-            partition_fields["year"],
-            partition_fields["month"],
-            partition_fields["day"],
-        )
-        partition_dir.mkdir(parents=True, exist_ok=True)
-
-        parquet_file = partition_dir / "data.parquet"
-
-        # 添加 ingestion_time
-        ingestion_time = datetime.now(UTC)
-        for msg in partition_messages:
-            if "ingestion_time" not in msg:
-                msg["ingestion_time"] = ingestion_time
-
-        # 转换为 DataFrame
-        df = pd.DataFrame(partition_messages)
-
-        # 转换时间戳（秒精度）
-        if "create_time" in df.columns:
-            df["create_time"] = pd.to_datetime(df["create_time"], unit="s", utc=True)
-        if "ingestion_time" in df.columns:
-            df["ingestion_time"] = pd.to_datetime(df["ingestion_time"], utc=True).dt.floor("s")
-
-        # 转换为 PyArrow Table
-        new_table = pa.Table.from_pandas(df)
-
-        # 手动转换为目标 schema
-        if schema is not None:
-            columns_to_keep = [name for name in schema.names if name in new_table.column_names]
-            new_table = new_table.select(columns_to_keep)
-            new_table = new_table.cast(schema)
-
-        # 如果文件已存在，追加数据
-        if parquet_file.exists():
-            existing_table = pq.read_table(parquet_file)
-            combined_table = pa.concat_tables([existing_table, new_table])
-        else:
-            combined_table = new_table
-
-        # 写入文件
-        pq.write_table(
-            combined_table,
-            parquet_file,
-            compression=compression,
-            use_dictionary=True,
-            write_statistics=True,
-        )
-
-        partition_counts[partition_key] = len(partition_messages)
-
-        logger.info(
-            "partition_appended", partition_key=partition_key, records=len(partition_messages)
-        )
-
-    return partition_counts
+    # 使用 ParquetWriter 写入分区（追加模式）
+    writer = ParquetWriter(parquet_root, schema, compression)
+    return writer.write_partitions(partitions, append=True)
