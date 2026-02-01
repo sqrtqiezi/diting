@@ -628,9 +628,7 @@ def _topic_popularity(topic) -> float:
         return 0.0
     ratio = m_count / u_count
     penalty = 1 + max(0.0, ratio - 6)
-    return float(
-        math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.4))
-    )
+    return float(math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.4)))
 
 
 def _render_markdown_report(results, date: str) -> str:
