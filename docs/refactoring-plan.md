@@ -12,15 +12,15 @@
 | 阶段一 | client.py | ✅ 已完成 | #50 |
 | 阶段一 | duckdb_manager.py | ✅ 已完成 | #51 |
 | 阶段一 | pdf_renderer.py | ✅ 已完成 | #53 |
-| 阶段二 | analysis.py | ⏳ 待开始 | - |
-| 阶段二 | image_extractor.py | ⏳ 待开始 | - |
-| 阶段二 | incremental.py | ⏳ 待开始 | - |
-| 阶段二 | wechat_message_schema.py | ⏳ 待开始 | - |
-| 阶段二 | topic_summarizer.py | ⏳ 待开始 | - |
-| 阶段二 | topic_merger.py | ⏳ 待开始 | - |
-| 阶段三 | ingestion.py | ⏳ 待开始 | - |
+| 阶段二 | analysis.py | ✅ 已完成 | #46 |
+| 阶段二 | image_extractor.py | ✅ 已完成 | #55 |
+| 阶段二 | incremental.py | ✅ 已完成 | #55 |
+| 阶段二 | wechat_message_schema.py | ✅ 保持现状 | - |
+| 阶段二 | topic_summarizer.py | ✅ 已完成 | #46 |
+| 阶段二 | topic_merger.py | ✅ 已完成 | #46 |
+| 阶段三 | ingestion.py | ✅ 已完成 | #55 |
 
-**进度: 4/11 (36%)**
+**进度: 11/11 (100%) ✅ 全部完成**
 
 ## 概述
 
@@ -245,31 +245,66 @@ class MarkdownPdfRenderer:
 
 ## 阶段二: 中优先级文件 (6个)
 
-### 2.1 analysis.py (386行)
+### 2.1 analysis.py (386行) ✅ 已完成
 
-**重构方案:**
-- 提取 `AnalysisPipeline` 类编排分析流程
-- 提取 `MessagePreprocessor` 处理消息预处理
-- 提取 `ResultPostprocessor` 处理结果后处理
+**重构状态:** 已完成 (PR #46)
 
-**预计工时:** 3 小时
+**重构成果:**
+- 原文件 1176 行 → 重构后 7 个模块
+- 新增模块：
+  - `time_utils.py` - 时间处理工具
+  - `debug_writer.py` - 调试输出
+  - `message_formatter.py` - 消息格式化
+  - `message_batcher.py` - 消息分批
+  - `llm_client.py` - LLM 客户端
+  - `topic_merger.py` - 话题合并（Strategy 模式）
+  - `topic_summarizer.py` - 话题摘要
+- 主文件 `analysis.py` 现为协调器（386行）
 
-### 2.2 image_extractor.py (375行)
+**设计模式:**
+- Coordinator 模式：主类委托给专门子模块
+- Strategy 模式：TopicMerger 支持可插拔合并策略
+- Protocol + Factory 模式：便于扩展
 
-**重构方案:**
-- 拆分为 `image_extractor.py`、`parquet_updater.py`、`extraction_checkpoint.py`
+### 2.2 image_extractor.py (375行) ✅ 已完成
 
-**预计工时:** 3 小时
+**重构状态:** 已完成 (2026-02-01)
 
-### 2.3 incremental.py (342行)
+**重构成果:**
+- 原文件 375 行 → 重构后 312 行 (-17%)
+- 新增模块：
+  - `parquet_updater.py` (135 行) - Parquet 文件更新器
+- 新增 11 个单元测试
+- 所有原有测试通过
 
-**重构方案:**
-- 创建 `IncrementalIngestionService` 类
-- 提取 `DataNormalizer` 和 `MessageExtractor`
+**设计模式:**
+- Delegation 模式：ImageExtractor 委托 ParquetUpdater 处理文件更新
 
-**预计工时:** 3 小时
+### 2.3 incremental.py (342行) ✅ 已完成
 
-### 2.4 wechat_message_schema.py (333行)
+**重构状态:** 已完成 (2026-02-01)
+
+**重构成果:**
+- 原文件 343 行 → 重构后 286 行 (-17%)
+- 新增模块：
+  - `message_normalizer.py` (129 行) - 消息规范化器
+- 新增 17 个单元测试
+- 所有原有测试通过
+
+**设计模式:**
+- 提取类模式：将消息预处理逻辑封装为 MessageNormalizer 类
+
+### 2.4 wechat_message_schema.py (333行) ✅ 保持现状
+
+**评估结论:** 保持现状
+
+**原因:**
+- 纯数据模型文件，没有业务逻辑
+- 已按 notify_type 组织良好
+- 拆分会增加导入复杂度
+- 334 行对于数据模型文件来说是可接受的
+
+### 2.5 topic_summarizer.py (332行)
 
 **重构方案:**
 - 拆分为 `message_models.py`、`contact_models.py`、`sns_models.py`
@@ -295,13 +330,20 @@ class MarkdownPdfRenderer:
 
 ## 阶段三: 低优先级文件 (1个)
 
-### 3.1 ingestion.py (301行)
+### 3.1 ingestion.py (301行) ✅ 已完成
 
-**重构方案:**
-- 创建 `ParquetConverter` 类
-- 提取 `PartitionManager` 类
+**重构状态:** 已完成 (2026-02-01)
 
-**预计工时:** 2 小时
+**重构成果:**
+- 原文件 302 行 → 重构后 176 行 (-42%)
+- 新增模块：
+  - `parquet_writer.py` (148 行) - Parquet 写入器
+- 新增 8 个单元测试
+- 所有原有测试通过
+
+**设计模式:**
+- 提取类模式：将 Parquet 写入逻辑封装为 ParquetWriter 类
+- 消除重复：convert_jsonl_to_parquet 和 append_to_parquet_partition 共享写入逻辑
 
 ---
 

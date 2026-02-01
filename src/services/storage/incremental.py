@@ -3,10 +3,7 @@
 提供增量摄入和去重功能，支持从 JSONL 到 Parquet 的增量转换。
 """
 
-import json
-from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import pyarrow as pa
@@ -15,57 +12,13 @@ import structlog
 
 from src.models.parquet_schemas import MESSAGE_CONTENT_SCHEMA
 from src.services.storage.checkpoint import CheckpointManager
-from src.services.storage.data_cleaner import clean_message_data
 from src.services.storage.jsonl_reader import read_jsonl_stream
+from src.services.storage.message_normalizer import MessageNormalizer
 
 logger = structlog.get_logger()
 
-
-def _extract_message_payload(message: dict[str, Any]) -> dict[str, Any]:
-    """兼容 webhook 原始格式，将 data 字段展开为消息主体"""
-    data = message.get("data")
-    if isinstance(data, dict) and "msg_id" not in message:
-        merged = dict(data)
-        if "guid" in message and "guid" not in merged:
-            merged["guid"] = message["guid"]
-        if "notify_type" in message and "notify_type" not in merged:
-            merged["notify_type"] = message["notify_type"]
-        return merged
-    return message
-
-
-def _prepare_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    cleaned = clean_message_data(messages)
-    prepared: list[dict[str, Any]] = []
-    for msg in cleaned:
-        if not msg.get("msg_id"):
-            continue
-        if msg.get("create_time") in (None, ""):
-            continue
-        if "from_username" not in msg or msg["from_username"] is None:
-            msg["from_username"] = ""
-        if "to_username" not in msg or msg["to_username"] is None:
-            msg["to_username"] = ""
-        if "msg_type" not in msg or msg["msg_type"] is None:
-            msg["msg_type"] = 0
-        if "is_chatroom_msg" not in msg or msg["is_chatroom_msg"] is None:
-            msg["is_chatroom_msg"] = 0
-        if "source" not in msg or msg["source"] is None:
-            msg["source"] = ""
-        if "guid" not in msg or msg["guid"] is None:
-            msg["guid"] = ""
-        if "notify_type" not in msg or msg["notify_type"] is None:
-            msg["notify_type"] = 0
-        prepared.append(msg)
-
-    if not prepared:
-        return []
-
-    ingestion_time = datetime.now(UTC)
-    for msg in prepared:
-        if "ingestion_time" not in msg:
-            msg["ingestion_time"] = ingestion_time
-    return prepared
+# 模块级规范化器实例
+_normalizer = MessageNormalizer()
 
 
 def _normalize_object_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -73,17 +26,8 @@ def _normalize_object_columns(df: pd.DataFrame) -> pd.DataFrame:
     for column in df.columns:
         if df[column].dtype != "object":
             continue
-        df[column] = df[column].apply(_normalize_cell_value)
+        df[column] = df[column].apply(_normalizer.normalize_cell_value)
     return df
-
-
-def _normalize_cell_value(value: Any) -> Any:
-    if isinstance(value, dict | list):
-        try:
-            return json.dumps(value)
-        except TypeError:
-            return str(value)
-    return value
 
 
 def incremental_ingest(
@@ -126,7 +70,7 @@ def incremental_ingest(
     last_msg_id = ""
 
     for message in read_jsonl_stream(jsonl_file, start_line=start_line):
-        normalized = _extract_message_payload(message)
+        normalized = _normalizer.extract_payload(message)
         messages.append(normalized)
         current_line += 1
         last_msg_id = normalized.get("msg_id", "")
@@ -187,7 +131,7 @@ def _process_batch(messages: list[dict], parquet_root: Path, deduplicate: bool) 
     if not messages:
         return
 
-    prepared = _prepare_messages(messages)
+    prepared = _normalizer.prepare_messages(messages)
     if not prepared:
         return
 

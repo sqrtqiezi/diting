@@ -7,7 +7,6 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pyarrow as pa
 import pyarrow.parquet as pq
 import structlog
 
@@ -20,6 +19,7 @@ from src.models.image_schema import (
     ImageStatus,
 )
 from src.services.storage.duckdb_manager import DuckDBManager
+from src.services.storage.parquet_updater import ParquetUpdater
 
 logger = structlog.get_logger()
 
@@ -46,6 +46,7 @@ class ImageExtractor:
         self.db_manager = db_manager
         self.parquet_root = Path(parquet_root)
         self.dry_run = dry_run
+        self._parquet_updater = ParquetUpdater(dry_run=dry_run)
 
         logger.info(
             "image_extractor_initialized",
@@ -197,71 +198,7 @@ class ImageExtractor:
         Returns:
             更新是否成功
         """
-        if not mappings:
-            return True
-
-        if self.dry_run:
-            logger.info(
-                "dry_run_skip_update",
-                file=str(parquet_file),
-                mappings_count=len(mappings),
-            )
-            return True
-
-        try:
-            # 使用 ParquetFile 读取单个文件，避免触发 dataset API 的 schema 合并
-            parquet_reader = pq.ParquetFile(parquet_file)
-            original_table = parquet_reader.read()
-            original_schema = original_table.schema  # 保存原始 schema
-            df = original_table.to_pandas()
-
-            # 更新 content 列
-            updated_count = 0
-            if "msg_id" in df.columns and "content" in df.columns:
-                for msg_id, image_id in mappings.items():
-                    mask = df["msg_id"] == msg_id
-                    if mask.any():
-                        df.loc[mask, "content"] = f"image#{image_id}"
-                        updated_count += mask.sum()
-
-            if updated_count == 0:
-                logger.debug("no_content_updated", file=str(parquet_file))
-                return True
-
-            # 转换回 PyArrow Table，使用原始 schema
-            new_table = pa.Table.from_pandas(
-                df,
-                schema=original_schema,  # 使用原始 schema 保持类型一致
-                preserve_index=False,
-            )
-
-            # 原子写入新文件，使用与 ingestion.py 一致的参数
-            temp_path = parquet_file.with_suffix(".parquet.tmp")
-            pq.write_table(
-                new_table,
-                temp_path,
-                compression="snappy",
-                use_dictionary=True,  # 与 ingestion.py 一致
-                write_statistics=True,  # 与 ingestion.py 一致
-            )
-
-            # 替换原文件
-            temp_path.replace(parquet_file)
-
-            logger.info(
-                "parquet_content_updated",
-                file=str(parquet_file),
-                updated_count=updated_count,
-            )
-            return True
-
-        except Exception as e:
-            logger.error(
-                "parquet_update_failed",
-                file=str(parquet_file),
-                error=str(e),
-            )
-            return False
+        return self._parquet_updater.update_content(parquet_file, mappings)
 
     def process_file(
         self,
