@@ -130,117 +130,27 @@ def query(start: str, end: str, parquet_root: str):
 - 所有新模块测试覆盖率 100%
 - 向后兼容性验证通过
 
-**TODO(human):** 决定下一步重构目标：
-1. `duckdb_manager.py` (516行) - 有测试覆盖，风险中等
-2. `pdf_renderer.py` (879行) - 无测试覆盖，需先补充测试
-3. 暂停重构，提交当前成果
-
 ---
 
-### 1.3 duckdb_manager.py (516行)
+### 1.3 duckdb_manager.py (516行) ✅ 已完成
 
-**当前问题:**
-- 单个类混合了图片、检查点、统计等多个职责
-- 重复的查询模式
-- SQL 字符串分散在各个方法中
+**重构状态:** 已完成 (2026-02-01)
 
-**重构方案:**
+**重构成果:**
+- 原文件 516 行 → 重构后 5 个模块共 203 行 (-61%)
+- 新增 4 个模块：
+  - `duckdb_base.py` (34 行) - 基础连接管理
+  - `image_repository.py` (70 行) - 图片数据操作
+  - `checkpoint_repository.py` (28 行) - 检查点数据操作
+  - `statistics_repository.py` (23 行) - 统计查询
+  - `duckdb_manager.py` (48 行) - Facade 类
+- 所有新模块测试覆盖率 96-100%
+- 向后兼容性验证通过 (28 个原有测试全部通过)
+- 新增 32 个单元测试
 
-```
-src/services/storage/duckdb_manager.py (516行)
-    ↓ 拆分为
-src/services/storage/
-├── duckdb_manager.py        # 连接管理 (~100行)
-├── image_repository.py      # 图片数据操作 (~150行)
-├── checkpoint_repository.py # 检查点数据操作 (~120行)
-└── statistics_repository.py # 统计查询 (~80行)
-```
-
-**关键重构步骤:**
-
-1. **提取基础查询执行器** (`duckdb_manager.py`)
-```python
-from contextlib import contextmanager
-from pathlib import Path
-import duckdb
-
-class DuckDBManager:
-    def __init__(self, db_path: Path):
-        self.db_path = db_path
-        self._ensure_tables()
-
-    @contextmanager
-    def get_connection(self):
-        conn = duckdb.connect(str(self.db_path))
-        try:
-            yield conn
-        finally:
-            conn.close()
-
-    def execute_one(self, sql: str, params: list = None) -> dict | None:
-        with self.get_connection() as conn:
-            result = conn.execute(sql, params or []).fetchone()
-            if not result:
-                return None
-            columns = [desc[0] for desc in conn.description]
-            return dict(zip(columns, result))
-
-    def execute_many(self, sql: str, params: list = None) -> list[dict]:
-        with self.get_connection() as conn:
-            results = conn.execute(sql, params or []).fetchall()
-            columns = [desc[0] for desc in conn.description]
-            return [dict(zip(columns, row)) for row in results]
-```
-
-2. **提取 Repository** (`image_repository.py`)
-```python
-from dataclasses import dataclass
-from .duckdb_manager import DuckDBManager
-
-@dataclass
-class ImageMetadata:
-    image_id: str
-    msg_id: str
-    from_username: str
-    status: str
-    # ...
-
-class ImageRepository:
-    def __init__(self, db: DuckDBManager):
-        self.db = db
-
-    def insert(self, images: list[ImageMetadata]) -> int:
-        sql = """
-            INSERT INTO images (image_id, msg_id, from_username, status, ...)
-            VALUES (?, ?, ?, ?, ...)
-        """
-        with self.db.get_connection() as conn:
-            for img in images:
-                conn.execute(sql, [img.image_id, img.msg_id, ...])
-        return len(images)
-
-    def find_by_id(self, image_id: str) -> ImageMetadata | None:
-        sql = "SELECT * FROM images WHERE image_id = ?"
-        result = self.db.execute_one(sql, [image_id])
-        return ImageMetadata(**result) if result else None
-
-    def find_pending(self, limit: int = 100) -> list[ImageMetadata]:
-        sql = """
-            SELECT * FROM images
-            WHERE status = 'pending'
-            ORDER BY extracted_at ASC
-            LIMIT ?
-        """
-        results = self.db.execute_many(sql, [limit])
-        return [ImageMetadata(**r) for r in results]
-```
-
-**风险评估:** 中等
-- ✅ 有单元测试覆盖
-- ✅ 数据库操作相对独立
-- 需要更新调用方的 import
-
-**预计工时:** 4 小时
+**设计模式:**
+- Repository 模式：按实体分离数据访问逻辑
+- Facade 模式：保持向后兼容的公共 API
 
 ---
 
