@@ -1,7 +1,5 @@
 """MessageNormalizer 单元测试"""
 
-import pytest
-
 from src.services.storage.message_normalizer import (
     MessageNormalizer,
     extract_message_payload,

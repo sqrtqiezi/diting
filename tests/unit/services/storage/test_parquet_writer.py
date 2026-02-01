@@ -1,7 +1,5 @@
 """ParquetWriter 单元测试"""
 
-from pathlib import Path
-
 import pyarrow.parquet as pq
 import pytest
 

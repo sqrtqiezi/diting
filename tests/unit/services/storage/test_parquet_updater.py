@@ -5,7 +5,6 @@ from pathlib import Path
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-import pytest
 
 from src.services.storage.parquet_updater import ParquetUpdater, update_parquet_content
 
