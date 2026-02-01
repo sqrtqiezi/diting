@@ -46,9 +46,7 @@ class MessageNormalizer:
             return merged
         return message
 
-    def prepare_messages(
-        self, messages: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def prepare_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """准备消息列表，清洗并填充默认值
 
         Args:
