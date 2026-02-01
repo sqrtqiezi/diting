@@ -3,10 +3,9 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from src.models.image_schema import ImageMetadata, ImageStatus
-from src.services.storage.duckdb_manager import DuckDBManager
-from src.services.storage.image_downloader import ImageDownloader
+from diting.models.image_schema import ImageMetadata, ImageStatus
+from diting.services.storage.duckdb_manager import DuckDBManager
+from diting.services.storage.image_downloader import ImageDownloader
 
 
 @pytest.fixture
@@ -98,7 +97,7 @@ class TestDownloadSingleImage:
             "data": {"url": "https://cdn.example.com/image.jpg"},
         }
 
-        with patch("src.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
+        with patch("diting.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = MagicMock(return_value=mock_client)
             mock_client.__exit__ = MagicMock(return_value=False)
@@ -136,7 +135,7 @@ class TestDownloadSingleImage:
             "errmsg": "Internal server error",
         }
 
-        with patch("src.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
+        with patch("diting.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = MagicMock(return_value=mock_client)
             mock_client.__exit__ = MagicMock(return_value=False)
@@ -174,7 +173,7 @@ class TestDownloadSingleImage:
             "data": {},  # 无 URL
         }
 
-        with patch("src.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
+        with patch("diting.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = MagicMock(return_value=mock_client)
             mock_client.__exit__ = MagicMock(return_value=False)
@@ -205,7 +204,7 @@ class TestDownloadSingleImage:
             "cdn_mid_img_url": "30xxx",
         }
 
-        with patch("src.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
+        with patch("diting.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
             mock_client_class.side_effect = Exception("Network error")
 
             success = downloader.download_single_image(image_dict)
@@ -240,7 +239,7 @@ class TestDownloadPendingImages:
             "data": {"url": "https://cdn.example.com/image.jpg"},
         }
 
-        with patch("src.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
+        with patch("diting.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = MagicMock(return_value=mock_client)
             mock_client.__exit__ = MagicMock(return_value=False)
@@ -272,7 +271,7 @@ class TestDownloadPendingImages:
             "data": {"url": "https://cdn.example.com/image.jpg"},
         }
 
-        with patch("src.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
+        with patch("diting.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = MagicMock(return_value=mock_client)
             mock_client.__exit__ = MagicMock(return_value=False)
@@ -315,7 +314,7 @@ class TestRetryFailedImages:
             "data": {"url": "https://cdn.example.com/image.jpg"},
         }
 
-        with patch("src.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
+        with patch("diting.services.storage.image_downloader.WeChatAPIClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.__enter__ = MagicMock(return_value=mock_client)
             mock_client.__exit__ = MagicMock(return_value=False)

@@ -4,7 +4,10 @@
 测试环境变量配置和路径获取功能。
 """
 
+import importlib
 from pathlib import Path
+
+import diting.config
 
 
 class TestConfig:
@@ -16,14 +19,10 @@ class TestConfig:
         monkeypatch.setenv("BASE_URL", "/custom/data/path")
 
         # 重新加载配置模块以应用环境变量
-        import importlib
-
-        import src.config
-
-        importlib.reload(src.config)
+        importlib.reload(diting.config)
 
         # 验证路径
-        base_path = src.config.get_data_base_path()
+        base_path = diting.config.get_data_base_path()
         assert base_path == Path("/custom/data/path")
 
     def test_get_data_base_path_without_env_variable(self, monkeypatch):
@@ -32,14 +31,10 @@ class TestConfig:
         monkeypatch.delenv("BASE_URL", raising=False)
 
         # 重新加载配置模块
-        import importlib
-
-        import src.config
-
-        importlib.reload(src.config)
+        importlib.reload(diting.config)
 
         # 验证使用默认路径（项目根目录下的 data）
-        base_path = src.config.get_data_base_path()
+        base_path = diting.config.get_data_base_path()
         expected_path = Path(__file__).parent.parent.parent / "data"
         assert base_path == expected_path
 
@@ -48,14 +43,10 @@ class TestConfig:
         monkeypatch.setenv("BASE_URL", "/test/base")
 
         # 重新加载配置模块
-        import importlib
-
-        import src.config
-
-        importlib.reload(src.config)
+        importlib.reload(diting.config)
 
         # 验证路径
-        raw_path = src.config.get_messages_raw_path()
+        raw_path = diting.config.get_messages_raw_path()
         assert raw_path == Path("/test/base/messages/raw")
 
     def test_get_messages_parquet_path(self, monkeypatch):
@@ -63,14 +54,10 @@ class TestConfig:
         monkeypatch.setenv("BASE_URL", "/test/base")
 
         # 重新加载配置模块
-        import importlib
-
-        import src.config
-
-        importlib.reload(src.config)
+        importlib.reload(diting.config)
 
         # 验证路径
-        parquet_path = src.config.get_messages_parquet_path()
+        parquet_path = diting.config.get_messages_parquet_path()
         assert parquet_path == Path("/test/base/messages/parquet")
 
     def test_paths_consistency(self, monkeypatch):
@@ -78,16 +65,12 @@ class TestConfig:
         monkeypatch.setenv("BASE_URL", "/consistent/base")
 
         # 重新加载配置模块
-        import importlib
-
-        import src.config
-
-        importlib.reload(src.config)
+        importlib.reload(diting.config)
 
         # 获取所有路径
-        base_path = src.config.get_data_base_path()
-        raw_path = src.config.get_messages_raw_path()
-        parquet_path = src.config.get_messages_parquet_path()
+        base_path = diting.config.get_data_base_path()
+        raw_path = diting.config.get_messages_raw_path()
+        parquet_path = diting.config.get_messages_parquet_path()
 
         # 验证路径一致性
         assert raw_path.parent.parent == base_path

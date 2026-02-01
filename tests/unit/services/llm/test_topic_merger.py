@@ -4,10 +4,9 @@
 """
 
 import pytest
-
-from src.models.llm_analysis import TopicClassification
-from src.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
-from src.services.llm.topic_merger import (
+from diting.models.llm_analysis import TopicClassification
+from diting.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
+from diting.services.llm.topic_merger import (
     KeywordSimilarityStrategy,
     TopicMerger,
     keyword_similarity,

@@ -6,7 +6,7 @@
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
-from src.services.llm.time_utils import (
+from diting.services.llm.time_utils import (
     build_date_range,
     extract_times,
     format_time,

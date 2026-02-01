@@ -8,13 +8,12 @@ from pathlib import Path
 import pandas as pd
 import pyarrow as pa
 import pytest
-
-from src.services.storage.schema_compat import (
+from diting.services.storage.schema_compat import (
     check_schema_compatibility,
     detect_schema_evolution,
     merge_schemas,
 )
-from src.services.storage.schema_registry import SchemaRegistry
+from diting.services.storage.schema_registry import SchemaRegistry
 
 
 class TestCheckSchemaCompatibility:

@@ -3,8 +3,7 @@
 from pathlib import Path
 
 import pytest
-
-from src.services.storage.duckdb_base import DuckDBConnection
+from diting.services.storage.duckdb_base import DuckDBConnection
 
 
 @pytest.fixture

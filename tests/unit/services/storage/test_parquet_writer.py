@@ -2,8 +2,7 @@
 
 import pyarrow.parquet as pq
 import pytest
-
-from src.services.storage.parquet_writer import ParquetWriter
+from diting.services.storage.parquet_writer import ParquetWriter
 
 
 def create_test_message(msg_id: str, create_time: int, content: str = "Hello") -> dict:

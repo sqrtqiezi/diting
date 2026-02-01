@@ -6,8 +6,7 @@
 from pathlib import Path
 
 import pandas as pd
-
-from src.services.storage.validation import detect_duplicates, validate_partition
+from diting.services.storage.validation import detect_duplicates, validate_partition
 
 
 class TestValidatePartitionContract:

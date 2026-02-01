@@ -1,7 +1,6 @@
 """图片 XML 解析器单元测试"""
 
-
-from src.lib.image_xml_parser import ImageInfo, is_encrypted_image_xml, parse_image_xml
+from diting.lib.image_xml_parser import ImageInfo, is_encrypted_image_xml, parse_image_xml
 
 
 class TestIsEncryptedImageXml:

@@ -8,8 +8,7 @@ from unittest.mock import patch
 import click
 import pytest
 from click.testing import CliRunner
-
-from src.cli.storage.utils import (
+from diting.cli.storage.utils import (
     ExitCode,
     Output,
     handle_storage_errors,
@@ -75,7 +74,7 @@ class TestWithParquetRoot:
         def sample_func(parquet_root: str) -> str:
             return parquet_root
 
-        with patch("src.config.get_messages_parquet_path", return_value=expected_path):
+        with patch("diting.config.get_messages_parquet_path", return_value=expected_path):
             result = sample_func(parquet_root=None)
             assert result == str(expected_path)
 
@@ -115,7 +114,7 @@ class TestWithRawDir:
         def sample_func(raw_dir: str) -> str:
             return raw_dir
 
-        with patch("src.config.get_messages_raw_path", return_value=expected_path):
+        with patch("diting.config.get_messages_raw_path", return_value=expected_path):
             result = sample_func(raw_dir=None)
             assert result == str(expected_path)
 
@@ -162,7 +161,7 @@ class TestHandleStorageErrors:
         def sample_func() -> None:
             raise ValueError("测试错误")
 
-        with patch("src.cli.storage.utils.logger") as mock_logger:
+        with patch("diting.cli.storage.utils.logger") as mock_logger:
             with pytest.raises(SystemExit):
                 sample_func()
             mock_logger.exception.assert_called_once()

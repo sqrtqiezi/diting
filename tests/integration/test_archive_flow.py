@@ -7,9 +7,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
-
-from src.services.storage.archive import archive_old_partitions
-from src.services.storage.partition_metadata import scan_partitions
+from diting.services.storage.archive import archive_old_partitions
+from diting.services.storage.partition_metadata import scan_partitions
 
 
 class TestArchiveFlow:

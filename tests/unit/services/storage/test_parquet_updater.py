@@ -5,8 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-from src.services.storage.parquet_updater import ParquetUpdater, update_parquet_content
+from diting.services.storage.parquet_updater import ParquetUpdater, update_parquet_content
 
 
 def create_test_parquet(path: Path, data: list[dict]) -> None:

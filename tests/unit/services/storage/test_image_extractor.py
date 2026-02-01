@@ -6,13 +6,12 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
-from src.models.image_schema import (
+from diting.models.image_schema import (
     CheckpointStatus,
     ImageMetadata,
 )
-from src.services.storage.duckdb_manager import DuckDBManager
-from src.services.storage.image_extractor import ImageExtractor
+from diting.services.storage.duckdb_manager import DuckDBManager
+from diting.services.storage.image_extractor import ImageExtractor
 
 
 @pytest.fixture
@@ -105,7 +104,7 @@ class TestGetUnprocessedFiles:
         file2.touch()
 
         # 标记 file1 为已完成
-        from src.models.image_schema import ImageExtractionCheckpoint
+        from diting.models.image_schema import ImageExtractionCheckpoint
 
         checkpoint = ImageExtractionCheckpoint(
             parquet_file=str(file1),
@@ -366,7 +365,7 @@ class TestExtractAll:
             create_test_parquet(f, data)
 
         # 标记 file1 为已完成
-        from src.models.image_schema import ImageExtractionCheckpoint
+        from diting.models.image_schema import ImageExtractionCheckpoint
 
         checkpoint = ImageExtractionCheckpoint(
             parquet_file=str(file1),

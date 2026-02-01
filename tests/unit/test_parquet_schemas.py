@@ -4,8 +4,7 @@ TDD: 测试 Parquet Schema 定义和验证函数
 """
 
 import pyarrow as pa
-
-from src.models.parquet_schemas import (
+from diting.models.parquet_schemas import (
     CONTACT_SYNC_SCHEMA,
     MESSAGE_CONTENT_SCHEMA,
     get_partition_schema,

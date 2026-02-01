@@ -8,9 +8,8 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
-
-from src.services.storage.ingestion import convert_jsonl_to_parquet
-from src.services.storage.jsonl_writer import JSONLWriter
+from diting.services.storage.ingestion import convert_jsonl_to_parquet
+from diting.services.storage.jsonl_writer import JSONLWriter
 
 
 class TestStoragePipelineIntegration:

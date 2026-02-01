@@ -8,8 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-
-from src.services.storage.cleanup import cleanup_old_jsonl
+from diting.services.storage.cleanup import cleanup_old_jsonl
 
 
 class TestCleanupOldJsonl:

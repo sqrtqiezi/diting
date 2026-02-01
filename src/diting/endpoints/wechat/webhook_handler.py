@@ -11,8 +11,8 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import parse_qs
 
-from src.config import get_messages_raw_path
-from src.services.storage.jsonl_writer import JSONLWriter
+from diting.config import get_messages_raw_path
+from diting.services.storage.jsonl_writer import JSONLWriter
 
 from .webhook_logger import get_webhook_logger
 

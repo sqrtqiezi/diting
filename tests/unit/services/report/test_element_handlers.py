@@ -3,9 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from reportlab.lib.styles import ParagraphStyle
-
-from src.services.report.element_handlers import (
+from diting.services.report.element_handlers import (
     BulletHandler,
     CategoryHandler,
     DateHandler,
@@ -23,7 +21,8 @@ from src.services.report.element_handlers import (
     TitleHandler,
     create_default_handlers,
 )
-from src.services.report.pdf_renderer import PdfRenderOptions
+from diting.services.report.pdf_renderer import PdfRenderOptions
+from reportlab.lib.styles import ParagraphStyle
 
 
 @pytest.fixture

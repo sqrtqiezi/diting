@@ -8,8 +8,7 @@ from unittest.mock import patch
 
 import pandas as pd
 from click.testing import CliRunner
-
-from src.cli.storage.query_commands import query, query_by_id
+from diting.cli.storage.query_commands import query, query_by_id
 
 
 def _create_test_parquet(parquet_root: Path, timestamp: int) -> Path:
@@ -174,7 +173,7 @@ class TestQueryCommand:
         _create_test_parquet(parquet_root, timestamp)
 
         runner = CliRunner()
-        with patch("src.config.get_messages_parquet_path", return_value=parquet_root):
+        with patch("diting.config.get_messages_parquet_path", return_value=parquet_root):
             result = runner.invoke(
                 query,
                 [

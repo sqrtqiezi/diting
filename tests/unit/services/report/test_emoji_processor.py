@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.services.report.emoji_processor import EmojiProcessor
+from diting.services.report.emoji_processor import EmojiProcessor
 
 
 class TestEmojiProcessor:

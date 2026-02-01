@@ -4,9 +4,8 @@
 """
 
 import pytest
-
-from src.models.llm_analysis import TopicClassification
-from src.services.llm.topic_merger import TopicMerger
+from diting.models.llm_analysis import TopicClassification
+from diting.services.llm.topic_merger import TopicMerger
 
 
 @pytest.fixture

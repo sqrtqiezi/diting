@@ -9,8 +9,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
-from src.lib.parquet_utils import (
+from diting.lib.parquet_utils import (
     build_partition_path,
     convert_timestamp_to_datetime,
     extract_partition_fields,

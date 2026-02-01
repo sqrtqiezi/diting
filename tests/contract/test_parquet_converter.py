@@ -12,7 +12,7 @@ import pytest
 
 # 注意: 这些导入在实现之前会失败,这是 TDD 的预期行为
 try:
-    from src.services.storage.ingestion import convert_jsonl_to_parquet
+    from diting.services.storage.ingestion import convert_jsonl_to_parquet
 except ImportError:
     convert_jsonl_to_parquet = None
 
@@ -249,7 +249,7 @@ class TestParquetConverterContract:
 
     def test_schema_parameter_contract(self, sample_jsonl_file: Path, temp_dir: Path):
         """测试 Schema 参数契约"""
-        from src.models.parquet_schemas import MESSAGE_CONTENT_SCHEMA
+        from diting.models.parquet_schemas import MESSAGE_CONTENT_SCHEMA
 
         parquet_root = temp_dir / "parquet"
 

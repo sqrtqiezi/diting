@@ -3,14 +3,13 @@
 from datetime import datetime
 
 import pytest
-
-from src.models.image_schema import (
+from diting.models.image_schema import (
     CheckpointStatus,
     ImageExtractionCheckpoint,
     ImageMetadata,
     ImageStatus,
 )
-from src.services.storage.duckdb_manager import DuckDBManager
+from diting.services.storage.duckdb_manager import DuckDBManager
 
 
 @pytest.fixture

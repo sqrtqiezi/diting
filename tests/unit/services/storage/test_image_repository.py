@@ -4,10 +4,9 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-
-from src.models.image_schema import ImageMetadata, ImageStatus
-from src.services.storage.duckdb_base import DuckDBConnection
-from src.services.storage.image_repository import ImageRepository
+from diting.models.image_schema import ImageMetadata, ImageStatus
+from diting.services.storage.duckdb_base import DuckDBConnection
+from diting.services.storage.image_repository import ImageRepository
 
 
 @pytest.fixture

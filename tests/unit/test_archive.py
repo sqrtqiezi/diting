@@ -8,8 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-
-from src.services.storage.archive import archive_old_partitions
+from diting.services.storage.archive import archive_old_partitions
 
 
 class TestArchiveOldPartitions:

@@ -3,11 +3,9 @@
 演示如何使用 Protocol 模式进行 Mock 注入测试。
 """
 
-
 import pytest
-
-from src.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
-from src.services.llm.llm_client import LLMClient
+from diting.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
+from diting.services.llm.llm_client import LLMClient
 
 
 @pytest.fixture

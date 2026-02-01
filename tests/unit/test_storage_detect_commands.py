@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 from click.testing import CliRunner
-
-from src.cli.storage.detect_commands import detect_duplicates_cmd
+from diting.cli.storage.detect_commands import detect_duplicates_cmd
 
 
 def _create_test_parquet_with_duplicates(parquet_root: Path, timestamp: int) -> Path:

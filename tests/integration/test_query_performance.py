@@ -13,8 +13,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
-from src.services.storage.query import query_messages
+from diting.services.storage.query import query_messages
 
 
 class TestQueryPerformance:

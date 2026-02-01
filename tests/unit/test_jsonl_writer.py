@@ -8,8 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from src.services.storage.jsonl_writer import JSONLWriter
+from diting.services.storage.jsonl_writer import JSONLWriter
 
 
 class TestJSONLWriterInit:
@@ -17,7 +16,7 @@ class TestJSONLWriterInit:
 
     def test_init_with_default_base_dir(self):
         """测试使用默认基础目录初始化"""
-        with patch("src.services.storage.jsonl_writer.Path.mkdir"):
+        with patch("diting.services.storage.jsonl_writer.Path.mkdir"):
             writer = JSONLWriter()
             assert writer.base_dir == Path("data/messages/raw")
 
@@ -51,7 +50,7 @@ class TestJSONLWriterGetCurrentFilePath:
         """测试文件路径格式为 YYYY-MM-DD.jsonl"""
         writer = JSONLWriter(base_dir=tmp_path)
 
-        with patch("src.services.storage.jsonl_writer.datetime") as mock_datetime:
+        with patch("diting.services.storage.jsonl_writer.datetime") as mock_datetime:
             mock_datetime.now.return_value.strftime.return_value = "2025-01-23"
 
             file_path = writer._get_current_file_path()
@@ -65,7 +64,7 @@ class TestJSONLWriterGetCurrentFilePath:
 
         writer = JSONLWriter(base_dir=tmp_path)
 
-        with patch("src.services.storage.jsonl_writer.datetime") as mock_datetime:
+        with patch("diting.services.storage.jsonl_writer.datetime") as mock_datetime:
             writer._get_current_file_path()
 
             mock_datetime.now.assert_called_once_with(UTC)
@@ -164,7 +163,7 @@ class TestJSONLWriterAppendMessage:
 
     def test_append_message_uses_file_lock(self, writer: JSONLWriter, sample_message: dict):
         """测试使用文件锁"""
-        with patch("src.services.storage.jsonl_writer.file_lock") as mock_lock:
+        with patch("diting.services.storage.jsonl_writer.file_lock") as mock_lock:
             mock_lock.return_value.__enter__ = MagicMock()
             mock_lock.return_value.__exit__ = MagicMock()
 
@@ -257,7 +256,7 @@ class TestJSONLWriterAppendBatch:
         """测试批量写入使用文件锁"""
         messages = [{"msg_id": "msg_1"}]
 
-        with patch("src.services.storage.jsonl_writer.file_lock") as mock_lock:
+        with patch("diting.services.storage.jsonl_writer.file_lock") as mock_lock:
             mock_lock.return_value.__enter__ = MagicMock()
             mock_lock.return_value.__exit__ = MagicMock()
 

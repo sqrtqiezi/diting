@@ -6,9 +6,8 @@
 from datetime import datetime
 
 import pytest
+from diting.models.message_schema import ContactSync, MessageContent
 from pydantic import ValidationError
-
-from src.models.message_schema import ContactSync, MessageContent
 
 
 class TestMessageContentContract:

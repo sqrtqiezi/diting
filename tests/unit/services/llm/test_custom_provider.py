@@ -4,9 +4,8 @@
 """
 
 import pytest
-
-from src.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
-from src.services.llm.llm_client import LLMClient
+from diting.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
+from diting.services.llm.llm_client import LLMClient
 
 
 @pytest.fixture
