@@ -2,6 +2,25 @@
 
 > 生成日期: 2026-02-01
 > 基于: 架构师分析 + 代码审查
+> 最后更新: 2026-02-01
+
+## 重构进度总结
+
+| 阶段 | 文件 | 状态 | PR |
+|------|------|------|-----|
+| 阶段一 | storage_commands.py | ✅ 已完成 | #49 |
+| 阶段一 | client.py | ✅ 已完成 | #50 |
+| 阶段一 | duckdb_manager.py | ✅ 已完成 | #51 |
+| 阶段一 | pdf_renderer.py | ⏳ 待开始 | - |
+| 阶段二 | analysis.py | ⏳ 待开始 | - |
+| 阶段二 | image_extractor.py | ⏳ 待开始 | - |
+| 阶段二 | incremental.py | ⏳ 待开始 | - |
+| 阶段二 | wechat_message_schema.py | ⏳ 待开始 | - |
+| 阶段二 | topic_summarizer.py | ⏳ 待开始 | - |
+| 阶段二 | topic_merger.py | ⏳ 待开始 | - |
+| 阶段三 | ingestion.py | ⏳ 待开始 | - |
+
+**进度: 3/11 (27%)**
 
 ## 概述
 
@@ -20,103 +39,25 @@
 
 ## 阶段一: 高优先级文件 (4个)
 
-### 1.1 storage_commands.py (746行)
+### 1.1 storage_commands.py (746行) ✅ 已完成
 
-**当前问题:**
-- 9 个 CLI 命令混在一个文件
-- 重复的错误处理和输出格式化
-- 缺少命令级别的单元测试
+**重构状态:** 已完成 (2026-02-01)
 
-**重构方案:**
+**重构成果:**
+- 原文件 746 行 → 重构后 6 个模块共 925 行
+- 新增模块：
+  - `__init__.py` - 导出 storage 命令组
+  - `query_commands.py` - query, query_by_id
+  - `ingestion_commands.py` - dump_parquet, ingest_message
+  - `maintenance_commands.py` - cleanup, archive, validate
+  - `detect_commands.py` - detect_duplicates
+  - `utils.py` - 公共装饰器和输出格式化
+- CLI 接口保持不变，向后兼容
+- 所有测试通过
 
-```
-src/cli/storage_commands.py (746行)
-    ↓ 拆分为
-src/cli/storage/
-├── __init__.py              # 导出 storage 命令组
-├── query_commands.py        # query, query_by_id (~180行)
-├── ingestion_commands.py    # dump_parquet, ingest_message (~200行)
-├── maintenance_commands.py  # cleanup, archive, validate (~180行)
-├── detect_commands.py       # detect_duplicates (~100行)
-└── utils.py                 # 公共装饰器和输出格式化 (~80行)
-```
-
-**关键重构步骤:**
-
-1. **提取公共装饰器** (`utils.py`)
-```python
-from functools import wraps
-import click
-import structlog
-
-logger = structlog.get_logger()
-
-def with_parquet_root(func):
-    """自动解析 parquet_root 参数"""
-    @wraps(func)
-    def wrapper(*args, parquet_root=None, **kwargs):
-        if parquet_root is None:
-            from src.config import get_messages_parquet_path
-            parquet_root = str(get_messages_parquet_path())
-        return func(*args, parquet_root=parquet_root, **kwargs)
-    return wrapper
-
-def handle_storage_errors(func):
-    """统一错误处理"""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            click.echo(f"✗ 操作失败: {e}", err=True)
-            logger.exception("command_failed", error=str(e))
-            raise SystemExit(1)
-    return wrapper
-
-class Output:
-    """统一输出格式化"""
-    @staticmethod
-    def success(message: str, **details):
-        click.echo(f"✓ {message}")
-        for key, value in details.items():
-            click.echo(f"  {key}: {value}")
-
-    @staticmethod
-    def error(message: str):
-        click.echo(f"✗ {message}", err=True)
-
-    @staticmethod
-    def table(headers: list[str], rows: list[list]):
-        # 表格输出逻辑
-        pass
-```
-
-2. **拆分命令文件** (`query_commands.py`)
-```python
-import click
-from .utils import with_parquet_root, handle_storage_errors, Output
-
-@click.command("query")
-@click.option("--start", required=True, help="开始日期")
-@click.option("--end", required=True, help="结束日期")
-@click.option("--parquet-root", default=None, help="Parquet 根目录")
-@with_parquet_root
-@handle_storage_errors
-def query(start: str, end: str, parquet_root: str):
-    """查询消息"""
-    from src.services.storage.query import query_messages
-
-    result = query_messages(parquet_root, start, end)
-    Output.success(f"查询到 {len(result)} 条消息")
-    # ...
-```
-
-**风险评估:** 中等
-- ✅ 有契约测试保护存储服务层
-- ⚠️ CLI 命令本身缺少单元测试
-- 需要保持 CLI 接口不变
-
-**预计工时:** 4 小时
+**设计模式:**
+- 装饰器模式：提取公共的错误处理和参数解析逻辑
+- 模块化：按功能职责拆分命令
 
 ---
 
