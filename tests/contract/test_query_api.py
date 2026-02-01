@@ -60,7 +60,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_signature(self, sample_parquet_data: Path):
         """测试 query_messages 函数签名"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         # 验证函数存在
         assert callable(query_messages)
@@ -84,7 +84,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_returns_dataframe(self, sample_parquet_data: Path):
         """测试 query_messages 返回 DataFrame"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         result = query_messages(
             start_date="2026-01-23",
@@ -97,7 +97,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_with_date_range(self, sample_parquet_data: Path):
         """测试日期范围查询"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         result = query_messages(
             start_date="2026-01-23",
@@ -113,7 +113,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_with_filters(self, sample_parquet_data: Path):
         """测试带过滤条件的查询"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         result = query_messages(
             start_date="2026-01-23",
@@ -128,7 +128,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_with_columns(self, sample_parquet_data: Path):
         """测试列裁剪"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         result = query_messages(
             start_date="2026-01-23",
@@ -144,7 +144,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_empty_result(self, sample_parquet_data: Path):
         """测试空结果查询"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         result = query_messages(
             start_date="2025-01-01",
@@ -158,7 +158,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_invalid_date_format(self, sample_parquet_data: Path):
         """测试无效日期格式"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         with pytest.raises(ValueError):
             query_messages(
@@ -169,7 +169,7 @@ class TestQueryMessagesContract:
 
     def test_query_messages_nonexistent_path(self):
         """测试不存在的路径"""
-        from src.services.storage.query import query_messages
+        from diting.services.storage.query import query_messages
 
         with pytest.raises(FileNotFoundError):
             query_messages(
@@ -225,7 +225,7 @@ class TestQueryMessagesByIdContract:
 
     def test_query_messages_by_id_signature(self, sample_parquet_data: Path):
         """测试 query_messages_by_id 函数签名"""
-        from src.services.storage.query import query_messages_by_id
+        from diting.services.storage.query import query_messages_by_id
 
         # 验证函数存在
         assert callable(query_messages_by_id)
@@ -242,7 +242,7 @@ class TestQueryMessagesByIdContract:
 
     def test_query_messages_by_id_single_id(self, sample_parquet_data: Path):
         """测试单个 ID 查询"""
-        from src.services.storage.query import query_messages_by_id
+        from diting.services.storage.query import query_messages_by_id
 
         result = query_messages_by_id(
             msg_ids=["msg_0"],
@@ -256,7 +256,7 @@ class TestQueryMessagesByIdContract:
 
     def test_query_messages_by_id_multiple_ids(self, sample_parquet_data: Path):
         """测试多个 ID 查询"""
-        from src.services.storage.query import query_messages_by_id
+        from diting.services.storage.query import query_messages_by_id
 
         result = query_messages_by_id(
             msg_ids=["msg_0", "msg_5", "msg_10"],
@@ -269,7 +269,7 @@ class TestQueryMessagesByIdContract:
 
     def test_query_messages_by_id_nonexistent_id(self, sample_parquet_data: Path):
         """测试不存在的 ID"""
-        from src.services.storage.query import query_messages_by_id
+        from diting.services.storage.query import query_messages_by_id
 
         result = query_messages_by_id(
             msg_ids=["nonexistent_id"],
@@ -282,7 +282,7 @@ class TestQueryMessagesByIdContract:
 
     def test_query_messages_by_id_with_columns(self, sample_parquet_data: Path):
         """测试列裁剪"""
-        from src.services.storage.query import query_messages_by_id
+        from diting.services.storage.query import query_messages_by_id
 
         result = query_messages_by_id(
             msg_ids=["msg_0"],

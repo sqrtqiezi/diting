@@ -1,8 +1,7 @@
 """StyleBuilder 单元测试"""
 
-
-from src.services.report.pdf_renderer import PdfRenderOptions
-from src.services.report.style_builder import StyleBuilder
+from diting.services.report.pdf_renderer import PdfRenderOptions
+from diting.services.report.style_builder import StyleBuilder
 
 
 class TestStyleBuilder:

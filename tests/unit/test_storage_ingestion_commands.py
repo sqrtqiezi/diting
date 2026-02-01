@@ -7,8 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from click.testing import CliRunner
-
-from src.cli.storage.ingestion_commands import dump_parquet, ingest_message
+from diting.cli.storage.ingestion_commands import dump_parquet, ingest_message
 
 
 def _sample_message(timestamp: int, msg_id: str = "msg-1") -> dict[str, object]:

@@ -3,8 +3,7 @@
 测试 pdf_renderer.py 中的辅助函数和内部逻辑。
 """
 
-
-from src.services.report.pdf_renderer import (
+from diting.services.report.pdf_renderer import (
     PdfRenderOptions,
     _build_styles,
     _consume_table,

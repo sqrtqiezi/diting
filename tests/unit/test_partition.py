@@ -6,8 +6,7 @@
 from pathlib import Path
 
 import pytest
-
-from src.services.storage.partition import (
+from diting.services.storage.partition import (
     extract_partition_fields,
     get_partition_key,
     get_partition_path,

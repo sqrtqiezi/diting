@@ -59,7 +59,7 @@ dev = [
 ]
 
 [project.scripts]
-diting = "cli:cli"
+diting = "diting.cli.main:cli"
 
 [project.urls]
 Homepage = "https://github.com/diting/diting"
@@ -102,7 +102,7 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
-exclude = ["tests/", "src/diting/"]
+exclude = ["tests/"]
 
 # 未来逐步启用:
 # strict = true
@@ -125,16 +125,15 @@ addopts = [
 
 # Coverage 配置
 [tool.coverage.run]
-source = ["src"]
+source = ["src/diting"]
 omit = [
     "tests/*",
     "*/__init__.py",
     ".venv/*",
     "src/diting/cli/*",
-    "src/cli/*",
-    "src/models/llm_analysis.py",
-    "src/services/llm/*",
-    "src/services/report/*",
+    "src/diting/models/llm_analysis.py",
+    "src/diting/services/llm/*",
+    "src/diting/services/report/*",
 ]
 
 [tool.coverage.report]

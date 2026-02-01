@@ -7,8 +7,7 @@ import json
 from pathlib import Path
 
 import pytest
-
-from src.services.storage.error_handler import (
+from diting.services.storage.error_handler import (
     ErrorHandler,
     safe_parse_message,
     validate_required_fields,

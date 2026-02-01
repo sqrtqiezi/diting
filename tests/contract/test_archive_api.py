@@ -7,9 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-
-from src.services.storage.archive import archive_old_partitions
-from src.services.storage.cleanup import cleanup_old_jsonl
+from diting.services.storage.archive import archive_old_partitions
+from diting.services.storage.cleanup import cleanup_old_jsonl
 
 
 class TestArchiveOldPartitionsContract:

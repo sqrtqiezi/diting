@@ -6,6 +6,7 @@
 from typing import Any, Protocol
 
 import httpx
+
 from diting.endpoints.wechat.exceptions import WeChatAPIError
 from diting.endpoints.wechat.models import APIRequest, APIResponse
 

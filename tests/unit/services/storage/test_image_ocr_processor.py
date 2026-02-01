@@ -4,9 +4,8 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from src.services.storage.duckdb_manager import DuckDBManager
-from src.services.storage.image_ocr_processor import ImageOCRProcessor
+from diting.services.storage.duckdb_manager import DuckDBManager
+from diting.services.storage.image_ocr_processor import ImageOCRProcessor
 
 
 @pytest.fixture
@@ -24,7 +23,7 @@ def db_manager(temp_db_path):
 @pytest.fixture
 def mock_ocr_client():
     """创建模拟的 OCR 客户端"""
-    with patch("src.services.storage.image_ocr_processor.Client") as mock_client_class:
+    with patch("diting.services.storage.image_ocr_processor.Client") as mock_client_class:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         yield mock_client
@@ -45,7 +44,7 @@ class TestImageOCRProcessorInit:
 
     def test_initializes_with_credentials(self, db_manager):
         """测试使用凭证初始化"""
-        with patch("src.services.storage.image_ocr_processor.Client") as mock_client_class:
+        with patch("diting.services.storage.image_ocr_processor.Client") as mock_client_class:
             processor = ImageOCRProcessor(
                 db_manager=db_manager,
                 access_key_id="test_key_id",
@@ -58,8 +57,10 @@ class TestImageOCRProcessorInit:
     def test_uses_custom_endpoint(self, db_manager):
         """测试使用自定义端点"""
         with (
-            patch("src.services.storage.image_ocr_processor.Client"),
-            patch("src.services.storage.image_ocr_processor.open_api_models.Config") as mock_config,
+            patch("diting.services.storage.image_ocr_processor.Client"),
+            patch(
+                "diting.services.storage.image_ocr_processor.open_api_models.Config"
+            ) as mock_config,
         ):
             ImageOCRProcessor(
                 db_manager=db_manager,

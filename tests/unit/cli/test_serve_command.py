@@ -2,18 +2,11 @@
 CLI serve 命令单元测试
 """
 
-import sys
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
-
-# 从项目根目录的 cli.py 导入
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from cli import cli  # noqa: E402
+from diting.cli import cli
 
 
 class TestServeCommand:
@@ -30,7 +23,7 @@ class TestServeCommand:
         assert result.exit_code == 0
         assert "serve" in result.output.lower()
 
-    @patch("cli.uvicorn.run")
+    @patch("diting.cli.main.uvicorn.run")
     def test_serve_command_starts_uvicorn(self, mock_uvicorn_run, runner):
         """测试 serve 命令启动 uvicorn"""
         _ = runner.invoke(cli, ["serve"])
@@ -47,7 +40,7 @@ class TestServeCommand:
         assert call_kwargs.get("host") == "0.0.0.0"  # 默认 host
         assert call_kwargs.get("port") == 8000  # 默认 port
 
-    @patch("cli.uvicorn.run")
+    @patch("diting.cli.main.uvicorn.run")
     def test_serve_command_with_custom_port(self, mock_uvicorn_run, runner):
         """测试自定义端口"""
         _ = runner.invoke(cli, ["serve", "--port", "9000"])
@@ -56,7 +49,7 @@ class TestServeCommand:
         call_kwargs = mock_uvicorn_run.call_args[1]
         assert call_kwargs.get("port") == 9000
 
-    @patch("cli.uvicorn.run")
+    @patch("diting.cli.main.uvicorn.run")
     def test_serve_command_with_custom_host(self, mock_uvicorn_run, runner):
         """测试自定义主机"""
         _ = runner.invoke(cli, ["serve", "--host", "127.0.0.1"])
@@ -65,7 +58,7 @@ class TestServeCommand:
         call_kwargs = mock_uvicorn_run.call_args[1]
         assert call_kwargs.get("host") == "127.0.0.1"
 
-    @patch("cli.uvicorn.run")
+    @patch("diting.cli.main.uvicorn.run")
     def test_serve_command_with_log_level(self, mock_uvicorn_run, runner):
         """测试自定义日志级别"""
         _ = runner.invoke(cli, ["serve", "--log-level", "DEBUG"])
@@ -74,7 +67,7 @@ class TestServeCommand:
         call_kwargs = mock_uvicorn_run.call_args[1]
         assert call_kwargs.get("log_level") == "debug"  # uvicorn 使用小写
 
-    @patch("cli.uvicorn.run")
+    @patch("diting.cli.main.uvicorn.run")
     def test_serve_command_with_config_file(self, mock_uvicorn_run, runner):
         """测试使用配置文件"""
         # 使用临时配置文件

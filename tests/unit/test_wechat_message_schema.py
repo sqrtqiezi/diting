@@ -4,9 +4,7 @@ TDD: 测试微信消息 Schema 的 Pydantic 模型验证
 """
 
 import pytest
-from pydantic import ValidationError
-
-from src.models.wechat_message_schema import (
+from diting.models.wechat_message_schema import (
     AdditionalContactList,
     ContactDeleteData,
     ContactDetailData,
@@ -25,6 +23,7 @@ from src.models.wechat_message_schema import (
     StringWrapper,
     WechatMessage,
 )
+from pydantic import ValidationError
 
 
 class TestNotifyTypeEnum:

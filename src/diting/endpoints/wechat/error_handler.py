@@ -4,6 +4,7 @@
 """
 
 import httpx
+
 from diting.endpoints.wechat.exceptions import (
     AuthenticationError,
     NetworkError,

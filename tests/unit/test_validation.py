@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 import pyarrow as pa
-
-from src.services.storage.validation import (
+from diting.services.storage.validation import (
     detect_duplicates,
     validate_partition,
     validate_schema,

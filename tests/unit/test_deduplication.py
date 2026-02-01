@@ -6,8 +6,7 @@
 from pathlib import Path
 
 import pandas as pd
-
-from src.services.storage.deduplication import (
+from diting.services.storage.deduplication import (
     deduplicate_messages,
     deduplicate_partition,
 )

@@ -12,7 +12,7 @@ import pytest
 
 # 注意: 这些导入在实现之前会失败,这是 TDD 的预期行为
 try:
-    from src.services.storage.jsonl_writer import JSONLWriter
+    from diting.services.storage.jsonl_writer import JSONLWriter
 except ImportError:
     JSONLWriter = None
 

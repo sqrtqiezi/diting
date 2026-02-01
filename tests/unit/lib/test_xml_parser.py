@@ -1,4 +1,4 @@
-from src.lib.xml_parser import parse_appmsg_content
+from diting.lib.xml_parser import parse_appmsg_content
 
 
 def test_parse_refermsg_success() -> None:

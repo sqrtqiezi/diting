@@ -8,8 +8,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
-from src.services.storage.ingestion import (
+from diting.services.storage.ingestion import (
     append_to_parquet_partition,
     convert_jsonl_to_parquet,
 )

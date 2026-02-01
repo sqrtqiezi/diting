@@ -3,10 +3,9 @@
 from unittest.mock import MagicMock
 
 import pytest
-
-from src.services.llm.analysis import IMAGE_CONTENT_PATTERN
-from src.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
-from src.services.llm.message_formatter import MessageFormatter, load_image_ocr_cache
+from diting.services.llm.analysis import IMAGE_CONTENT_PATTERN
+from diting.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
+from diting.services.llm.message_formatter import MessageFormatter, load_image_ocr_cache
 
 
 @pytest.fixture

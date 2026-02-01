@@ -7,8 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-
-from src.services.storage.partition_metadata import (
+from diting.services.storage.partition_metadata import (
     StoragePartition,
     get_partition_stats,
     scan_partitions,

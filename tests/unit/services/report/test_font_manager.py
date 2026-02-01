@@ -4,8 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
-from src.services.report.font_manager import FontManager, font_search_dirs
+from diting.services.report.font_manager import FontManager, font_search_dirs
 
 
 class TestFontSearchDirs:

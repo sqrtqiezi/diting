@@ -7,8 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from click.testing import CliRunner
-
-from src.cli.storage_commands import storage
+from diting.cli.storage_commands import storage
 
 
 def _sample_message(timestamp: int) -> dict[str, object]:

@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 from click.testing import CliRunner
-
-from src.cli.storage.maintenance_commands import archive, cleanup, validate
+from diting.cli.storage.maintenance_commands import archive, cleanup, validate
 
 
 def _create_test_parquet(parquet_root: Path, timestamp: int) -> Path:

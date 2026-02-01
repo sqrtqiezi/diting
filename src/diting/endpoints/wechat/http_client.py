@@ -7,6 +7,7 @@ import time
 from typing import Any
 
 import httpx
+
 from diting.endpoints.wechat.config import APIConfig
 from diting.endpoints.wechat.error_handler import WeChatErrorHandler
 from diting.endpoints.wechat.exceptions import WeChatAPIError

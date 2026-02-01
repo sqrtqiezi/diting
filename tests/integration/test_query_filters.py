@@ -10,8 +10,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-
-from src.services.storage.query import query_messages, query_messages_by_id
+from diting.services.storage.query import query_messages, query_messages_by_id
 
 
 class TestQueryFilters:

@@ -7,9 +7,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
-
-from src.services.storage.cleanup import cleanup_old_jsonl
-from src.services.storage.incremental import incremental_ingest
+from diting.services.storage.cleanup import cleanup_old_jsonl
+from diting.services.storage.incremental import incremental_ingest
 
 
 class TestCleanupFlow:

@@ -1,6 +1,6 @@
 """MessageNormalizer 单元测试"""
 
-from src.services.storage.message_normalizer import (
+from diting.services.storage.message_normalizer import (
     MessageNormalizer,
     extract_message_payload,
     prepare_messages,

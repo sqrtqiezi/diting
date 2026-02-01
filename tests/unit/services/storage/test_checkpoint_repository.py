@@ -3,10 +3,9 @@
 from pathlib import Path
 
 import pytest
-
-from src.models.image_schema import CheckpointStatus, ImageExtractionCheckpoint
-from src.services.storage.checkpoint_repository import CheckpointRepository
-from src.services.storage.duckdb_base import DuckDBConnection
+from diting.models.image_schema import CheckpointStatus, ImageExtractionCheckpoint
+from diting.services.storage.checkpoint_repository import CheckpointRepository
+from diting.services.storage.duckdb_base import DuckDBConnection
 
 
 @pytest.fixture

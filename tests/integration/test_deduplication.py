@@ -7,10 +7,9 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-
-from src.services.storage.deduplication import deduplicate_partition
-from src.services.storage.incremental import incremental_ingest
-from src.services.storage.validation import detect_duplicates
+from diting.services.storage.deduplication import deduplicate_partition
+from diting.services.storage.incremental import incremental_ingest
+from diting.services.storage.validation import detect_duplicates
 
 
 class TestDeduplicationIntegration:

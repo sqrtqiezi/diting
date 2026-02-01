@@ -31,7 +31,7 @@ def temp_data_dir(tmp_path):
 @pytest.fixture(autouse=True)
 def reset_jsonl_writer():
     """在每个测试前后重置 JSONL writer 单例"""
-    from src.diting.endpoints.wechat import webhook_handler
+    from diting.endpoints.wechat import webhook_handler
 
     # 测试前:重置
     webhook_handler._jsonl_writer = None
@@ -54,8 +54,8 @@ class TestWebhookStorageIntegration:
     def test_webhook_persists_json_message_to_jsonl(self, client, temp_data_dir, monkeypatch):
         """测试 webhook 接收 JSON 消息后持久化到 JSONL 文件"""
         # 修改数据目录为临时目录
-        from src.diting.endpoints.wechat import webhook_handler
-        from src.services.storage.jsonl_writer import JSONLWriter
+        from diting.endpoints.wechat import webhook_handler
+        from diting.services.storage.jsonl_writer import JSONLWriter
 
         # 创建测试用的 writer
         test_writer = JSONLWriter(base_dir=temp_data_dir)
@@ -117,8 +117,8 @@ class TestWebhookStorageIntegration:
     )
     def test_webhook_handles_storage_failure_gracefully(self, client, monkeypatch):
         """测试存储失败时 webhook 仍然返回成功响应"""
-        from src.diting.endpoints.wechat import webhook_handler
-        from src.services.storage.jsonl_writer import JSONLWriter
+        from diting.endpoints.wechat import webhook_handler
+        from diting.services.storage.jsonl_writer import JSONLWriter
 
         # 创建一个会失败的 writer (使用无效路径)
         failing_writer = JSONLWriter(base_dir="/invalid/path/that/does/not/exist")
@@ -141,8 +141,8 @@ class TestWebhookStorageIntegration:
 
     def test_webhook_only_persists_json_messages(self, client, temp_data_dir, monkeypatch):
         """测试 webhook 只持久化 JSON 消息，忽略其他格式"""
-        from src.diting.endpoints.wechat import webhook_handler
-        from src.services.storage.jsonl_writer import JSONLWriter
+        from diting.endpoints.wechat import webhook_handler
+        from diting.services.storage.jsonl_writer import JSONLWriter
 
         # 创建测试用的 writer
         test_writer = JSONLWriter(base_dir=temp_data_dir)
@@ -176,8 +176,8 @@ class TestWebhookStorageIntegration:
     )
     def test_webhook_appends_multiple_messages(self, client, temp_data_dir, monkeypatch):
         """测试 webhook 可以追加多条消息到同一个 JSONL 文件"""
-        from src.diting.endpoints.wechat import webhook_handler
-        from src.services.storage.jsonl_writer import JSONLWriter
+        from diting.endpoints.wechat import webhook_handler
+        from diting.services.storage.jsonl_writer import JSONLWriter
 
         # 创建测试用的 writer
         test_writer = JSONLWriter(base_dir=temp_data_dir)

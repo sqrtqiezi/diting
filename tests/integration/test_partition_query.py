@@ -9,9 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 import pyarrow.parquet as pq
-
-from src.services.storage.partition_metadata import get_partition_stats, scan_partitions
-from src.services.storage.storage_stats import (
+from diting.services.storage.partition_metadata import get_partition_stats, scan_partitions
+from diting.services.storage.storage_stats import (
     get_compression_stats,
     get_partition_age_distribution,
     get_storage_usage,

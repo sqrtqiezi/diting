@@ -4,9 +4,8 @@
 """
 
 import pytest
-
-from src.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
-from src.services.llm.message_formatter import (
+from diting.services.llm.config import AnalysisConfig, APIConfig, LLMConfig, ModelParamsConfig
+from diting.services.llm.message_formatter import (
     MessageFormatter,
     assign_sequence_ids,
     ensure_message_ids,
