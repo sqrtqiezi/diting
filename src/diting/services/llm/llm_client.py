@@ -5,11 +5,17 @@
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING, Any, Protocol
 
 import structlog
 from langchain_openai import ChatOpenAI
+from tenacity import (
+    RetryCallState,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from diting.models.llm_analysis import ChatroomAnalysisResult, TopicClassification
 from diting.services.llm.response_parser import parse_topics_from_text
@@ -123,8 +129,22 @@ class LLMClient:
         self.provider = provider or LangChainProvider(config)
         self.seq_to_msg_id = seq_to_msg_id or {}
 
+    def _log_retry(self, retry_state: RetryCallState) -> None:
+        """记录重试日志
+
+        Args:
+            retry_state: tenacity 重试状态
+        """
+        logger.warning(
+            "chatroom_analysis_retry",
+            attempt=retry_state.attempt_number,
+            error=str(retry_state.outcome.exception()) if retry_state.outcome else "unknown",
+        )
+
     def invoke_with_retry(self, prompt_messages: list[Any]) -> str:
         """带重试的 LLM 调用
+
+        使用 tenacity 实现指数退避重试策略。
 
         Args:
             prompt_messages: 提示消息列表
@@ -133,24 +153,22 @@ class LLMClient:
             LLM 响应文本
 
         Raises:
-            RuntimeError: 如果所有重试都失败
+            Exception: 如果所有重试都失败，抛出原始异常
         """
-        attempts = self.config.api.retry.max_attempts
-        backoff = self.config.api.retry.backoff_factor
-        for attempt in range(attempts):
-            try:
-                return self.provider.invoke(prompt_messages)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "chatroom_analysis_retry",
-                    attempt=attempt + 1,
-                    error=str(exc),
-                )
-                if attempt + 1 >= attempts:
-                    raise
-                sleep_seconds = backoff * (2**attempt)
-                time.sleep(sleep_seconds)
-        raise RuntimeError("LLM invocation failed")
+        max_attempts = self.config.api.retry.max_attempts
+        backoff_factor = self.config.api.retry.backoff_factor
+
+        @retry(
+            stop=stop_after_attempt(max_attempts),
+            wait=wait_exponential(multiplier=backoff_factor, min=backoff_factor, max=60),
+            retry=retry_if_exception_type((TimeoutError, ConnectionError, Exception)),
+            before_sleep=self._log_retry,
+            reraise=True,
+        )
+        def _invoke() -> str:
+            return self.provider.invoke(prompt_messages)
+
+        return _invoke()
 
     def parse_response(self, response_text: str) -> ChatroomAnalysisResult:
         """解析 LLM 响应
