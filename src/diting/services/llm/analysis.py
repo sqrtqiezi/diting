@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import structlog
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 from diting.config import get_llm_config_path, get_messages_parquet_path
 from diting.models.llm_analysis import ChatroomAnalysisResult, TopicClassification
