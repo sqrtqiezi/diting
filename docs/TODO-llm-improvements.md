@@ -402,10 +402,17 @@ class EmbeddingBasedAnalyzer:
 #### 7.7 依赖变更
 
 ```toml
-# pyproject.toml 新增依赖
+# pyproject.toml 依赖更新
 dependencies = [
     # ... 现有依赖 ...
 
+    # ========== LangChain 版本升级 ==========
+    # 当前: langchain>=0.1.0,<0.2.0 / langchain-openai>=0.0.5,<0.1.0
+    # 升级到 1.x 正式版，获得更好的 API 稳定性和新功能支持
+    "langchain>=1.0.0,<2.0.0",
+    "langchain-openai>=1.0.0,<2.0.0",
+
+    # ========== 新增依赖 ==========
     # 聚类算法
     "hdbscan>=0.8.33,<1.0.0",
     "scikit-learn>=1.3.0,<2.0.0",
@@ -414,6 +421,24 @@ dependencies = [
     # "duckdb>=1.0.0,<2.0.0",  # 已有
 ]
 ```
+
+**LangChain 升级说明**:
+
+| 包 | 当前版本约束 | 升级后 | 最新可用 |
+|---|------------|--------|---------|
+| `langchain` | `>=0.1.0,<0.2.0` | `>=1.0.0,<2.0.0` | 1.2.7 |
+| `langchain-openai` | `>=0.0.5,<0.1.0` | `>=1.0.0,<2.0.0` | 1.1.7 |
+
+**升级收益**:
+- LangChain 1.x 统一使用 `api_key` 和 `base_url` 参数，可简化 `llm_client.py` 中的兼容性代码（改进项 2）
+- 更好的类型提示和 IDE 支持
+- 新增 Embedding 集成（如 `langchain-openai` 的 `OpenAIEmbeddings`）
+- LangGraph 1.x 兼容性
+
+**兼容性验证**:
+当前代码仅使用以下 API，在 1.x 中完全兼容：
+- `from langchain_core.prompts import ChatPromptTemplate`
+- `from langchain_openai import ChatOpenAI`
 
 #### 7.8 迁移策略
 
