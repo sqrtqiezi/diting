@@ -9,6 +9,16 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 import structlog
 from langchain_openai import ChatOpenAI
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    InternalServerError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+)
 from tenacity import (
     RetryCallState,
     retry,
@@ -18,12 +28,29 @@ from tenacity import (
 )
 
 from diting.models.llm_analysis import ChatroomAnalysisResult, TopicClassification
+from diting.services.llm.exceptions import LLMNonRetryableError, LLMRetryableError
 from diting.services.llm.response_parser import parse_topics_from_text
 
 if TYPE_CHECKING:
     from diting.services.llm.config import LLMConfig
 
 logger = structlog.get_logger()
+
+# 可重试的异常类型：网络错误、超时、速率限制、服务端错误
+RETRYABLE_EXCEPTIONS = (
+    APIConnectionError,
+    APITimeoutError,
+    RateLimitError,
+    InternalServerError,
+)
+
+# 不可重试的异常类型：认证错误、权限错误、请求格式错误、资源不存在
+NON_RETRYABLE_EXCEPTIONS = (
+    AuthenticationError,
+    PermissionDeniedError,
+    BadRequestError,
+    NotFoundError,
+)
 
 
 class LLMProvider(Protocol):
@@ -135,16 +162,21 @@ class LLMClient:
         Args:
             retry_state: tenacity 重试状态
         """
+        exc = retry_state.outcome.exception() if retry_state.outcome else None
         logger.warning(
             "chatroom_analysis_retry",
             attempt=retry_state.attempt_number,
-            error=str(retry_state.outcome.exception()) if retry_state.outcome else "unknown",
+            error=str(exc) if exc else "unknown",
+            error_type=type(exc).__name__ if exc else "unknown",
+            retryable=True,
         )
 
     def invoke_with_retry(self, prompt_messages: list[Any]) -> str:
         """带重试的 LLM 调用
 
-        使用 tenacity 实现指数退避重试策略。
+        使用 tenacity 实现指数退避重试策略，根据异常类型决定是否重试：
+        - 可重试异常（网络错误、超时、速率限制、5xx）：按指数退避重试
+        - 不可重试异常（认证错误、权限错误、请求格式错误）：立即抛出
 
         Args:
             prompt_messages: 提示消息列表
@@ -153,7 +185,8 @@ class LLMClient:
             LLM 响应文本
 
         Raises:
-            Exception: 如果所有重试都失败，抛出原始异常
+            LLMRetryableError: 可重试错误耗尽重试次数
+            LLMNonRetryableError: 不可重试错误
         """
         max_attempts = self.config.api.retry.max_attempts
         backoff_factor = self.config.api.retry.backoff_factor
@@ -161,14 +194,34 @@ class LLMClient:
         @retry(
             stop=stop_after_attempt(max_attempts),
             wait=wait_exponential(multiplier=backoff_factor, min=backoff_factor, max=60),
-            retry=retry_if_exception_type((TimeoutError, ConnectionError, Exception)),
+            retry=retry_if_exception_type(RETRYABLE_EXCEPTIONS),
             before_sleep=self._log_retry,
             reraise=True,
         )
         def _invoke() -> str:
-            return self.provider.invoke(prompt_messages)
+            try:
+                return self.provider.invoke(prompt_messages)
+            except NON_RETRYABLE_EXCEPTIONS as exc:
+                logger.error(
+                    "chatroom_analysis_non_retryable_error",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                )
+                raise LLMNonRetryableError(f"LLM 调用失败（不可重试）: {exc}") from exc
 
-        return _invoke()
+        try:
+            return _invoke()
+        except RETRYABLE_EXCEPTIONS as exc:
+            raise LLMRetryableError(f"LLM 调用失败，已重试 {max_attempts} 次: {exc}") from exc
+        except LLMNonRetryableError:
+            raise
+        except Exception as exc:
+            logger.error(
+                "chatroom_analysis_unexpected_error",
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            raise LLMNonRetryableError(f"LLM 调用发生未预期错误: {exc}") from exc
 
     def parse_response(self, response_text: str) -> ChatroomAnalysisResult:
         """解析 LLM 响应

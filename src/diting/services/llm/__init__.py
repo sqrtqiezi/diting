@@ -8,9 +8,17 @@ from diting.services.llm.analysis import (
     ChatroomMessageAnalyzer,
     analyze_chatrooms_from_parquet,
 )
+from diting.services.llm.exceptions import (
+    LLMError,
+    LLMNonRetryableError,
+    LLMRetryableError,
+)
 
 __all__ = [
     "IMAGE_CONTENT_PATTERN",
     "ChatroomMessageAnalyzer",
     "analyze_chatrooms_from_parquet",
+    "LLMError",
+    "LLMRetryableError",
+    "LLMNonRetryableError",
 ]

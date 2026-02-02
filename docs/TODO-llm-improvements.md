@@ -150,29 +150,30 @@ encoding = tiktoken.get_encoding("cl100k_base")
 
 ---
 
-### 6. 细化异常处理
+### 6. ✅ 细化异常处理（已完成）
 
 **优先级**: 中
 **影响范围**: `llm_client.py`
+**完成日期**: 2026-02-02
 
 **问题描述**:
 使用 `except Exception` 过于宽泛，可能掩盖非预期错误。
 
-**当前代码** (`llm_client.py:143`, `llm_client.py:187`):
-```python
-except Exception as exc:  # noqa: BLE001
-```
+**修改内容**:
+- 新增 `exceptions.py` 定义 `LLMError`、`LLMRetryableError`、`LLMNonRetryableError`
+- 修改 `invoke_with_retry` 方法，区分可重试和不可重试异常：
+  - 可重试异常：`APIConnectionError`、`APITimeoutError`、`RateLimitError`、`InternalServerError`
+  - 不可重试异常：`AuthenticationError`、`PermissionDeniedError`、`BadRequestError`、`NotFoundError`
+- 未预期异常立即抛出 `LLMNonRetryableError`，不进行重试
+- 保留异常链（`__cause__`）便于调试
 
-**建议**:
-```python
-from openai import APIError, RateLimitError, APIConnectionError
+**已修改文件**:
+- `src/diting/services/llm/exceptions.py` - 新增异常定义
+- `src/diting/services/llm/llm_client.py:1-45,126-180` - 细化异常处理逻辑
+- `src/diting/services/llm/__init__.py` - 导出异常类
 
-except (APIError, RateLimitError, APIConnectionError) as exc:
-    # 可重试的错误
-except Exception as exc:
-    # 不可重试的错误，立即抛出
-    raise
-```
+**测试覆盖**:
+- `tests/unit/services/llm/test_llm_exceptions.py` - 14 个测试用例覆盖所有异常场景
 
 ---
 
