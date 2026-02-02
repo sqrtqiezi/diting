@@ -3,6 +3,8 @@
 演示如何使用 Protocol 模式进行 Mock 注入测试。
 """
 
+from unittest.mock import MagicMock
+
 import pytest
 from diting.services.llm.config import (
     AnalysisConfig,
@@ -11,7 +13,9 @@ from diting.services.llm.config import (
     ModelParamsConfig,
     RetryConfig,
 )
+from diting.services.llm.exceptions import LLMRetryableError
 from diting.services.llm.llm_client import LLMClient
+from openai import APIConnectionError, APITimeoutError, RateLimitError
 
 
 @pytest.fixture
@@ -63,10 +67,25 @@ class MockLLMProvider:
         return self.response
 
 
+def _make_mock_request() -> MagicMock:
+    """创建模拟的 HTTP 请求对象"""
+    request = MagicMock()
+    request.url = "https://api.test.com/v1/chat/completions"
+    return request
+
+
+def _make_mock_response(status_code: int) -> MagicMock:
+    """创建模拟的 HTTP 响应对象"""
+    response = MagicMock()
+    response.status_code = status_code
+    response.headers = {}
+    return response
+
+
 class FailingThenSucceedingProvider:
     """先失败后成功的 Mock Provider
 
-    用于测试重试逻辑。
+    用于测试重试逻辑。使用 OpenAI 的 APIConnectionError。
     """
 
     def __init__(self, fail_times: int = 2, response: str = "success after retry"):
@@ -78,24 +97,31 @@ class FailingThenSucceedingProvider:
         """模拟 LLM 调用，前 N 次失败"""
         self.call_count += 1
         if self.call_count <= self.fail_times:
-            raise ConnectionError(f"Simulated failure #{self.call_count}")
+            raise APIConnectionError(request=_make_mock_request())
         return self.response
 
 
 class AlwaysFailingProvider:
     """始终失败的 Mock Provider
 
-    用于测试重试耗尽后的异常抛出。
+    用于测试重试耗尽后的异常抛出。支持 OpenAI 异常类型。
     """
 
-    def __init__(self, error_type: type = ConnectionError):
-        self.error_type = error_type
+    def __init__(self, error_factory=None):
+        """初始化
+
+        Args:
+            error_factory: 异常工厂函数，返回要抛出的异常实例
+        """
+        self.error_factory = error_factory or (
+            lambda: APIConnectionError(request=_make_mock_request())
+        )
         self.call_count = 0
 
     def invoke(self, messages: list) -> str:
         """模拟 LLM 调用，始终失败"""
         self.call_count += 1
-        raise self.error_type(f"Simulated failure #{self.call_count}")
+        raise self.error_factory()
 
 
 class TestLLMClientWithMockProvider:
@@ -194,18 +220,20 @@ class TestInvokeWithRetryTenacity:
         assert provider.call_count == 3
 
     def test_retry_exhausted_raises_exception(self, mock_config_with_retry):
-        """测试：达到最大重试次数后抛出异常
+        """测试：达到最大重试次数后抛出 LLMRetryableError
 
         场景：所有重试都失败（max_attempts=3）
-        期望：抛出原始异常，总共调用 3 次
+        期望：抛出 LLMRetryableError，总共调用 3 次
         """
-        provider = AlwaysFailingProvider(error_type=ConnectionError)
+        provider = AlwaysFailingProvider(
+            error_factory=lambda: APIConnectionError(request=_make_mock_request())
+        )
         client = LLMClient(mock_config_with_retry, provider=provider)
 
-        with pytest.raises(ConnectionError) as exc_info:
+        with pytest.raises(LLMRetryableError) as exc_info:
             client.invoke_with_retry([{"role": "user", "content": "test"}])
 
-        assert "Simulated failure" in str(exc_info.value)
+        assert "已重试" in str(exc_info.value)
         assert provider.call_count == 3  # max_attempts = 3
 
     def test_retry_count_matches_config(self):
@@ -225,10 +253,12 @@ class TestInvokeWithRetryTenacity:
             model_params=ModelParamsConfig(),
             analysis=AnalysisConfig(),
         )
-        provider = AlwaysFailingProvider(error_type=TimeoutError)
+        provider = AlwaysFailingProvider(
+            error_factory=lambda: APITimeoutError(request=_make_mock_request())
+        )
         client = LLMClient(config, provider=provider)
 
-        with pytest.raises(TimeoutError):
+        with pytest.raises(LLMRetryableError):
             client.invoke_with_retry([{"role": "user", "content": "test"}])
 
         assert provider.call_count == 5
@@ -248,29 +278,37 @@ class TestInvokeWithRetryTenacity:
         assert provider.call_count == 1
 
     def test_retry_on_timeout_error(self, mock_config_with_retry):
-        """测试：TimeoutError 触发重试
+        """测试：APITimeoutError 触发重试
 
-        场景：抛出 TimeoutError
+        场景：抛出 APITimeoutError
         期望：触发重试机制
         """
-        provider = AlwaysFailingProvider(error_type=TimeoutError)
+        provider = AlwaysFailingProvider(
+            error_factory=lambda: APITimeoutError(request=_make_mock_request())
+        )
         client = LLMClient(mock_config_with_retry, provider=provider)
 
-        with pytest.raises(TimeoutError):
+        with pytest.raises(LLMRetryableError):
             client.invoke_with_retry([{"role": "user", "content": "test"}])
 
         assert provider.call_count == 3
 
-    def test_retry_on_connection_error(self, mock_config_with_retry):
-        """测试：ConnectionError 触发重试
+    def test_retry_on_rate_limit_error(self, mock_config_with_retry):
+        """测试：RateLimitError 触发重试
 
-        场景：抛出 ConnectionError
+        场景：抛出 RateLimitError
         期望：触发重试机制
         """
-        provider = AlwaysFailingProvider(error_type=ConnectionError)
+        provider = AlwaysFailingProvider(
+            error_factory=lambda: RateLimitError(
+                message="Rate limit exceeded",
+                response=_make_mock_response(429),
+                body={"error": {"message": "Rate limit exceeded"}},
+            )
+        )
         client = LLMClient(mock_config_with_retry, provider=provider)
 
-        with pytest.raises(ConnectionError):
+        with pytest.raises(LLMRetryableError):
             client.invoke_with_retry([{"role": "user", "content": "test"}])
 
         assert provider.call_count == 3
