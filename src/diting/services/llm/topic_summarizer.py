@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 
 from diting.models.llm_analysis import TopicClassification
 from diting.services.llm.prompts import get_summary_prompts
