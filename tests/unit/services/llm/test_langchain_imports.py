@@ -9,6 +9,9 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+# 获取项目根目录（从测试文件位置向上 5 级）
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+
 
 def get_imports_from_file(file_path: Path) -> list[tuple[str, str]]:
     """从 Python 文件中提取所有 import 语句
@@ -35,7 +38,7 @@ class TestLangChainImports:
 
     def test_analysis_uses_langchain_core(self) -> None:
         """analysis.py 应使用 langchain_core 而非 langchain"""
-        file_path = Path("src/diting/services/llm/analysis.py")
+        file_path = REPO_ROOT / "src/diting/services/llm/analysis.py"
         imports = get_imports_from_file(file_path)
 
         # 检查是否有 langchain.prompts 导入（不应该有）
@@ -58,7 +61,7 @@ class TestLangChainImports:
 
     def test_topic_summarizer_uses_langchain_core(self) -> None:
         """topic_summarizer.py 应使用 langchain_core 而非 langchain"""
-        file_path = Path("src/diting/services/llm/topic_summarizer.py")
+        file_path = REPO_ROOT / "src/diting/services/llm/topic_summarizer.py"
         imports = get_imports_from_file(file_path)
 
         # 检查是否有 langchain.prompts 导入（不应该有）
