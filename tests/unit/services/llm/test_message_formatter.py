@@ -25,25 +25,6 @@ def mock_config():
         model_params=ModelParamsConfig(),
         analysis=AnalysisConfig(
             max_content_length=100,
-            prompt_version="v1",
-        ),
-    )
-
-
-@pytest.fixture
-def mock_config_v2():
-    """创建 v2 版本测试配置"""
-    return LLMConfig(
-        api=APIConfig(
-            provider="test",
-            base_url="https://api.test.com",
-            api_key="test-key",
-            model="test-model",
-        ),
-        model_params=ModelParamsConfig(),
-        analysis=AnalysisConfig(
-            max_content_length=100,
-            prompt_version="v2",
         ),
     )
 
@@ -132,20 +113,6 @@ class TestMessageFormatter:
 
         assert "..." in result
         assert len(result) < len(long_content) + 50
-
-    def test_v2_format_includes_seq_id(self, mock_config_v2):
-        """测试 v2 格式包含序列 ID"""
-        formatter = MessageFormatter(mock_config_v2)
-
-        message = {
-            "create_time": 1704067200,
-            "chatroom_sender": "user1",
-            "content": "test",
-            "seq_id": 42,
-        }
-        result = formatter.format_message_line(message)
-
-        assert "[42]" in result
 
     def test_handles_missing_sender(self, mock_config):
         """测试处理缺失发送者"""

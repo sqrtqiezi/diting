@@ -1,0 +1,54 @@
+# LLM 配置示例文件
+# 复制为 llm.yaml 并填入实际配置
+
+# LLM API 配置 (用于话题分析)
+api:
+  provider: deepseek
+  base_url: https://api.deepseek.com/v1
+  # api_key: sk-xxx  # 或设置环境变量 DEEPSEEK_API_KEY
+  model: deepseek-chat
+
+# 模型参数
+model_params:
+  temperature: 0.7
+  max_tokens: 2000
+  top_p: 0.95
+
+# 分析任务配置
+analysis:
+  max_content_length: 1000
+  enable_xml_parsing: true
+  enable_refermsg_display: true
+  keyword_merge_threshold: 0.4
+  timezone: Asia/Shanghai
+  enable_image_ocr_display: true
+
+# Embedding 配置 (用于语义聚类)
+embedding:
+  enabled: false  # 设为 true 启用 Embedding 功能
+  provider: openai
+  base_url: https://api.openai.com/v1
+  # api_key: sk-xxx  # 或设置环境变量 OPENAI_API_KEY
+  model: text-embedding-3-small
+  dimension: 1536  # 向量维度，需与模型匹配（OpenAI: 1536, 阿里云 text-embedding-v4: 1024）
+  batch_size: 100  # 批处理大小（阿里云 DashScope 限制最大 10）
+  timeout: 60.0
+
+# 聚类配置
+clustering:
+  min_cluster_size: 5
+  min_samples: 2
+  metric: euclidean
+
+# 话题线程切分配置
+threading:
+  enabled: false  # 设为 true 启用线程切分
+  time_window_minutes: 30
+  similarity_threshold: 0.7
+  reply_boost: 0.1
+  min_thread_size: 3
+
+# 向量存储配置
+vector_store:
+  db_path: data/vectors.duckdb
+  dimension: 1536  # 已废弃，自动使用 embedding.dimension

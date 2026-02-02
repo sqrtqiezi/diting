@@ -12,14 +12,14 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import structlog
-from langchain_core.prompts import ChatPromptTemplate
 
 from diting.config import get_llm_config_path, get_messages_parquet_path
 from diting.models.llm_analysis import ChatroomAnalysisResult, TopicClassification
+from diting.services.llm.cluster_summarizer import ClusterSummarizer
 from diting.services.llm.config import LLMConfig
 from diting.services.llm.debug_writer import DebugWriter
+from diting.services.llm.embedding_pipeline import ClusterResult, EmbeddingClusterPipeline
 from diting.services.llm.llm_client import LLMClient
-from diting.services.llm.message_batcher import MessageBatcher
 from diting.services.llm.message_enricher import enrich_messages_batch
 from diting.services.llm.message_formatter import (
     IMAGE_CONTENT_PATTERN,
@@ -28,10 +28,9 @@ from diting.services.llm.message_formatter import (
     ensure_message_ids,
     load_image_ocr_cache,
 )
-from diting.services.llm.prompts import get_prompts
 from diting.services.llm.time_utils import build_date_range
 from diting.services.llm.topic_merger import TopicMerger
-from diting.services.llm.topic_summarizer import TopicSummarizer
+from diting.services.llm.topic_threader import TopicThreader
 from diting.services.storage.query import query_messages
 
 if TYPE_CHECKING:
@@ -101,24 +100,34 @@ class ChatroomMessageAnalyzer:
         # 初始化子模块
         self._debug_writer = DebugWriter(Path(debug_dir) if debug_dir else None)
         self._formatter = MessageFormatter(config, self._tz)
-        self._batcher = MessageBatcher(
-            max_messages_per_batch=config.analysis.max_messages_per_batch,
-            formatter=self._formatter,
-        )
         self._llm_client = LLMClient(config, seq_to_msg_id=self._seq_to_msg_id)
         self._topic_merger = TopicMerger(config)
-        self._topic_summarizer = TopicSummarizer(
-            llm_client=self._llm_client,
-            formatter=self._formatter,
-            batcher=self._batcher,
-            debug_writer=self._debug_writer,
-        )
 
-        # 初始化提示词
-        system_prompt, user_prompt = get_prompts(config.analysis.prompt_version)
-        self.prompt = ChatPromptTemplate.from_messages(
-            [("system", system_prompt), ("human", user_prompt)]
-        )
+        # 初始化 Embedding 相关组件（如果启用）
+        self._embedding_pipeline: EmbeddingClusterPipeline | None = None
+        self._cluster_summarizer: ClusterSummarizer | None = None
+        if config.embedding.enabled:
+            # 创建向量存储（如果配置了 db_path）
+            vector_store = None
+            if config.vector_store.db_path:
+                from diting.services.llm.vector_store import DuckDBVectorStore
+
+                # 使用 embedding 配置的维度，确保一致性
+                vector_store = DuckDBVectorStore(
+                    db_path=config.vector_store.db_path,
+                    dimension=config.embedding.dimension,
+                )
+            self._embedding_pipeline = EmbeddingClusterPipeline(
+                config=config,
+                vector_store=vector_store,
+            )
+            self._cluster_summarizer = ClusterSummarizer(
+                llm_client=self._llm_client,
+                formatter=self._formatter,
+                debug_writer=self._debug_writer,
+            )
+        else:
+            raise ValueError("Embedding analysis is required. Set embedding.enabled = true.")
 
     def analyze_chatroom(
         self, chatroom_id: str, messages: list[dict[str, Any]], chatroom_name: str = ""
@@ -159,40 +168,31 @@ class ChatroomMessageAnalyzer:
         )
         self._formatter.image_ocr_cache = image_ocr_cache
 
-        message_lookup = {
-            str(message.get("msg_id")): message
-            for message in sorted_messages
-            if message.get("msg_id")
-        }
         overall_date_range = build_date_range(sorted_messages, self._tz)
         overall_total = len(sorted_messages)
 
-        # 分批消息
-        batches = self._batcher.split_messages(sorted_messages)
+        # 设置调试目录
+        self._debug_writer.set_chatroom_dir(chatroom_id)
 
-        if not batches:
+        # 根据配置选择分析流程
+        if not self._embedding_pipeline or not self._cluster_summarizer:
+            raise ValueError("Embedding analysis is not initialized.")
+
+        topics = self._analyze_with_embedding(
+            chatroom_id=chatroom_id,
+            chatroom_name=chatroom_name,
+            date_range=overall_date_range,
+            messages=sorted_messages,
+        )
+
+        if not topics:
             return ChatroomAnalysisResult(
                 chatroom_id=chatroom_id,
                 chatroom_name=chatroom_name,
                 date_range=overall_date_range,
                 total_messages=overall_total,
+                topics=[],
             )
-
-        # 设置调试目录
-        self._debug_writer.set_chatroom_dir(chatroom_id)
-
-        # 分析各批次
-        topics: list[TopicClassification] = []
-        for batch_index, batch in enumerate(batches, start=1):
-            batch_result = self._analyze_batch(
-                chatroom_id=chatroom_id,
-                chatroom_name=chatroom_name,
-                date_range=build_date_range(batch, self._tz),
-                total_messages=len(batch),
-                messages=batch,
-                batch_index=batch_index,
-            )
-            topics.extend(batch_result.topics)
 
         # 合并话题
         topics, merge_logs = self._topic_merger.merge_topics(topics)
@@ -211,15 +211,6 @@ class ChatroomMessageAnalyzer:
                 topics=[],
             )
 
-        # 生成摘要
-        topics = self._topic_summarizer.summarize_topics(
-            chatroom_id=chatroom_id,
-            chatroom_name=chatroom_name,
-            date_range=overall_date_range,
-            topics=topics,
-            message_lookup=message_lookup,
-        )
-
         return ChatroomAnalysisResult(
             chatroom_id=chatroom_id,
             chatroom_name=chatroom_name,
@@ -228,84 +219,71 @@ class ChatroomMessageAnalyzer:
             topics=topics,
         )
 
-    def _analyze_batch(
+    def _analyze_with_embedding(
         self,
         chatroom_id: str,
         chatroom_name: str,
         date_range: str,
-        total_messages: int,
         messages: list[dict[str, Any]],
-        batch_index: int,
-    ) -> ChatroomAnalysisResult:
-        """分析单个批次
+    ) -> list[TopicClassification]:
+        """使用 Embedding 聚类流程分析消息
 
         Args:
             chatroom_id: 群聊 ID
             chatroom_name: 群聊名称
             date_range: 日期范围
-            total_messages: 消息总数
             messages: 消息列表
-            batch_index: 批次索引
 
         Returns:
-            分析结果
+            话题分类列表
         """
-        formatted_messages = "\n".join(
-            self._formatter.format_message_line(message) for message in messages
-        ).strip()
+        if not self._embedding_pipeline or not self._cluster_summarizer:
+            return []
 
-        if self._debug_writer.chatroom_dir:
-            self._debug_writer.write(
-                self._debug_writer.chatroom_dir / f"batch_{batch_index:02d}_input.txt",
-                DebugWriter.render_batch_debug_header(
-                    chatroom_id, chatroom_name, date_range, total_messages
-                )
-                + "\n"
-                + formatted_messages,
-            )
+        logger.info(
+            "embedding_analysis_started",
+            chatroom_id=chatroom_id,
+            total_messages=len(messages),
+        )
 
-        prompt_messages = self.prompt.format_messages(
+        # 1. Embedding 聚类
+        batch = self._embedding_pipeline.prepare_embeddings(chatroom_id, messages)
+        if not batch.message_ids:
+            logger.warning("embedding_analysis_no_embeddings", chatroom_id=chatroom_id)
+            return []
+
+        if self.config.vector_store.db_path:
+            self._embedding_pipeline.persist_embeddings(chatroom_id, batch)
+
+        if self.config.threading.enabled:
+            threader = TopicThreader(self.config.threading, tz=self._tz)
+            thread_batches = threader.split_batch(batch)
+            clusters: list[ClusterResult] = []
+            for thread_batch in thread_batches:
+                clusters.extend(self._embedding_pipeline.cluster_embeddings(thread_batch))
+        else:
+            clusters = self._embedding_pipeline.cluster_embeddings(batch)
+
+        if not clusters:
+            logger.warning("embedding_analysis_no_clusters", chatroom_id=chatroom_id)
+            return []
+
+        # 2. 为聚类生成摘要
+        topics = self._cluster_summarizer.summarize_clusters(
             chatroom_id=chatroom_id,
             chatroom_name=chatroom_name,
             date_range=date_range,
-            total_messages=total_messages,
-            messages=formatted_messages or "（无有效内容）",
+            clusters=clusters,
         )
 
         logger.info(
-            "chatroom_analysis_started",
+            "embedding_analysis_completed",
             chatroom_id=chatroom_id,
-            total_messages=total_messages,
+            cluster_count=len(clusters),
+            topic_count=len(topics),
         )
 
-        response_text = self._llm_client.invoke_with_retry(prompt_messages)
-        if self._debug_writer.chatroom_dir:
-            self._debug_writer.write(
-                self._debug_writer.chatroom_dir / f"batch_{batch_index:02d}_output.txt",
-                response_text,
-            )
-        result = self._llm_client.parse_response(response_text)
-        if self._debug_writer.chatroom_dir:
-            self._debug_writer.write(
-                self._debug_writer.chatroom_dir / f"batch_{batch_index:02d}_topics.txt",
-                DebugWriter.format_topics_for_debug(result.topics),
-            )
-
-        logger.info(
-            "chatroom_analysis_completed",
-            chatroom_id=chatroom_id,
-            topics=len(result.topics),
-        )
-
-        updated = result.model_copy(
-            update={
-                "chatroom_id": chatroom_id,
-                "chatroom_name": chatroom_name,
-                "date_range": date_range,
-                "total_messages": total_messages,
-            }
-        )
-        return cast(ChatroomAnalysisResult, updated)
+        return topics
 
 
 def analyze_chatrooms_from_parquet(

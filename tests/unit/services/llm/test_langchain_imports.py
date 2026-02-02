@@ -36,8 +36,8 @@ def get_imports_from_file(file_path: Path) -> list[tuple[str, str]]:
 class TestLangChainImports:
     """测试 LangChain 导入路径符合 1.x 最佳实践"""
 
-    def test_analysis_uses_langchain_core(self) -> None:
-        """analysis.py 应使用 langchain_core 而非 langchain"""
+    def test_analysis_avoids_langchain_prompts(self) -> None:
+        """analysis.py 不应使用 langchain.prompts"""
         file_path = REPO_ROOT / "src/diting/services/llm/analysis.py"
         imports = get_imports_from_file(file_path)
 
@@ -51,17 +51,9 @@ class TestLangChainImports:
             f"发现: {langchain_prompts}"
         )
 
-        # 检查是否使用了 langchain_core.prompts（应该有）
-        langchain_core_prompts = [
-            (module, name) for module, name in imports if module == "langchain_core.prompts"
-        ]
-        assert any(
-            name == "ChatPromptTemplate" for _, name in langchain_core_prompts
-        ), "analysis.py 应使用 'from langchain_core.prompts import ChatPromptTemplate'"
-
-    def test_topic_summarizer_uses_langchain_core(self) -> None:
-        """topic_summarizer.py 应使用 langchain_core 而非 langchain"""
-        file_path = REPO_ROOT / "src/diting/services/llm/topic_summarizer.py"
+    def test_cluster_summarizer_uses_langchain_core(self) -> None:
+        """cluster_summarizer.py 应使用 langchain_core 而非 langchain"""
+        file_path = REPO_ROOT / "src/diting/services/llm/cluster_summarizer.py"
         imports = get_imports_from_file(file_path)
 
         # 检查是否有 langchain.prompts 导入（不应该有）
@@ -69,7 +61,7 @@ class TestLangChainImports:
             (module, name) for module, name in imports if module == "langchain.prompts"
         ]
         assert langchain_prompts == [], (
-            f"topic_summarizer.py 不应使用 'from langchain.prompts import ...'，"
+            f"cluster_summarizer.py 不应使用 'from langchain.prompts import ...'，"
             f"应改为 'from langchain_core.prompts import ...'\n"
             f"发现: {langchain_prompts}"
         )
@@ -80,7 +72,7 @@ class TestLangChainImports:
         ]
         assert any(
             name == "ChatPromptTemplate" for _, name in langchain_core_prompts
-        ), "topic_summarizer.py 应使用 'from langchain_core.prompts import ChatPromptTemplate'"
+        ), "cluster_summarizer.py 应使用 'from langchain_core.prompts import ChatPromptTemplate'"
 
     def test_chatprompttemplate_functionality(self) -> None:
         """验证 ChatPromptTemplate 从 langchain_core 导入后功能正常"""

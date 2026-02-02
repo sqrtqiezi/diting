@@ -143,7 +143,6 @@ class MessageFormatter:
                 time_str = "unknown-time"
 
         sender = message.get("chatroom_sender") or message.get("from_username") or "unknown"
-        msg_id = message.get("seq_id", "")
         content = message.get("content") or ""
         if pd.isna(content):
             content = ""
@@ -172,8 +171,6 @@ class MessageFormatter:
         max_length = self.config.analysis.max_content_length
         if max_length and len(content) > max_length:
             content = content[:max_length].rstrip() + "..."
-        if self.config.analysis.prompt_version == "v2":
-            return f"[{msg_id}] {time_str} {sender}: {content}"
         return f"{time_str} {sender}: {content}"
 
     def format_message_line_for_summary(self, message: dict[str, Any]) -> str:

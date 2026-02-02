@@ -669,7 +669,7 @@ def _render_markdown_report(results, date: str) -> str:
                         f"💬 {topic.message_count} 👥 {len(participants)}"
                     ),
                     f"🕒 {time_range}",
-                    f"话题摘要: {summary}",
+                    summary,
                 ]
             )
         lines.append("")
