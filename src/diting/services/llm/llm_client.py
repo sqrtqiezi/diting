@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Any, Protocol
 
 import structlog
@@ -59,14 +60,14 @@ class LLMProvider(Protocol):
     定义统一的 LLM 调用接口，便于扩展不同的 LLM 实现。
     """
 
-    def invoke(self, messages: list[Any]) -> str:
+    def invoke(self, messages: list[Any]) -> tuple[str, dict[str, Any]]:
         """调用 LLM 并返回响应文本
 
         Args:
             messages: 提示消息列表
 
         Returns:
-            LLM 响应文本
+            (LLM 响应文本, 元数据字典)
         """
         ...
 
@@ -118,19 +119,36 @@ class LangChainProvider:
                     last_error = exc
         raise last_error or TypeError("Failed to initialize ChatOpenAI")
 
-    def invoke(self, messages: list[Any]) -> str:
+    def invoke(self, messages: list[Any]) -> tuple[str, dict[str, Any]]:
         """调用 LLM
 
         Args:
             messages: 提示消息列表
 
         Returns:
-            LLM 响应文本
+            (LLM 响应文本, 元数据字典)
         """
         response = self.llm.invoke(messages)
-        if hasattr(response, "content"):
-            return str(response.content)
-        return str(response)
+        content = str(response.content) if hasattr(response, "content") else str(response)
+
+        # 提取 token 使用量（如果可用）
+        metadata: dict[str, Any] = {}
+        if hasattr(response, "response_metadata"):
+            resp_meta = response.response_metadata
+            if "token_usage" in resp_meta:
+                usage = resp_meta["token_usage"]
+                metadata["prompt_tokens"] = usage.get("prompt_tokens")
+                metadata["completion_tokens"] = usage.get("completion_tokens")
+                metadata["total_tokens"] = usage.get("total_tokens")
+            elif "usage" in resp_meta:
+                usage = resp_meta["usage"]
+                metadata["prompt_tokens"] = usage.get("prompt_tokens")
+                metadata["completion_tokens"] = usage.get("completion_tokens")
+                metadata["total_tokens"] = usage.get("total_tokens")
+            if "model_name" in resp_meta:
+                metadata["model"] = resp_meta["model_name"]
+
+        return content, metadata
 
 
 class LLMClient:
@@ -190,6 +208,7 @@ class LLMClient:
         """
         max_attempts = self.config.api.retry.max_attempts
         backoff_factor = self.config.api.retry.backoff_factor
+        model_name = self.config.api.model
 
         @retry(
             stop=stop_after_attempt(max_attempts),
@@ -198,28 +217,55 @@ class LLMClient:
             before_sleep=self._log_retry,
             reraise=True,
         )
-        def _invoke() -> str:
+        def _invoke() -> tuple[str, dict[str, Any]]:
             try:
                 return self.provider.invoke(prompt_messages)
             except NON_RETRYABLE_EXCEPTIONS as exc:
                 logger.error(
-                    "chatroom_analysis_non_retryable_error",
+                    "llm_call_non_retryable_error",
                     error=str(exc),
                     error_type=type(exc).__name__,
+                    model=model_name,
                 )
                 raise LLMNonRetryableError(f"LLM 调用失败（不可重试）: {exc}") from exc
 
+        start_time = time.perf_counter()
+        logger.info("llm_call_started", model=model_name)
+
         try:
-            return _invoke()
+            content, metadata = _invoke()
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+
+            logger.info(
+                "llm_call_completed",
+                model=metadata.get("model", model_name),
+                prompt_tokens=metadata.get("prompt_tokens"),
+                completion_tokens=metadata.get("completion_tokens"),
+                total_tokens=metadata.get("total_tokens"),
+                elapsed_ms=round(elapsed_ms, 1),
+            )
+            return content
         except RETRYABLE_EXCEPTIONS as exc:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            logger.error(
+                "llm_call_failed",
+                model=model_name,
+                error=str(exc),
+                error_type=type(exc).__name__,
+                elapsed_ms=round(elapsed_ms, 1),
+                retries_exhausted=True,
+            )
             raise LLMRetryableError(f"LLM 调用失败，已重试 {max_attempts} 次: {exc}") from exc
         except LLMNonRetryableError:
             raise
         except Exception as exc:
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
             logger.error(
-                "chatroom_analysis_unexpected_error",
+                "llm_call_unexpected_error",
+                model=model_name,
                 error=str(exc),
                 error_type=type(exc).__name__,
+                elapsed_ms=round(elapsed_ms, 1),
             )
             raise LLMNonRetryableError(f"LLM 调用发生未预期错误: {exc}") from exc
 

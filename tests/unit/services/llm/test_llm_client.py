@@ -60,11 +60,11 @@ class MockLLMProvider:
         self.call_count = 0
         self.last_messages = None
 
-    def invoke(self, messages: list) -> str:
+    def invoke(self, messages: list) -> tuple[str, dict]:
         """模拟 LLM 调用"""
         self.call_count += 1
         self.last_messages = messages
-        return self.response
+        return self.response, {}
 
 
 def _make_mock_request() -> MagicMock:
@@ -93,12 +93,12 @@ class FailingThenSucceedingProvider:
         self.response = response
         self.call_count = 0
 
-    def invoke(self, messages: list) -> str:
+    def invoke(self, messages: list) -> tuple[str, dict]:
         """模拟 LLM 调用，前 N 次失败"""
         self.call_count += 1
         if self.call_count <= self.fail_times:
             raise APIConnectionError(request=_make_mock_request())
-        return self.response
+        return self.response, {}
 
 
 class AlwaysFailingProvider:
@@ -118,7 +118,7 @@ class AlwaysFailingProvider:
         )
         self.call_count = 0
 
-    def invoke(self, messages: list) -> str:
+    def invoke(self, messages: list) -> tuple[str, dict]:
         """模拟 LLM 调用，始终失败"""
         self.call_count += 1
         raise self.error_factory()
