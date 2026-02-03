@@ -65,9 +65,7 @@ def identify_xml_message_type(xml_str: str) -> XmlMessageType:
 
     # 检查 voicemsg
     if root.find("voicemsg") is not None:
-        return XmlMessageType(
-            category="voicemsg", should_filter=True, filter_reason="voicemsg"
-        )
+        return XmlMessageType(category="voicemsg", should_filter=True, filter_reason="voicemsg")
 
     # 检查 sysmsg
     if root.tag == "sysmsg":
@@ -78,9 +76,7 @@ def identify_xml_message_type(xml_str: str) -> XmlMessageType:
     if op_elem is not None:
         op_name = op_elem.findtext("name", "")
         if op_name == "lastMessage":
-            return XmlMessageType(
-                category="op", should_filter=True, filter_reason="op:lastMessage"
-            )
+            return XmlMessageType(category="op", should_filter=True, filter_reason="op:lastMessage")
         return XmlMessageType(category="op")
 
     # 检查 appmsg
@@ -151,9 +147,7 @@ def parse_appmsg_content(xml_str: str) -> AppmsgContent | None:
         if appmsg_type in ARTICLE_APPMSG_TYPES:
             des = appmsg.findtext("des", "") or None
 
-        return AppmsgContent(
-            appmsg_type=appmsg_type, title=title, refermsg=refermsg, des=des
-        )
+        return AppmsgContent(appmsg_type=appmsg_type, title=title, refermsg=refermsg, des=des)
     except (ET.ParseError, ValueError, TypeError) as exc:
         logger.warning("appmsg_parse_error", error=str(exc))
         return None

@@ -285,9 +285,7 @@ class ChatroomMessageAnalyzer:
             分析结果
         """
         # 格式化消息并过滤空行
-        formatted_lines = [
-            self._formatter.format_message_line(message) for message in messages
-        ]
+        formatted_lines = [self._formatter.format_message_line(message) for message in messages]
         filtered_count = sum(1 for line in formatted_lines if not line)
         formatted_messages = "\n".join(line for line in formatted_lines if line).strip()
 
@@ -324,9 +322,7 @@ class ChatroomMessageAnalyzer:
             else "SYSTEM_PROMPT_V1+USER_PROMPT_V1"
         )
         start_time = time.perf_counter()
-        response_text = self._llm_client.invoke_with_retry(
-            prompt_messages, prompt_name=prompt_name
-        )
+        response_text = self._llm_client.invoke_with_retry(prompt_messages, prompt_name=prompt_name)
         if self._debug_writer.chatroom_dir:
             self._debug_writer.write(
                 self._debug_writer.chatroom_dir / f"batch_{batch_index:02d}_output.txt",

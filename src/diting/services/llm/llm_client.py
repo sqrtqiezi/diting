@@ -189,9 +189,7 @@ class LLMClient:
             retryable=True,
         )
 
-    def invoke_with_retry(
-        self, prompt_messages: list[Any], *, prompt_name: str = "unknown"
-    ) -> str:
+    def invoke_with_retry(self, prompt_messages: list[Any], *, prompt_name: str = "unknown") -> str:
         """带重试的 LLM 调用
 
         使用 tenacity 实现指数退避重试策略，根据异常类型决定是否重试：
