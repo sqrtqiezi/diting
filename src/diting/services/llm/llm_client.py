@@ -97,7 +97,7 @@ class LangChainProvider:
             "model": self.config.api.model,
             "temperature": self.config.model_params.temperature,
             "max_tokens": self.config.model_params.max_tokens,
-            "top_p": self.config.model_params.top_p,
+            "model_kwargs": {"top_p": self.config.model_params.top_p},
         }
         key_candidates: list[dict[str, Any]] = [
             {"api_key": self.config.api.api_key, "base_url": self.config.api.base_url},
@@ -189,7 +189,9 @@ class LLMClient:
             retryable=True,
         )
 
-    def invoke_with_retry(self, prompt_messages: list[Any]) -> str:
+    def invoke_with_retry(
+        self, prompt_messages: list[Any], *, prompt_name: str = "unknown"
+    ) -> str:
         """带重试的 LLM 调用
 
         使用 tenacity 实现指数退避重试策略，根据异常类型决定是否重试：
@@ -198,6 +200,7 @@ class LLMClient:
 
         Args:
             prompt_messages: 提示消息列表
+            prompt_name: 提示词名称（用于日志）
 
         Returns:
             LLM 响应文本
@@ -226,19 +229,20 @@ class LLMClient:
                     error=str(exc),
                     error_type=type(exc).__name__,
                     model=model_name,
+                    prompt=prompt_name,
                 )
                 raise LLMNonRetryableError(f"LLM 调用失败（不可重试）: {exc}") from exc
 
         start_time = time.perf_counter()
-        logger.info("llm_call_started", model=model_name)
 
         try:
             content, metadata = _invoke()
             elapsed_ms = (time.perf_counter() - start_time) * 1000
 
             logger.info(
-                "llm_call_completed",
+                "llm_call",
                 model=metadata.get("model", model_name),
+                prompt=prompt_name,
                 prompt_tokens=metadata.get("prompt_tokens"),
                 completion_tokens=metadata.get("completion_tokens"),
                 total_tokens=metadata.get("total_tokens"),
@@ -250,6 +254,7 @@ class LLMClient:
             logger.error(
                 "llm_call_failed",
                 model=model_name,
+                prompt=prompt_name,
                 error=str(exc),
                 error_type=type(exc).__name__,
                 elapsed_ms=round(elapsed_ms, 1),
@@ -263,6 +268,7 @@ class LLMClient:
             logger.error(
                 "llm_call_unexpected_error",
                 model=model_name,
+                prompt=prompt_name,
                 error=str(exc),
                 error_type=type(exc).__name__,
                 elapsed_ms=round(elapsed_ms, 1),

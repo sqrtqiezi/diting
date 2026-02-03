@@ -2,22 +2,44 @@
 
 from typing import Any
 
-from diting.lib.xml_parser import parse_appmsg_content
+from diting.lib.xml_parser import (
+    REFERMSG_APPMSG_TYPES,
+    identify_xml_message_type,
+    parse_appmsg_content,
+)
 
 
 def enrich_message(message: dict[str, Any]) -> dict[str, Any]:
-    """解析 XML 并添加结构化字段"""
+    """解析 XML 并添加结构化字段
+
+    对于 msg_type=49 的消息:
+    - 识别 XML 消息类型并添加过滤标记
+    - 解析 appmsg 内容并提取结构化字段
+    - 支持 refermsg 提取 (type=57/49/1)
+    - 支持文章分享 des 提取 (type=4/5)
+    """
     if message.get("msg_type") != 49:
         return message
 
-    parsed = parse_appmsg_content(str(message.get("content", "")))
+    content = str(message.get("content", ""))
+
+    # 识别消息类型并添加过滤标记
+    xml_type = identify_xml_message_type(content)
+    if xml_type.should_filter:
+        message["_should_filter"] = True
+        message["_filter_reason"] = xml_type.filter_reason
+        return message
+
+    # 解析 appmsg 内容
+    parsed = parse_appmsg_content(content)
     if parsed is None:
         return message
 
     message["appmsg_type"] = parsed.appmsg_type
     message["appmsg_title"] = parsed.title
 
-    if parsed.appmsg_type == 57 and parsed.refermsg:
+    # 提取 refermsg (type=57/49/1)
+    if parsed.appmsg_type in REFERMSG_APPMSG_TYPES and parsed.refermsg:
         message["refermsg"] = {
             "svrid": parsed.refermsg.svrid,
             "type": parsed.refermsg.type,
@@ -25,6 +47,10 @@ def enrich_message(message: dict[str, Any]) -> dict[str, Any]:
             "displayname": parsed.refermsg.displayname,
             "createtime": parsed.refermsg.createtime,
         }
+
+    # 提取文章分享描述 (type=4/5)
+    if parsed.des:
+        message["appmsg_des"] = parsed.des
 
     return message
 

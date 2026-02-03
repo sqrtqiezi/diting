@@ -284,9 +284,21 @@ class ChatroomMessageAnalyzer:
         Returns:
             分析结果
         """
-        formatted_messages = "\n".join(
+        # 格式化消息并过滤空行
+        formatted_lines = [
             self._formatter.format_message_line(message) for message in messages
-        ).strip()
+        ]
+        filtered_count = sum(1 for line in formatted_lines if not line)
+        formatted_messages = "\n".join(line for line in formatted_lines if line).strip()
+
+        if filtered_count > 0:
+            logger.debug(
+                "batch_messages_filtered",
+                chatroom_id=chatroom_id,
+                batch_index=batch_index,
+                total_messages=total_messages,
+                filtered_count=filtered_count,
+            )
 
         if self._debug_writer.chatroom_dir:
             self._debug_writer.write(
@@ -306,8 +318,15 @@ class ChatroomMessageAnalyzer:
             messages=formatted_messages or "（无有效内容）",
         )
 
+        prompt_name = (
+            "SYSTEM_PROMPT_V2+USER_PROMPT_V2"
+            if self.config.analysis.prompt_version == "v2"
+            else "SYSTEM_PROMPT_V1+USER_PROMPT_V1"
+        )
         start_time = time.perf_counter()
-        response_text = self._llm_client.invoke_with_retry(prompt_messages)
+        response_text = self._llm_client.invoke_with_retry(
+            prompt_messages, prompt_name=prompt_name
+        )
         if self._debug_writer.chatroom_dir:
             self._debug_writer.write(
                 self._debug_writer.chatroom_dir / f"batch_{batch_index:02d}_output.txt",
