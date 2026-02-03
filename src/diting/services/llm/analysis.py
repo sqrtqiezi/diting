@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import math
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 from zoneinfo import ZoneInfo
@@ -195,13 +196,33 @@ class ChatroomMessageAnalyzer:
             topics.extend(batch_result.topics)
 
         # 合并话题
+        logger.info(
+            "topic_merge_started",
+            chatroom_id=chatroom_id,
+            topics_before_merge=len(topics),
+        )
         topics, merge_logs = self._topic_merger.merge_topics(topics)
         self._debug_writer.write_merge_report(merge_logs)
+        logger.info(
+            "topic_merge_completed",
+            chatroom_id=chatroom_id,
+            topics_after_merge=len(topics),
+            merges_performed=len(merge_logs),
+        )
 
         # 过滤低热度话题
+        topics_before_filter = len(topics)
         topics = [
             topic for topic in topics if _topic_popularity(topic) > DEFAULT_POPULARITY_THRESHOLD
         ]
+        logger.info(
+            "topic_filter_completed",
+            chatroom_id=chatroom_id,
+            topics_before_filter=topics_before_filter,
+            topics_after_filter=len(topics),
+            filtered_count=topics_before_filter - len(topics),
+            popularity_threshold=DEFAULT_POPULARITY_THRESHOLD,
+        )
         if not topics:
             return ChatroomAnalysisResult(
                 chatroom_id=chatroom_id,
@@ -212,12 +233,25 @@ class ChatroomMessageAnalyzer:
             )
 
         # 生成摘要
+        logger.info(
+            "topic_summarize_started",
+            chatroom_id=chatroom_id,
+            topics_to_summarize=len(topics),
+        )
+        summary_start_time = time.perf_counter()
         topics = self._topic_summarizer.summarize_topics(
             chatroom_id=chatroom_id,
             chatroom_name=chatroom_name,
             date_range=overall_date_range,
             topics=topics,
             message_lookup=message_lookup,
+        )
+        summary_elapsed_ms = (time.perf_counter() - summary_start_time) * 1000
+        logger.info(
+            "topic_summarize_completed",
+            chatroom_id=chatroom_id,
+            topics_summarized=len(topics),
+            elapsed_ms=round(summary_elapsed_ms, 1),
         )
 
         return ChatroomAnalysisResult(
@@ -250,9 +284,19 @@ class ChatroomMessageAnalyzer:
         Returns:
             分析结果
         """
-        formatted_messages = "\n".join(
-            self._formatter.format_message_line(message) for message in messages
-        ).strip()
+        # 格式化消息并过滤空行
+        formatted_lines = [self._formatter.format_message_line(message) for message in messages]
+        filtered_count = sum(1 for line in formatted_lines if not line)
+        formatted_messages = "\n".join(line for line in formatted_lines if line).strip()
+
+        if filtered_count > 0:
+            logger.debug(
+                "batch_messages_filtered",
+                chatroom_id=chatroom_id,
+                batch_index=batch_index,
+                total_messages=total_messages,
+                filtered_count=filtered_count,
+            )
 
         if self._debug_writer.chatroom_dir:
             self._debug_writer.write(
@@ -272,13 +316,13 @@ class ChatroomMessageAnalyzer:
             messages=formatted_messages or "（无有效内容）",
         )
 
-        logger.info(
-            "chatroom_analysis_started",
-            chatroom_id=chatroom_id,
-            total_messages=total_messages,
+        prompt_name = (
+            "SYSTEM_PROMPT_V2+USER_PROMPT_V2"
+            if self.config.analysis.prompt_version == "v2"
+            else "SYSTEM_PROMPT_V1+USER_PROMPT_V1"
         )
-
-        response_text = self._llm_client.invoke_with_retry(prompt_messages)
+        start_time = time.perf_counter()
+        response_text = self._llm_client.invoke_with_retry(prompt_messages, prompt_name=prompt_name)
         if self._debug_writer.chatroom_dir:
             self._debug_writer.write(
                 self._debug_writer.chatroom_dir / f"batch_{batch_index:02d}_output.txt",
@@ -291,10 +335,14 @@ class ChatroomMessageAnalyzer:
                 DebugWriter.format_topics_for_debug(result.topics),
             )
 
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
         logger.info(
-            "chatroom_analysis_completed",
+            "batch_analysis_completed",
             chatroom_id=chatroom_id,
-            topics=len(result.topics),
+            batch_index=batch_index,
+            total_messages=total_messages,
+            topics_found=len(result.topics),
+            elapsed_ms=round(elapsed_ms, 1),
         )
 
         updated = result.model_copy(

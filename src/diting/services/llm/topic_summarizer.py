@@ -252,7 +252,9 @@ class TopicSummarizer:
             total_messages=len(messages),
             messages=formatted_messages or "（无有效内容）",
         )
-        response_text = self.llm_client.invoke_with_retry(prompt_messages)
+        response_text = self.llm_client.invoke_with_retry(
+            prompt_messages, prompt_name="CHUNK_SUMMARY_SYSTEM_PROMPT+CHUNK_SUMMARY_USER_PROMPT"
+        )
         topic_dicts, _ = parse_topics_from_text(response_text)
         if topic_dicts:
             first = topic_dicts[0]
@@ -302,7 +304,9 @@ class TopicSummarizer:
             chunk_total=len(chunk_summaries),
             chunk_summaries=summary_text,
         )
-        response_text = self.llm_client.invoke_with_retry(prompt_messages)
+        response_text = self.llm_client.invoke_with_retry(
+            prompt_messages, prompt_name="MERGE_SUMMARY_SYSTEM_PROMPT+MERGE_SUMMARY_USER_PROMPT"
+        )
         topic_dicts, _ = parse_topics_from_text(response_text)
         if topic_dicts:
             first = topic_dicts[0]

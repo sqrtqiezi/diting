@@ -611,7 +611,20 @@ def analyze_chatrooms(
         db_manager=db_manager,
     )
 
+    import structlog
+
+    log = structlog.get_logger()
+    total_topics = sum(len(r.topics) for r in results)
+    log.info(
+        "report_render_started",
+        chatrooms_count=len(results),
+        total_topics=total_topics,
+    )
     report = _render_markdown_report(results, date)
+    log.info(
+        "report_render_completed",
+        report_length=len(report),
+    )
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(report, encoding="utf-8")

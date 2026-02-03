@@ -45,14 +45,14 @@ class CustomLLMProvider:
         self.model = model
         self.call_history: list[dict] = []
 
-    def invoke(self, messages: list) -> str:
+    def invoke(self, messages: list) -> tuple[str, dict]:
         """调用自定义 LLM
 
         Args:
             messages: 提示消息列表
 
         Returns:
-            LLM 响应文本
+            (LLM 响应文本, 元数据字典)
         """
         # 记录调用历史（用于测试验证）
         self.call_history.append(
@@ -72,7 +72,7 @@ class CustomLLMProvider:
         # return response.json()["content"][0]["text"]
 
         # 这里返回模拟响应
-        return """<<<TOPIC>>>
+        content = """<<<TOPIC>>>
 title: 模拟话题
 category: 测试
 summary: 这是自定义提供者的响应
@@ -84,6 +84,7 @@ message_indices:
 message_count: 1
 confidence: 0.9
 """
+        return content, {"model": self.model}
 
 
 class TestCustomLLMProvider:
@@ -143,10 +144,10 @@ class EchoProvider:
     简单地返回输入消息，用于调试和测试。
     """
 
-    def invoke(self, messages: list) -> str:
+    def invoke(self, messages: list) -> tuple[str, dict]:
         """回显输入消息"""
         content = messages[-1].get("content", "") if messages else ""
-        return f"Echo: {content}"
+        return f"Echo: {content}", {}
 
 
 class TestEchoProvider:

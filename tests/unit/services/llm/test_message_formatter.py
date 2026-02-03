@@ -204,3 +204,120 @@ class TestMessageFormatterForSummary:
         assert "Summary content" in result
         # 摘要格式不包含 seq_id
         assert "[" not in result or "2024" in result
+
+
+class TestMessageFormatterFiltering:
+    """MessageFormatter 过滤功能测试"""
+
+    def test_should_skip_message_with_filter_flag(self, mock_config):
+        """测试带过滤标记的消息应被跳过"""
+        formatter = MessageFormatter(mock_config)
+        message = {"_should_filter": True, "_filter_reason": "emoji"}
+        assert formatter.should_skip_message(message) is True
+
+    def test_should_not_skip_normal_message(self, mock_config):
+        """测试普通消息不应被跳过"""
+        formatter = MessageFormatter(mock_config)
+        message = {"content": "普通消息"}
+        assert formatter.should_skip_message(message) is False
+
+    def test_format_returns_empty_for_filtered_message(self, mock_config):
+        """测试过滤消息返回空字符串"""
+        formatter = MessageFormatter(mock_config)
+        message = {
+            "create_time": 1704067200,
+            "chatroom_sender": "user1",
+            "content": "被过滤的内容",
+            "_should_filter": True,
+            "_filter_reason": "emoji",
+        }
+        result = formatter.format_message_line(message)
+        assert result == ""
+
+
+class TestMessageFormatterArticleShare:
+    """MessageFormatter 文章分享格式化测试"""
+
+    def test_format_article_type_5(self, mock_config):
+        """测试 type=5 文章分享格式化"""
+        formatter = MessageFormatter(mock_config)
+        message = {
+            "create_time": 1704067200,
+            "chatroom_sender": "user1",
+            "appmsg_type": 5,
+            "appmsg_title": "精彩文章标题",
+            "content": "<xml>...</xml>",
+        }
+        result = formatter.format_message_line(message)
+        assert "[分享] 精彩文章标题" in result
+
+    def test_format_article_type_4(self, mock_config):
+        """测试 type=4 视频分享格式化"""
+        formatter = MessageFormatter(mock_config)
+        message = {
+            "create_time": 1704067200,
+            "chatroom_sender": "user1",
+            "appmsg_type": 4,
+            "appmsg_title": "视频标题",
+            "content": "<xml>...</xml>",
+        }
+        result = formatter.format_message_line(message)
+        assert "[分享] 视频标题" in result
+
+
+class TestMessageFormatterRefermsg:
+    """MessageFormatter 引用消息格式化测试"""
+
+    def test_format_refermsg_type_57(self, mock_config_with_refermsg):
+        """测试 type=57 引用消息格式化"""
+        formatter = MessageFormatter(mock_config_with_refermsg)
+        message = {
+            "create_time": 1704067200,
+            "chatroom_sender": "user1",
+            "appmsg_type": 57,
+            "appmsg_title": "我的回复",
+            "refermsg": {
+                "displayname": "Alice",
+                "content": "原始消息内容",
+            },
+            "content": "<xml>...</xml>",
+        }
+        result = formatter.format_message_line(message)
+        assert "[引用 @Alice:" in result
+        assert "我的回复" in result
+
+    def test_format_refermsg_type_49(self, mock_config_with_refermsg):
+        """测试 type=49 引用消息格式化"""
+        formatter = MessageFormatter(mock_config_with_refermsg)
+        message = {
+            "create_time": 1704067200,
+            "chatroom_sender": "user1",
+            "appmsg_type": 49,
+            "appmsg_title": "转发内容",
+            "refermsg": {
+                "displayname": "Bob",
+                "content": "被引用的消息",
+            },
+            "content": "<xml>...</xml>",
+        }
+        result = formatter.format_message_line(message)
+        assert "[引用 @Bob:" in result
+
+
+@pytest.fixture
+def mock_config_with_refermsg():
+    """创建启用 refermsg 显示的测试配置"""
+    return LLMConfig(
+        api=APIConfig(
+            provider="test",
+            base_url="https://api.test.com",
+            api_key="test-key",
+            model="test-model",
+        ),
+        model_params=ModelParamsConfig(),
+        analysis=AnalysisConfig(
+            max_content_length=100,
+            prompt_version="v1",
+            enable_refermsg_display=True,
+        ),
+    )

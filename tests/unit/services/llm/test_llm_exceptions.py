@@ -54,11 +54,11 @@ class FailingProvider:
         self.fail_count = fail_count
         self.call_count = 0
 
-    def invoke(self, messages: list) -> str:
+    def invoke(self, messages: list) -> tuple[str, dict]:
         self.call_count += 1
         if self.call_count <= self.fail_count:
             raise self.exception
-        return "success"
+        return "success", {}
 
 
 class TestRetryableExceptions:
