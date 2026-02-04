@@ -577,6 +577,12 @@ def download(
     default=None,
     help="DuckDB 数据库路径 (启用图片 OCR 内容替换)",
 )
+@click.option(
+    "--html",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="输出 Observability HTML 页面路径",
+)
 def analyze_chatrooms(
     date: str,
     parquet_root: str | None,
@@ -585,6 +591,7 @@ def analyze_chatrooms(
     debug_dir: Path | None,
     chatroom: tuple[str, ...],
     db_path: Path | None,
+    html: Path | None,
 ):
     """分析群聊消息并输出话题聚合结果"""
     from diting.config import get_llm_config_path, get_messages_parquet_path
@@ -601,7 +608,10 @@ def analyze_chatrooms(
 
         db_manager = DuckDBManager(db_path)
 
-    results = analyze_chatrooms_from_parquet(
+    # 如果指定了 --html，启用 observability 收集
+    enable_observability = html is not None
+
+    results, observability_data = analyze_chatrooms_from_parquet(
         start_date=date,
         end_date=date,
         parquet_root=parquet_root,
@@ -609,6 +619,7 @@ def analyze_chatrooms(
         chatroom_ids=list(chatroom) if chatroom else None,
         debug_dir=str(debug_dir) if debug_dir else None,
         db_manager=db_manager,
+        enable_observability=enable_observability,
     )
 
     import structlog
@@ -631,6 +642,16 @@ def analyze_chatrooms(
         click.echo(f"✓ 已输出 Markdown 报告到 {output}")
     else:
         click.echo(report)
+
+    # 渲染 HTML
+    if html and observability_data:
+        from diting.services.llm.html_renderer import ObservabilityHtmlRenderer
+
+        renderer = ObservabilityHtmlRenderer()
+        html_content = renderer.render_multi(observability_data)
+        html.parent.mkdir(parents=True, exist_ok=True)
+        html.write_text(html_content, encoding="utf-8")
+        click.echo(f"✓ 已输出 Observability HTML 到 {html}")
 
 
 def _topic_popularity(topic) -> float:
@@ -682,7 +703,7 @@ def _render_markdown_report(results, date: str) -> str:
                         f"💬 {topic.message_count} 👥 {len(participants)}"
                     ),
                     f"🕒 {time_range}",
-                    f"话题摘要: {summary}",
+                    f"📝 {summary}",
                 ]
             )
         lines.append("")

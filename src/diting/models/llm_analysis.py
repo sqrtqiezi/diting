@@ -13,7 +13,7 @@ class TopicClassification(BaseModel):
     """单个话题分类结果"""
 
     title: str = Field(..., description="话题标题")
-    category: str = Field(..., description="话题分类: 工作/生活/技术/娱乐/其他")
+    category: str = Field(..., description="话题分类: 时事/投资理财/工作生活/迪子")
     summary: str = Field(..., description="话题摘要")
     time_range: str = Field(..., description="话题时间范围")
     participants: list[str] = Field(default_factory=list, description="参与者列表")
@@ -45,7 +45,7 @@ class ChatroomAnalysisResult(BaseModel):
                 "topics": [
                     {
                         "title": "Python 性能优化讨论",
-                        "category": "技术",
+                        "category": "工作生活",
                         "summary": "讨论了 Python 代码性能优化的多种方法",
                         "time_range": "10:00-12:00",
                         "participants": ["Alice", "Bob", "Charlie"],
