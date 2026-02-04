@@ -456,7 +456,8 @@ class TopicSummarizer:
             content = str(message.get("content") or "")
             appmsg_title = str(message.get("appmsg_title") or "")
             has_dizi = self._contains_dizi_term(content)
-            has_dizi = has_dizi or (appmsg_title and self._contains_dizi_term(appmsg_title))
+            if appmsg_title:
+                has_dizi = has_dizi or self._contains_dizi_term(appmsg_title)
             if has_dizi:
                 dizi_mentions += 1
         total_msgs = max(1, len(messages))
