@@ -150,7 +150,9 @@ def parse_appmsg_content(xml_str: str) -> AppmsgContent | None:
             des = appmsg.findtext("des", "") or None
             url = appmsg.findtext("url", "") or None
 
-        return AppmsgContent(appmsg_type=appmsg_type, title=title, refermsg=refermsg, des=des, url=url)
+        return AppmsgContent(
+            appmsg_type=appmsg_type, title=title, refermsg=refermsg, des=des, url=url
+        )
     except (ET.ParseError, ValueError, TypeError) as exc:
         logger.warning("appmsg_parse_error", error=str(exc))
         return None

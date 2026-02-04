@@ -424,7 +424,9 @@ class TopicSummarizer:
             return "迪子"
         normalized = self._normalize_category(category)
         if normalized == "迪子":
-            return "投资理财" if self._looks_like_investment(keywords, messages, title, summary) else "工作生活"
+            if self._looks_like_investment(keywords, messages, title, summary):
+                return "投资理财"
+            return "工作生活"
         return normalized
 
     def _normalize_category(self, category: str) -> str:
@@ -453,7 +455,9 @@ class TopicSummarizer:
         for message in messages[:200]:
             content = str(message.get("content") or "")
             appmsg_title = str(message.get("appmsg_title") or "")
-            if self._contains_dizi_term(content) or (appmsg_title and self._contains_dizi_term(appmsg_title)):
+            has_dizi = self._contains_dizi_term(content)
+            has_dizi = has_dizi or (appmsg_title and self._contains_dizi_term(appmsg_title))
+            if has_dizi:
                 dizi_mentions += 1
         total_msgs = max(1, len(messages))
         mention_ratio = dizi_mentions / total_msgs
@@ -540,7 +544,10 @@ class TopicSummarizer:
 
         merged_by_date: dict[str, TopicClassification] = {}
         for date_key, group in grouped.items():
-            merged_by_date[date_key] = group[0] if len(group) == 1 else self._merge_dizi_group(group)
+            if len(group) == 1:
+                merged_by_date[date_key] = group[0]
+            else:
+                merged_by_date[date_key] = self._merge_dizi_group(group)
 
         collapsed: list[TopicClassification] = []
         for item in ordered:
