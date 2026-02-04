@@ -52,6 +52,10 @@ def enrich_message(message: dict[str, Any]) -> dict[str, Any]:
     if parsed.des:
         message["appmsg_des"] = parsed.des
 
+    # 提取文章分享链接 (type=4/5)
+    if parsed.url:
+        message["appmsg_url"] = parsed.url
+
     return message
 
 

@@ -38,6 +38,7 @@ from diting.services.storage.query import query_messages
 if TYPE_CHECKING:
     from datetime import tzinfo
 
+    from diting.models.observability import ObservabilityData
     from diting.services.storage.duckdb_manager import DuckDBManager
 
 logger = structlog.get_logger()
@@ -83,6 +84,7 @@ class ChatroomMessageAnalyzer:
         config: LLMConfig,
         debug_dir: Path | None = None,
         db_manager: DuckDBManager | None = None,
+        enable_observability: bool = False,
     ) -> None:
         """初始化分析器
 
@@ -90,10 +92,12 @@ class ChatroomMessageAnalyzer:
             config: LLM 配置
             debug_dir: 调试输出目录
             db_manager: DuckDB 管理器
+            enable_observability: 是否启用 observability 数据收集
         """
         self.config = config
         self._db_manager = db_manager
         self._seq_to_msg_id: dict[int, str] = {}
+        self._enable_observability = enable_observability
 
         # 解析时区配置
         tz_name = config.analysis.timezone
@@ -114,6 +118,17 @@ class ChatroomMessageAnalyzer:
             batcher=self._batcher,
             debug_writer=self._debug_writer,
         )
+
+        # Observability 收集器
+        self._obs_collector = None
+        if enable_observability:
+            from diting.services.llm.observability_collector import ObservabilityCollector
+
+            self._obs_collector = ObservabilityCollector(
+                self._formatter,
+                self._tz,
+                summary_max_tokens=config.analysis.summary_max_tokens,
+            )
 
         # 初始化提示词
         system_prompt, user_prompt = get_prompts(config.analysis.prompt_version)
@@ -160,6 +175,10 @@ class ChatroomMessageAnalyzer:
         )
         self._formatter.image_ocr_cache = image_ocr_cache
 
+        # 设置 observability 收集器的 OCR 缓存
+        if self._obs_collector:
+            self._obs_collector.set_image_ocr_cache(image_ocr_cache)
+
         message_lookup = {
             str(message.get("msg_id")): message
             for message in sorted_messages
@@ -185,6 +204,10 @@ class ChatroomMessageAnalyzer:
         # 分析各批次
         topics: list[TopicClassification] = []
         for batch_index, batch in enumerate(batches, start=1):
+            # 收集 observability 数据
+            if self._obs_collector:
+                self._obs_collector.collect_batch(batch_index, batch)
+
             batch_result = self._analyze_batch(
                 chatroom_id=chatroom_id,
                 chatroom_name=chatroom_name,
@@ -254,6 +277,9 @@ class ChatroomMessageAnalyzer:
             elapsed_ms=round(summary_elapsed_ms, 1),
         )
 
+        # 记录批次数量用于 observability
+        self._last_batch_count = len(batches)
+
         return ChatroomAnalysisResult(
             chatroom_id=chatroom_id,
             chatroom_name=chatroom_name,
@@ -261,6 +287,25 @@ class ChatroomMessageAnalyzer:
             total_messages=overall_total,
             topics=topics,
         )
+
+    def get_observability_data(self, result: ChatroomAnalysisResult) -> ObservabilityData | None:
+        """获取 observability 数据
+
+        Args:
+            result: 群聊分析结果
+
+        Returns:
+            ObservabilityData 对象，如果未启用则返回 None
+        """
+        if not self._obs_collector:
+            return None
+        batch_count = getattr(self, "_last_batch_count", 0)
+        return self._obs_collector.build_full_data(result, batch_count)
+
+    def reset_observability(self) -> None:
+        """重置 observability 收集器状态"""
+        if self._obs_collector:
+            self._obs_collector.reset()
 
     def _analyze_batch(
         self,
@@ -364,7 +409,8 @@ def analyze_chatrooms_from_parquet(
     chatroom_ids: list[str] | None = None,
     debug_dir: str | Path | None = None,
     db_manager: DuckDBManager | None = None,
-) -> list[ChatroomAnalysisResult]:
+    enable_observability: bool = False,
+) -> tuple[list[ChatroomAnalysisResult], list[ObservabilityData]]:
     """从 Parquet 中读取群聊消息并分析
 
     Args:
@@ -375,9 +421,10 @@ def analyze_chatrooms_from_parquet(
         chatroom_ids: 限定的群聊 ID 列表
         debug_dir: 调试输出目录
         db_manager: DuckDB 管理器 (用于图片 OCR 内容替换)
+        enable_observability: 是否启用 observability 数据收集
 
     Returns:
-        群聊分析结果列表
+        元组 (群聊分析结果列表, observability 数据列表)
     """
     if parquet_root is None:
         parquet_root = get_messages_parquet_path()
@@ -389,6 +436,7 @@ def analyze_chatrooms_from_parquet(
         config,
         Path(debug_dir) if debug_dir else None,
         db_manager=db_manager,
+        enable_observability=enable_observability,
     )
 
     df = query_messages(
@@ -410,7 +458,7 @@ def analyze_chatrooms_from_parquet(
 
     if df.empty:
         logger.info("no_chatroom_messages_found")
-        return []
+        return [], []
 
     df = df[df["is_chatroom_msg"] == 1]
     if chatroom_ids:
@@ -418,8 +466,11 @@ def analyze_chatrooms_from_parquet(
         df = df[df["chatroom"].astype(str).isin(chatroom_set)]
         if df.empty:
             logger.info("no_chatroom_messages_found", chatroom_ids=list(chatroom_set))
-            return []
+            return [], []
+
     results: list[ChatroomAnalysisResult] = []
+    observability_data: list[ObservabilityData] = []
+
     for chatroom_id, group in df.groupby("chatroom"):
         if not chatroom_id or (isinstance(chatroom_id, float) and pd.isna(chatroom_id)):
             continue
@@ -429,6 +480,17 @@ def analyze_chatrooms_from_parquet(
         )
         if config.analysis.enable_xml_parsing:
             records = enrich_messages_batch(records)
-        results.append(analyzer.analyze_chatroom(str(chatroom_id), records))
 
-    return results
+        # 重置 observability 收集器
+        analyzer.reset_observability()
+
+        result = analyzer.analyze_chatroom(str(chatroom_id), records)
+        results.append(result)
+
+        # 收集 observability 数据
+        if enable_observability:
+            obs_data = analyzer.get_observability_data(result)
+            if obs_data:
+                observability_data.append(obs_data)
+
+    return results, observability_data

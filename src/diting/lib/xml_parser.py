@@ -40,6 +40,7 @@ class AppmsgContent:
     title: str
     refermsg: ReferMsg | None = None
     des: str | None = None  # 用于 type=5/4 的描述
+    url: str | None = None  # 用于 type=5/4 的原文链接
 
 
 def identify_xml_message_type(xml_str: str) -> XmlMessageType:
@@ -142,12 +143,14 @@ def parse_appmsg_content(xml_str: str) -> AppmsgContent | None:
         if appmsg_type in REFERMSG_APPMSG_TYPES:
             refermsg = _extract_refermsg(appmsg)
 
-        # 提取 des (type=4/5 文章分享)
+        # 提取 des 和 url (type=4/5 文章分享)
         des = None
+        url = None
         if appmsg_type in ARTICLE_APPMSG_TYPES:
             des = appmsg.findtext("des", "") or None
+            url = appmsg.findtext("url", "") or None
 
-        return AppmsgContent(appmsg_type=appmsg_type, title=title, refermsg=refermsg, des=des)
+        return AppmsgContent(appmsg_type=appmsg_type, title=title, refermsg=refermsg, des=des, url=url)
     except (ET.ParseError, ValueError, TypeError) as exc:
         logger.warning("appmsg_parse_error", error=str(exc))
         return None
