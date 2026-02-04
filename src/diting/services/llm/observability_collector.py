@@ -246,9 +246,7 @@ class ObservabilityCollector:
             messages=messages,
         )
 
-    def _compute_chunk_assignments(
-        self, messages: list[dict[str, Any]]
-    ) -> dict[str, int]:
+    def _compute_chunk_assignments(self, messages: list[dict[str, Any]]) -> dict[str, int]:
         """计算消息的 chunk 分配
 
         使用与 TopicSummarizer 相同的逻辑来分配 chunk
