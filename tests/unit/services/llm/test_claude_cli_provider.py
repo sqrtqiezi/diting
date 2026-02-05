@@ -161,6 +161,24 @@ class TestBuildCommand:
             cmd = provider._build_command("test prompt")
             assert "--dangerously-skip-permissions" not in cmd
 
+    def test_build_command_stream_json_adds_verbose(self, mock_config):
+        """测试 stream-json 格式会添加 --verbose 参数"""
+        mock_config.claude_cli.output_format = "stream-json"
+        with patch("shutil.which", return_value="/usr/local/bin/claude"):
+            provider = ClaudeCliProvider(mock_config)
+            cmd = provider._build_command("test prompt")
+            assert "--output-format" in cmd
+            assert "stream-json" in cmd
+            assert "--verbose" in cmd
+
+    def test_build_command_json_no_verbose(self, mock_config):
+        """测试 json 格式不添加 --verbose 参数"""
+        mock_config.claude_cli.output_format = "json"
+        with patch("shutil.which", return_value="/usr/local/bin/claude"):
+            provider = ClaudeCliProvider(mock_config)
+            cmd = provider._build_command("test prompt")
+            assert "--verbose" not in cmd
+
 
 class TestParseJsonOutput:
     """_parse_json_output 方法测试"""

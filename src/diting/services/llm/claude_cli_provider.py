@@ -106,6 +106,10 @@ class ClaudeCliProvider:
             self.cli_config.model,
         ]
 
+        # stream-json 格式需要 --verbose 参数
+        if self.cli_config.output_format == "stream-json":
+            cmd.append("--verbose")
+
         if self.cli_config.dangerously_skip_permissions:
             cmd.append("--dangerously-skip-permissions")
 
