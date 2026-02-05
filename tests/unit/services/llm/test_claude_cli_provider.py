@@ -204,6 +204,32 @@ class TestParseJsonOutput:
             assert metadata["total_tokens"] == 15
             assert metadata["model"] == "claude-sonnet-4-20250514"
 
+    def test_parse_thinking_message(self, mock_config):
+        """测试解析 thinking 类型消息（extended thinking 模式）"""
+        with patch("shutil.which", return_value="/usr/local/bin/claude"):
+            provider = ClaudeCliProvider(mock_config)
+            output = json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "thinking",
+                                "thinking": "<<<TOPIC>>>\ntitle: Test Topic\ncategory: 讨论",
+                                "signature": "",
+                            }
+                        ],
+                        "usage": {"input_tokens": 100, "output_tokens": 50},
+                        "model": "claude-sonnet-4-5-20250929",
+                    },
+                }
+            )
+            content, metadata = provider._parse_json_output(output)
+            assert "<<<TOPIC>>>" in content
+            assert "Test Topic" in content
+            assert metadata["prompt_tokens"] == 100
+            assert metadata["completion_tokens"] == 50
+
     def test_parse_result_message(self, mock_config):
         """测试解析 result 消息"""
         with patch("shutil.which", return_value="/usr/local/bin/claude"):

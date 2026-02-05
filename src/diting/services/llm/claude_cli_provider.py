@@ -159,8 +159,14 @@ class ClaudeCliProvider:
             if msg_type == "assistant":
                 message = data.get("message", {})
                 for block in message.get("content", []):
-                    if block.get("type") == "text":
+                    block_type = block.get("type")
+                    if block_type == "text":
                         content_parts.append(block.get("text", ""))
+                    elif block_type == "thinking":
+                        # Claude extended thinking 模式下，响应在 thinking 字段中
+                        thinking_content = block.get("thinking", "")
+                        if thinking_content:
+                            content_parts.append(thinking_content)
                 usage = message.get("usage", {})
                 total_input_tokens += usage.get("input_tokens", 0)
                 total_output_tokens += usage.get("output_tokens", 0)
