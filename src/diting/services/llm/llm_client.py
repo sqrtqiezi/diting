@@ -72,6 +72,31 @@ class LLMProvider(Protocol):
         ...
 
 
+def create_provider(config: LLMConfig) -> LLMProvider:
+    """创建 LLM 提供者实例
+
+    根据配置中的 provider 类型创建相应的提供者实例。
+
+    Args:
+        config: LLM 配置
+
+    Returns:
+        LLM 提供者实例
+
+    Raises:
+        ValueError: 不支持的 provider 类型
+    """
+    provider_type = config.api.provider.lower()
+
+    if provider_type == "claude-cli":
+        from diting.services.llm.claude_cli_provider import ClaudeCliProvider
+
+        return ClaudeCliProvider(config)
+
+    # deepseek, openai, langchain 等使用 LangChainProvider
+    return LangChainProvider(config)
+
+
 class LangChainProvider:
     """基于 LangChain 的 LLM 提供者实现
 
