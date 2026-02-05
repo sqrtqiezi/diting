@@ -192,11 +192,11 @@ class LLMClient:
 
         Args:
             config: LLM 配置
-            provider: LLM 提供者，如果为 None 则使用默认的 LangChainProvider
+            provider: LLM 提供者，如果为 None 则根据配置自动选择
             seq_to_msg_id: 序列 ID 到消息 ID 的映射
         """
         self.config = config
-        self.provider = provider or LangChainProvider(config)
+        self.provider = provider or create_provider(config)
         self.seq_to_msg_id = seq_to_msg_id or {}
 
     def _log_retry(self, retry_state: RetryCallState) -> None:
