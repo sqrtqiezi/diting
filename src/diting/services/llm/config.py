@@ -67,7 +67,9 @@ class ClaudeCliConfig(BaseModel):
 
     enabled: bool = Field(default=False, description="是否启用 Claude CLI")
     model: str = Field(default="sonnet", description="模型名称 (sonnet/opus/haiku)")
-    output_format: str = Field(default="json", description="输出格式 (text/json/stream-json)")
+    output_format: str = Field(
+        default="stream-json", description="输出格式 (text/json/stream-json)"
+    )
     system_prompt: str | None = Field(default=None, description="系统提示词")
     max_budget_usd: float | None = Field(default=None, ge=0, description="最大预算(美元)")
     dangerously_skip_permissions: bool = Field(default=True, description="跳过权限检查")

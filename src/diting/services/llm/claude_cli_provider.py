@@ -172,6 +172,23 @@ class ClaudeCliProvider:
                 total_output_tokens += usage.get("output_tokens", 0)
                 if data.get("cost_usd"):
                     metadata["cost_usd"] = data["cost_usd"]
+                if data.get("total_cost_usd"):
+                    metadata["cost_usd"] = data["total_cost_usd"]
+
+                # 检查 stop_reason 和错误状态
+                stop_reason = data.get("stop_reason")
+                is_error = data.get("is_error", False)
+                if is_error:
+                    error_subtype = data.get("subtype", "unknown")
+                    raise ClaudeCliError(f"Claude CLI 返回错误状态: subtype={error_subtype}")
+                if not result_text and stop_reason is None:
+                    logger.warning(
+                        "claude_cli_empty_result",
+                        stop_reason=stop_reason,
+                        is_error=is_error,
+                        subtype=data.get("subtype"),
+                        duration_ms=data.get("duration_ms"),
+                    )
 
             elif msg_type == "error":
                 error_msg = data.get("error", {}).get("message", "Unknown error")
