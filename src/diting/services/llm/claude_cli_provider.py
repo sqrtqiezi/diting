@@ -134,15 +134,23 @@ class ClaudeCliProvider:
         total_input_tokens = 0
         total_output_tokens = 0
 
+        logger.debug(
+            "claude_cli_raw_output",
+            stdout_length=len(stdout),
+            stdout_preview=stdout[:500] if stdout else "(empty)",
+        )
+
         for line in stdout.strip().split("\n"):
             if not line.strip():
                 continue
             try:
                 data = json.loads(line)
             except json.JSONDecodeError:
+                logger.debug("claude_cli_skip_non_json_line", line_preview=line[:100])
                 continue
 
             msg_type = data.get("type")
+            logger.debug("claude_cli_parsed_message", msg_type=msg_type, keys=list(data.keys()))
 
             if msg_type == "assistant":
                 message = data.get("message", {})
@@ -169,6 +177,18 @@ class ClaudeCliProvider:
                 error_msg = data.get("error", {}).get("message", "Unknown error")
                 raise ClaudeCliError(f"Claude CLI 返回错误: {error_msg}")
 
+            # 处理 content_block_delta 类型（流式输出）
+            elif msg_type == "content_block_delta":
+                delta = data.get("delta", {})
+                if delta.get("type") == "text_delta":
+                    content_parts.append(delta.get("text", ""))
+
+            # 处理 message_delta 类型（流式输出的 usage）
+            elif msg_type == "message_delta":
+                usage = data.get("usage", {})
+                total_input_tokens += usage.get("input_tokens", 0)
+                total_output_tokens += usage.get("output_tokens", 0)
+
         if total_input_tokens > 0:
             metadata["prompt_tokens"] = total_input_tokens
         if total_output_tokens > 0:
@@ -176,7 +196,12 @@ class ClaudeCliProvider:
         if total_input_tokens > 0 or total_output_tokens > 0:
             metadata["total_tokens"] = total_input_tokens + total_output_tokens
 
-        content = "\n".join(content_parts)
+        content = "".join(content_parts)
+        logger.debug(
+            "claude_cli_parsed_content",
+            content_length=len(content),
+            content_parts_count=len(content_parts),
+        )
         return content, metadata
 
     def _parse_text_output(self, stdout: str) -> tuple[str, dict[str, Any]]:
