@@ -34,6 +34,8 @@ class ObservabilityMessage(BaseModel):
     refers_to_seq_id: int | None = Field(default=None, description="被引用消息的 seq_id")
     # 图片 OCR 内容
     ocr_content: str | None = Field(default=None, description="图片 OCR 识别内容")
+    # 图片 URL（用于预览）
+    image_url: str | None = Field(default=None, description="图片下载 URL")
     # 文章分享链接
     share_url: str | None = Field(default=None, description="文章分享原文链接")
 

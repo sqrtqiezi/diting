@@ -102,6 +102,50 @@ def load_image_ocr_cache(
     return cache
 
 
+def load_image_url_cache(
+    messages: list[dict[str, Any]],
+    db_manager: DuckDBManager | None,
+) -> dict[str, str]:
+    """批量预加载图片下载 URL
+
+    Args:
+        messages: 消息列表
+        db_manager: DuckDB 管理器
+
+    Returns:
+        图片 ID 到下载 URL 的映射
+    """
+    import structlog
+
+    logger = structlog.get_logger()
+
+    if not db_manager:
+        return {}
+
+    image_ids = []
+    for msg in messages:
+        content = str(msg.get("content") or "")
+        match = IMAGE_CONTENT_PATTERN.match(content)
+        if match:
+            image_ids.append(match.group(1))
+
+    if not image_ids:
+        return {}
+
+    cache: dict[str, str] = {}
+    for image_id in image_ids:
+        record = db_manager.get_image_by_id(image_id)
+        if record and record.get("download_url"):
+            cache[image_id] = record["download_url"]
+
+    logger.debug(
+        "image_url_cache_loaded",
+        total_images=len(image_ids),
+        cached_count=len(cache),
+    )
+    return cache
+
+
 class MessageFormatter:
     """消息格式化器
 
