@@ -5,7 +5,6 @@ import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from diting.services.llm.claude_cli_provider import ClaudeCliProvider
 from diting.services.llm.config import (
     AnalysisConfig,
@@ -411,9 +410,11 @@ class TestInvoke:
             mock_result.stdout = ""
             mock_result.stderr = "Authentication failed"
 
-            with patch("subprocess.run", return_value=mock_result):
-                with pytest.raises(LLMNonRetryableError):
-                    provider.invoke([{"role": "user", "content": "Hi"}])
+            with (
+                patch("subprocess.run", return_value=mock_result),
+                pytest.raises(LLMNonRetryableError),
+            ):
+                provider.invoke([{"role": "user", "content": "Hi"}])
 
     def test_invoke_empty_response_raises_error(self, mock_config):
         """测试空响应抛出错误"""

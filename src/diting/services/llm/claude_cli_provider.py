@@ -316,7 +316,8 @@ class ClaudeCliProvider:
                     check=False,
                 )
             except subprocess.TimeoutExpired as exc:
-                raise LLMRetryableError(f"Claude CLI 执行超时 ({self.cli_config.timeout}s)") from exc
+                timeout = self.cli_config.timeout
+                raise LLMRetryableError(f"Claude CLI 执行超时 ({timeout}s)") from exc
             except OSError as exc:
                 raise LLMRetryableError(f"Claude CLI 执行失败: {exc}") from exc
 
