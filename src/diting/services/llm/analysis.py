@@ -28,6 +28,7 @@ from diting.services.llm.message_formatter import (
     assign_sequence_ids,
     ensure_message_ids,
     load_image_ocr_cache,
+    load_image_ocr_status_cache,
     load_image_url_cache,
 )
 from diting.services.llm.prompts import get_prompts
@@ -180,6 +181,13 @@ class ChatroomMessageAnalyzer:
         # 设置 observability 收集器的 OCR 缓存
         if self._obs_collector:
             self._obs_collector.set_image_ocr_cache(image_ocr_cache)
+            # 加载图片 OCR 状态缓存（包含 has_text）
+            image_ocr_status_cache = load_image_ocr_status_cache(
+                sorted_messages,
+                self._db_manager,
+                self.config.analysis.enable_image_ocr_display,
+            )
+            self._obs_collector.set_image_ocr_status_cache(image_ocr_status_cache)
             # 加载图片 URL 缓存用于预览
             image_url_cache = load_image_url_cache(sorted_messages, self._db_manager)
             self._obs_collector.set_image_url_cache(image_url_cache)

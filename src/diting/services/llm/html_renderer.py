@@ -211,7 +211,9 @@ class ObservabilityHtmlRenderer:
                         "batch_index": msg.batch_index,
                         "refers_to_seq_id": msg.refers_to_seq_id,
                         "ocr_content": msg.ocr_content,
+                        "has_text": msg.has_text,
                         "image_url": msg.image_url,
+                        "image_status": msg.image_status,
                         "share_url": msg.share_url,
                     }
                     for msg in topic.messages
@@ -247,7 +249,9 @@ class ObservabilityHtmlRenderer:
                             "batch_index": msg.batch_index,
                             "refers_to_seq_id": msg.refers_to_seq_id,
                             "ocr_content": msg.ocr_content,
+                            "has_text": msg.has_text,
                             "image_url": msg.image_url,
+                            "image_status": msg.image_status,
                             "share_url": msg.share_url,
                         }
                         for msg in topic.messages
@@ -569,6 +573,18 @@ body {
     border-left: 2px solid #2196f3;
 }
 
+.ocr-content.ocr-empty {
+    background: #f5f5f5;
+    color: #888;
+    border-left-color: #bdbdbd;
+}
+
+.ocr-content.ocr-failed {
+    background: #fff3e0;
+    color: #e65100;
+    border-left-color: #ff9800;
+}
+
 .highlight {
     animation: highlight-pulse 1s ease-out;
 }
@@ -689,11 +705,19 @@ function showTopic(topicKey) {
                     `target="_blank" class="share-link">🔗 原文</a>`;
             }
 
-            // 图片 OCR 内容
+            // 图片状态显示
             let ocrBlock = '';
-            if (msg.message_type === 'image' && msg.ocr_content) {
-                ocrBlock = `<div class="ocr-content">` +
-                    `📝 OCR: ${escapeHtml(msg.ocr_content)}</div>`;
+            if (msg.message_type === 'image') {
+                if (msg.image_status === 'failed') {
+                    ocrBlock = `<div class="ocr-content ocr-failed">` +
+                        `⚠️ 图片下载失败</div>`;
+                } else if (msg.has_text === true && msg.ocr_content) {
+                    ocrBlock = `<div class="ocr-content">` +
+                        `📝 OCR: ${escapeHtml(msg.ocr_content)}</div>`;
+                } else if (msg.has_text === false) {
+                    ocrBlock = `<div class="ocr-content ocr-empty">` +
+                        `📝 OCR: 无文字</div>`;
+                }
             }
 
             html += `

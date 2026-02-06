@@ -72,6 +72,16 @@ def get_llm_config_path() -> Path:
     return project_root / "config" / "llm.yaml"
 
 
+def get_images_db_path() -> Path:
+    """获取图片元数据数据库路径
+
+    Returns:
+        图片数据库路径 (data/metadata/images.duckdb)
+    """
+    base_path = get_data_base_path()
+    return base_path / "metadata" / "images.duckdb"
+
+
 def get_deepseek_api_key() -> str:
     """
     获取 DeepSeek API Key

@@ -102,6 +102,55 @@ def load_image_ocr_cache(
     return cache
 
 
+def load_image_ocr_status_cache(
+    messages: list[dict[str, Any]],
+    db_manager: DuckDBManager | None,
+    enable_ocr: bool,
+) -> dict[str, tuple[str | None, bool | None, str | None]]:
+    """批量预加载图片 OCR 状态（包含 has_text 和 status）
+
+    Args:
+        messages: 消息列表
+        db_manager: DuckDB 管理器
+        enable_ocr: 是否启用 OCR 显示
+
+    Returns:
+        图片 ID 到 (ocr_content, has_text, status) 元组的映射
+    """
+    import structlog
+
+    logger = structlog.get_logger()
+
+    if not db_manager or not enable_ocr:
+        return {}
+
+    image_ids = []
+    for msg in messages:
+        content = str(msg.get("content") or "")
+        match = IMAGE_CONTENT_PATTERN.match(content)
+        if match:
+            image_ids.append(match.group(1))
+
+    if not image_ids:
+        return {}
+
+    cache: dict[str, tuple[str | None, bool | None, str | None]] = {}
+    for image_id in image_ids:
+        record = db_manager.get_image_by_id(image_id)
+        if record:
+            ocr_content = record.get("ocr_content")
+            has_text = record.get("has_text")
+            status = record.get("status")
+            cache[image_id] = (ocr_content, has_text, status)
+
+    logger.debug(
+        "image_ocr_status_cache_loaded",
+        total_images=len(image_ids),
+        cached_count=len(cache),
+    )
+    return cache
+
+
 def load_image_url_cache(
     messages: list[dict[str, Any]],
     db_manager: DuckDBManager | None,
@@ -212,13 +261,11 @@ class MessageFormatter:
             content = ""
         content = str(content).strip()
 
-        # 图片 OCR 内容替换
+        # 图片内容：只显示 [图片]，OCR 内容由 HTML 渲染器单独显示
         if self.config.analysis.enable_image_ocr_display:
             match = IMAGE_CONTENT_PATTERN.match(content)
             if match:
-                image_id = match.group(1)
-                ocr_content = self.image_ocr_cache.get(image_id)
-                content = f"[图片文字: {ocr_content}]" if ocr_content else "[图片]"
+                content = "[图片]"
 
         content = content.replace("\n", " ")
 
