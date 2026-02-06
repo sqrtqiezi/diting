@@ -608,6 +608,14 @@ def analyze_chatrooms(
 
         db_manager = DuckDBManager(db_path)
 
+    # 清空 debug 目录
+    if debug_dir:
+        import shutil
+
+        if debug_dir.exists():
+            shutil.rmtree(debug_dir)
+        debug_dir.mkdir(parents=True, exist_ok=True)
+
     # 如果指定了 --html，启用 observability 收集
     enable_observability = html is not None
 
