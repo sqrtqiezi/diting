@@ -45,6 +45,7 @@ class AnalysisConfig(BaseModel):
     """分析任务配置"""
 
     max_messages_per_batch: int | None = Field(default=None, ge=1, description="单次输入最大消息数")
+    max_input_tokens: int | None = Field(default=None, ge=1, description="单次输入最大 Token 数")
     max_content_length: int | None = Field(default=None, ge=1, description="单条消息最大长度")
     enable_xml_parsing: bool = Field(default=True, description="启用引用消息解析")
     enable_refermsg_display: bool = Field(default=True, description="提示词中展示引用消息")
@@ -77,6 +78,16 @@ class ClaudeCliConfig(BaseModel):
     cli_path: str | None = Field(default=None, description="CLI 路径，None 则使用 PATH")
 
 
+class CodexCliConfig(BaseModel):
+    """Codex CLI 配置"""
+
+    enabled: bool = Field(default=False, description="是否启用 Codex CLI")
+    model: str | None = Field(default=None, description="模型名称，None 使用 CLI 默认")
+    output_schema: str | None = Field(default=None, description="输出 JSON Schema 路径")
+    timeout: int = Field(default=300, ge=1, le=3600, description="超时时间(秒)")
+    cli_path: str | None = Field(default=None, description="CLI 路径，None 则使用 PATH")
+
+
 class LLMConfig(BaseModel):
     """LLM 配置"""
 
@@ -84,6 +95,7 @@ class LLMConfig(BaseModel):
     model_params: ModelParamsConfig = Field(default_factory=ModelParamsConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
     claude_cli: ClaudeCliConfig = Field(default_factory=ClaudeCliConfig)
+    codex_cli: CodexCliConfig = Field(default_factory=CodexCliConfig)
 
     model_config = {"extra": "ignore"}
 
@@ -99,9 +111,9 @@ class LLMConfig(BaseModel):
         except yaml.YAMLError as e:
             raise ValueError(f"无效的 YAML 格式: {e}") from e
 
-        # claude-cli provider 不需要 API key
+        # CLI provider 不需要 API key
         provider = config_data.get("api", {}).get("provider", "deepseek").lower()
-        if provider == "claude-cli":
+        if provider in {"claude-cli", "codex-cli"}:
             # 设置占位符以通过验证
             config_data.setdefault("api", {}).setdefault("api_key", "claude-cli-no-key")
             return cls(**config_data)

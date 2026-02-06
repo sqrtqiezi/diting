@@ -137,6 +137,7 @@ class ClaudeCliProvider:
         metadata: dict[str, Any] = {}
         total_input_tokens = 0
         total_output_tokens = 0
+        empty_result_with_null_stop = False
 
         logger.debug(
             "claude_cli_raw_output",
@@ -192,6 +193,7 @@ class ClaudeCliProvider:
                     error_subtype = data.get("subtype", "unknown")
                     raise ClaudeCliError(f"Claude CLI 返回错误状态: subtype={error_subtype}")
                 if not result_text and stop_reason is None:
+                    empty_result_with_null_stop = True
                     logger.warning(
                         "claude_cli_empty_result",
                         stop_reason=stop_reason,
@@ -216,6 +218,8 @@ class ClaudeCliProvider:
                 total_input_tokens += usage.get("input_tokens", 0)
                 total_output_tokens += usage.get("output_tokens", 0)
 
+        if empty_result_with_null_stop:
+            metadata["empty_result_with_null_stop"] = True
         if total_input_tokens > 0:
             metadata["prompt_tokens"] = total_input_tokens
         if total_output_tokens > 0:
@@ -298,29 +302,47 @@ class ClaudeCliProvider:
             prompt_length=len(prompt),
         )
 
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=self.cli_config.timeout,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise LLMRetryableError(f"Claude CLI 执行超时 ({self.cli_config.timeout}s)") from exc
-        except OSError as exc:
-            raise LLMRetryableError(f"Claude CLI 执行失败: {exc}") from exc
+        max_empty_result_retries = 3
+        attempt = 0
 
-        if result.returncode != 0:
-            self._classify_error(result.stderr, result.returncode)
+        while True:
+            attempt += 1
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.cli_config.timeout,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise LLMRetryableError(f"Claude CLI 执行超时 ({self.cli_config.timeout}s)") from exc
+            except OSError as exc:
+                raise LLMRetryableError(f"Claude CLI 执行失败: {exc}") from exc
 
-        if self.cli_config.output_format == "json":
-            content, metadata = self._parse_json_output(result.stdout)
-        else:
-            content, metadata = self._parse_text_output(result.stdout)
+            if result.returncode != 0:
+                self._classify_error(result.stderr, result.returncode)
 
-        if not content:
-            raise ClaudeCliError("Claude CLI 返回空响应")
+            if self.cli_config.output_format == "json":
+                content, metadata = self._parse_json_output(result.stdout)
+            else:
+                content, metadata = self._parse_text_output(result.stdout)
+
+            empty_retryable = bool(metadata.pop("empty_result_with_null_stop", False))
+            if not content and empty_retryable:
+                if attempt < max_empty_result_retries:
+                    logger.warning(
+                        "claude_cli_empty_result_retry",
+                        attempt=attempt,
+                        max_attempts=max_empty_result_retries,
+                    )
+                    continue
+                raise ClaudeCliError("Claude CLI 连续返回空响应")
+
+            if not content:
+                raise ClaudeCliError("Claude CLI 返回空响应")
+
+            break
 
         logger.debug(
             "claude_cli_response",

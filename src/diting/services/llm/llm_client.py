@@ -92,6 +92,10 @@ def create_provider(config: LLMConfig) -> LLMProvider:
         from diting.services.llm.claude_cli_provider import ClaudeCliProvider
 
         return ClaudeCliProvider(config)
+    if provider_type == "codex-cli":
+        from diting.services.llm.codex_cli_provider import CodexCliProvider
+
+        return CodexCliProvider(config)
 
     # deepseek, openai, langchain 等使用 LangChainProvider
     return LangChainProvider(config)

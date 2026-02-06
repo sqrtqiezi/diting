@@ -49,3 +49,15 @@ class ClaudeCliError(LLMError):
     """
 
     pass
+
+
+class CodexCliError(LLMError):
+    """Codex CLI 特定错误
+
+    包括：
+    - CLI 未找到
+    - CLI 执行失败
+    - 输出解析错误
+    """
+
+    pass
