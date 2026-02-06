@@ -72,6 +72,35 @@ class LLMProvider(Protocol):
         ...
 
 
+def create_provider(config: LLMConfig) -> LLMProvider:
+    """创建 LLM 提供者实例
+
+    根据配置中的 provider 类型创建相应的提供者实例。
+
+    Args:
+        config: LLM 配置
+
+    Returns:
+        LLM 提供者实例
+
+    Raises:
+        ValueError: 不支持的 provider 类型
+    """
+    provider_type = config.api.provider.lower()
+
+    if provider_type == "claude-cli":
+        from diting.services.llm.claude_cli_provider import ClaudeCliProvider
+
+        return ClaudeCliProvider(config)
+    if provider_type == "codex-cli":
+        from diting.services.llm.codex_cli_provider import CodexCliProvider
+
+        return CodexCliProvider(config)
+
+    # deepseek, openai, langchain 等使用 LangChainProvider
+    return LangChainProvider(config)
+
+
 class LangChainProvider:
     """基于 LangChain 的 LLM 提供者实现
 
@@ -167,11 +196,11 @@ class LLMClient:
 
         Args:
             config: LLM 配置
-            provider: LLM 提供者，如果为 None 则使用默认的 LangChainProvider
+            provider: LLM 提供者，如果为 None 则根据配置自动选择
             seq_to_msg_id: 序列 ID 到消息 ID 的映射
         """
         self.config = config
-        self.provider = provider or LangChainProvider(config)
+        self.provider = provider or create_provider(config)
         self.seq_to_msg_id = seq_to_msg_id or {}
 
     def _log_retry(self, retry_state: RetryCallState) -> None:

@@ -20,7 +20,7 @@ from diting.models.llm_analysis import ChatroomAnalysisResult, TopicClassificati
 from diting.services.llm.config import LLMConfig
 from diting.services.llm.debug_writer import DebugWriter
 from diting.services.llm.llm_client import LLMClient
-from diting.services.llm.message_batcher import MessageBatcher
+from diting.services.llm.message_batcher import DEFAULT_MAX_INPUT_TOKENS, MessageBatcher
 from diting.services.llm.message_enricher import enrich_messages_batch
 from diting.services.llm.message_formatter import (
     IMAGE_CONTENT_PATTERN,
@@ -109,6 +109,7 @@ class ChatroomMessageAnalyzer:
         self._formatter = MessageFormatter(config, self._tz)
         self._batcher = MessageBatcher(
             max_messages_per_batch=config.analysis.max_messages_per_batch,
+            max_tokens=config.analysis.max_input_tokens or DEFAULT_MAX_INPUT_TOKENS,
             formatter=self._formatter,
         )
         self._llm_client = LLMClient(config, seq_to_msg_id=self._seq_to_msg_id)
@@ -404,6 +405,25 @@ class ChatroomMessageAnalyzer:
         )
         return cast(ChatroomAnalysisResult, updated)
 
+    def verify_codex_cli_availability(self) -> None:
+        """使用简短提示词验证 Codex CLI 可用性"""
+        if self.config.api.provider.lower() != "codex-cli":
+            return
+        logger.info("codex_cli_health_check_start")
+        probe_messages = [
+            {
+                "content": "Reply with OK.",
+            }
+        ]
+        response = self._llm_client.invoke_with_retry(
+            probe_messages,
+            prompt_name="CODEX_CLI_HEALTH_CHECK",
+        )
+        logger.info(
+            "codex_cli_health_check_completed",
+            response_preview=response[:50],
+        )
+
 
 def analyze_chatrooms_from_parquet(
     start_date: str,
@@ -442,6 +462,7 @@ def analyze_chatrooms_from_parquet(
         db_manager=db_manager,
         enable_observability=enable_observability,
     )
+    analyzer.verify_codex_cli_availability()
 
     df = query_messages(
         start_date=start_date,
