@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from diting.endpoints.wechat.config import OSSConfig
+from diting.endpoints.wechat.config import AliyunConfig, OSSConfig
 from diting.services.oss.uploader import OSSUploader
 
 
@@ -51,13 +51,11 @@ def test_upload_file_public_builds_expected_url(monkeypatch: pytest.MonkeyPatch,
     cfg = OSSConfig(
         endpoint="oss-cn-test.aliyuncs.com",
         bucket="my-bucket",
-        access_key_id="ak_test",
-        access_key_secret="sk_test",
         prefix="pfx",
         public_base_url=None,
     )
 
-    uploader = OSSUploader(cfg)
+    uploader = OSSUploader(cfg, aliyun=AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test"))
     key, url = uploader.upload_file_public(p)
 
     assert key == "pfx/20990101/deadbeef_a.txt"
@@ -93,13 +91,11 @@ def test_public_base_url_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
     cfg = OSSConfig(
         endpoint="https://oss-cn-test.aliyuncs.com",
         bucket="my-bucket",
-        access_key_id="ak_test",
-        access_key_secret="sk_test",
         prefix="p",
         public_base_url="https://cdn.example.com/base/",
     )
 
-    uploader = OSSUploader(cfg)
+    uploader = OSSUploader(cfg, aliyun=AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test"))
     key, url = uploader.upload_file_public(p)
 
     assert key == "p/20990102/t_b.bin"
@@ -133,15 +129,13 @@ def test_upload_file_signed_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     cfg = OSSConfig(
         endpoint="oss-cn-test.aliyuncs.com",
         bucket="my-bucket",
-        access_key_id="ak_test",
-        access_key_secret="sk_test",
         prefix="p",
         url_mode="signed",
         signed_url_expires=300,
         public_base_url=None,
     )
 
-    uploader = OSSUploader(cfg)
+    uploader = OSSUploader(cfg, aliyun=AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test"))
     key, url = uploader.upload_file(p)
 
     assert key == "p/20990103/beef_c.pdf"
