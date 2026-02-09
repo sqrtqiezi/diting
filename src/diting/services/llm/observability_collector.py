@@ -35,6 +35,8 @@ class ObservabilityCollector:
         formatter: MessageFormatter,
         tz: tzinfo | None,
         image_ocr_cache: dict[str, str] | None = None,
+        image_url_cache: dict[str, str] | None = None,
+        image_ocr_status_cache: dict[str, tuple[str | None, bool | None, str | None]] | None = None,
         summary_max_tokens: int | None = None,
     ) -> None:
         """初始化收集器
@@ -43,11 +45,15 @@ class ObservabilityCollector:
             formatter: 消息格式化器
             tz: 时区
             image_ocr_cache: 图片 OCR 缓存
+            image_url_cache: 图片 URL 缓存
+            image_ocr_status_cache: 图片 OCR 状态缓存 (image_id -> (ocr_content, has_text, status))
             summary_max_tokens: 摘要生成时每个 chunk 的最大 token 数
         """
         self._formatter = formatter
         self._tz = tz
         self._image_ocr_cache = image_ocr_cache or {}
+        self._image_url_cache = image_url_cache or {}
+        self._image_ocr_status_cache = image_ocr_status_cache or {}
         self._summary_max_tokens = summary_max_tokens
         self._messages: dict[str, ObservabilityMessage] = {}
         self._msg_id_to_seq_id: dict[str, int] = {}
@@ -123,13 +129,22 @@ class ObservabilityCollector:
                 # 尝试查找被引用消息的 seq_id
                 refers_to_seq_id = self._msg_id_to_seq_id.get(str(svrid))
 
-        # 图片 OCR 内容
+        # 图片 OCR 内容、has_text、status 和 URL
         ocr_content = None
+        has_text = None
+        image_url = None
+        image_status = None
         if message_type == MessageTypeEnum.IMAGE:
             match = IMAGE_CONTENT_PATTERN.match(content)
             if match:
                 image_id = match.group(1)
-                ocr_content = self._image_ocr_cache.get(image_id)
+                # 优先从 status cache 获取（包含 has_text 和 status）
+                if image_id in self._image_ocr_status_cache:
+                    ocr_content, has_text, image_status = self._image_ocr_status_cache[image_id]
+                else:
+                    # 回退到旧的 ocr cache
+                    ocr_content = self._image_ocr_cache.get(image_id)
+                image_url = self._image_url_cache.get(image_id)
 
         # 文章分享链接
         share_url = msg.get("appmsg_url")
@@ -147,6 +162,9 @@ class ObservabilityCollector:
             refermsg=refermsg if isinstance(refermsg, dict) else None,
             refers_to_seq_id=refers_to_seq_id,
             ocr_content=ocr_content,
+            has_text=has_text,
+            image_url=image_url,
+            image_status=image_status,
             share_url=share_url,
         )
 
@@ -343,3 +361,21 @@ class ObservabilityCollector:
             cache: 图片 ID 到 OCR 内容的映射
         """
         self._image_ocr_cache = cache
+
+    def set_image_url_cache(self, cache: dict[str, str]) -> None:
+        """设置图片 URL 缓存
+
+        Args:
+            cache: 图片 ID 到下载 URL 的映射
+        """
+        self._image_url_cache = cache
+
+    def set_image_ocr_status_cache(
+        self, cache: dict[str, tuple[str | None, bool | None, str | None]]
+    ) -> None:
+        """设置图片 OCR 状态缓存
+
+        Args:
+            cache: 图片 ID 到 (ocr_content, has_text, status) 元组的映射
+        """
+        self._image_ocr_status_cache = cache

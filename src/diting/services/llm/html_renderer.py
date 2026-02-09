@@ -211,6 +211,9 @@ class ObservabilityHtmlRenderer:
                         "batch_index": msg.batch_index,
                         "refers_to_seq_id": msg.refers_to_seq_id,
                         "ocr_content": msg.ocr_content,
+                        "has_text": msg.has_text,
+                        "image_url": msg.image_url,
+                        "image_status": msg.image_status,
                         "share_url": msg.share_url,
                     }
                     for msg in topic.messages
@@ -246,6 +249,9 @@ class ObservabilityHtmlRenderer:
                             "batch_index": msg.batch_index,
                             "refers_to_seq_id": msg.refers_to_seq_id,
                             "ocr_content": msg.ocr_content,
+                            "has_text": msg.has_text,
+                            "image_url": msg.image_url,
+                            "image_status": msg.image_status,
                             "share_url": msg.share_url,
                         }
                         for msg in topic.messages
@@ -567,6 +573,18 @@ body {
     border-left: 2px solid #2196f3;
 }
 
+.ocr-content.ocr-empty {
+    background: #f5f5f5;
+    color: #888;
+    border-left-color: #bdbdbd;
+}
+
+.ocr-content.ocr-failed {
+    background: #fff3e0;
+    color: #e65100;
+    border-left-color: #ff9800;
+}
+
 .highlight {
     animation: highlight-pulse 1s ease-out;
 }
@@ -574,6 +592,35 @@ body {
 @keyframes highlight-pulse {
     0% { background-color: #ffeb3b; }
     100% { background-color: inherit; }
+}
+
+/* 图片预览样式 */
+.image-preview-trigger {
+    cursor: pointer;
+    position: relative;
+    display: inline-block;
+}
+
+.image-preview-container {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.image-preview-container.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.image-preview-container img {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: white;
 }
 
 /* 响应式 */
@@ -637,7 +684,7 @@ function showTopic(topicKey) {
             `📦 Chunk ${batchIndex} (${messages.length} 条消息)</div>`;
 
         messages.forEach(msg => {
-            const typeIcon = getTypeIcon(msg.message_type);
+            const typeIcon = getTypeIcon(msg.message_type, msg.image_url);
             const refLink = msg.refers_to_seq_id
                 ? `<span class="reference-link" ` +
                   `onclick="scrollToMessage(${msg.refers_to_seq_id})">` +
@@ -658,11 +705,19 @@ function showTopic(topicKey) {
                     `target="_blank" class="share-link">🔗 原文</a>`;
             }
 
-            // 图片 OCR 内容
+            // 图片状态显示
             let ocrBlock = '';
-            if (msg.message_type === 'image' && msg.ocr_content) {
-                ocrBlock = `<div class="ocr-content">` +
-                    `📝 OCR: ${escapeHtml(msg.ocr_content)}</div>`;
+            if (msg.message_type === 'image') {
+                if (msg.image_status === 'failed') {
+                    ocrBlock = `<div class="ocr-content ocr-failed">` +
+                        `⚠️ 图片下载失败</div>`;
+                } else if (msg.has_text === true && msg.ocr_content) {
+                    ocrBlock = `<div class="ocr-content">` +
+                        `📝 OCR: ${escapeHtml(msg.ocr_content)}</div>`;
+                } else if (msg.has_text === false) {
+                    ocrBlock = `<div class="ocr-content ocr-empty">` +
+                        `📝 OCR: 无文字</div>`;
+                }
             }
 
             html += `
@@ -686,7 +741,7 @@ function showTopic(topicKey) {
     document.getElementById('message-detail').innerHTML = html;
 }
 
-function getTypeIcon(type) {
+function getTypeIcon(type, imageUrl) {
     const icons = {
         'text': '',
         'image': '🖼️',
@@ -694,7 +749,13 @@ function getTypeIcon(type) {
         'share': '📄',
         'filtered': '⊘'
     };
-    return icons[type] || '';
+    const icon = icons[type] || '';
+    // 图片类型且有 URL 时，添加预览触发器
+    if (type === 'image' && imageUrl) {
+        return `<span class="image-preview-trigger" ` +
+            `data-image-url="${escapeHtml(imageUrl)}">${icon}</span>`;
+    }
+    return icon;
 }
 
 function scrollToMessage(seqId) {
@@ -711,4 +772,79 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// 图片预览容器（全局单例）
+let imagePreviewContainer = null;
+
+function initImagePreview() {
+    // 创建预览容器
+    imagePreviewContainer = document.createElement('div');
+    imagePreviewContainer.className = 'image-preview-container';
+    imagePreviewContainer.innerHTML = '<img src="" alt="预览">';
+    document.body.appendChild(imagePreviewContainer);
+}
+
+// 图片预览的鼠标事件处理
+function setupImagePreviewEvents() {
+    const previewImg = imagePreviewContainer.querySelector('img');
+
+    // 使用事件委托，因为消息是动态渲染的
+    document.addEventListener('mouseover', function(event) {
+        const trigger = event.target.closest('.image-preview-trigger');
+        if (!trigger) return;
+
+        const imageUrl = trigger.dataset.imageUrl;
+        if (!imageUrl) return;
+
+        // 设置图片 URL
+        previewImg.src = imageUrl;
+
+        // 计算预览位置（显示在鼠标左侧）
+        const previewWidth = 320; // 预览容器宽度 + padding
+        const gap = 15; // 与鼠标的间距
+
+        let left = event.clientX - previewWidth - gap;
+        let top = event.clientY - 50;
+
+        // 边界检查：如果左侧空间不足，显示在右侧
+        if (left < 10) {
+            left = event.clientX + gap;
+        }
+
+        // 边界检查：确保不超出视口底部
+        const viewportHeight = window.innerHeight;
+        if (top + 320 > viewportHeight) {
+            top = viewportHeight - 330;
+        }
+        if (top < 10) {
+            top = 10;
+        }
+
+        imagePreviewContainer.style.left = left + 'px';
+        imagePreviewContainer.style.top = top + 'px';
+
+        // 显示预览（触发滑动动画）
+        imagePreviewContainer.classList.add('visible');
+    });
+
+    document.addEventListener('mouseout', function(event) {
+        const trigger = event.target.closest('.image-preview-trigger');
+        if (!trigger) return;
+
+        // 检查是否移动到了预览容器内（不应该隐藏）
+        const relatedTarget = event.relatedTarget;
+        if (relatedTarget && imagePreviewContainer.contains(relatedTarget)) {
+            return;
+        }
+
+        // 隐藏预览
+        imagePreviewContainer.classList.remove('visible');
+    });
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    initImagePreview();
+    setupImagePreviewEvents();
+});
 """

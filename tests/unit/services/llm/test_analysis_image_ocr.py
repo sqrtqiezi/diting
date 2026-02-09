@@ -145,7 +145,7 @@ class TestFormatMessageLineImageOcr:
     """MessageFormatter.format_message_line 图片 OCR 替换测试"""
 
     def test_replaces_image_with_ocr_content(self, mock_config, mock_db_manager):
-        """测试替换图片为 OCR 内容"""
+        """测试图片消息显示为 [图片] 占位符（OCR 内容由 HTML 渲染器单独显示）"""
         formatter = MessageFormatter(
             mock_config,
             tz=None,
@@ -159,7 +159,9 @@ class TestFormatMessageLineImageOcr:
         }
         result = formatter.format_message_line(message)
 
-        assert "[图片文字: 这是图片中的文字]" in result
+        # display_content 只显示 [图片]，OCR 内容由 HTML 渲染器单独显示
+        assert "[图片]" in result
+        assert "image#abc123" not in result
 
     def test_replaces_image_without_ocr_as_placeholder(self, mock_config, mock_db_manager):
         """测试无 OCR 内容时显示占位符"""

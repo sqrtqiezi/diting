@@ -603,10 +603,17 @@ def analyze_chatrooms(
         config = get_llm_config_path()
 
     db_manager = None
+    if db_path is None:
+        from diting.config import get_images_db_path
+
+        db_path = get_images_db_path()
     if db_path and db_path.exists():
         from diting.services.storage.duckdb_manager import DuckDBManager
 
         db_manager = DuckDBManager(db_path)
+        import structlog
+
+        structlog.get_logger().info("images_db_loaded", db_path=str(db_path))
 
     # 清空 debug 目录
     if debug_dir:
