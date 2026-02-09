@@ -4,7 +4,7 @@
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -65,6 +65,16 @@ class OSSConfig(BaseModel):
     access_key_id: str = Field(..., description="AccessKey ID")
     access_key_secret: str = Field(..., description="AccessKey Secret")
     prefix: str = Field(default="diting/wechat-send", description="对象 Key 前缀")
+    url_mode: Literal["public", "signed"] = Field(
+        default="public",
+        description="外链模式: public=public-read 直链; signed=预签名 URL（对象保持私有）",
+    )
+    signed_url_expires: int = Field(
+        default=300,
+        ge=30,
+        le=24 * 3600,
+        description="signed URL 有效期（秒），默认 300 秒",
+    )
     public_base_url: str | None = Field(
         default=None,
         description="可选：外链 URL 基础地址（默认使用 https://{bucket}.{endpoint}）",

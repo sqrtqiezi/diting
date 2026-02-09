@@ -96,6 +96,18 @@ def _parse_upload_response(resp: object) -> dict:
     help="上传类型: 小程序封面图=>1, 图片=>2, 视频=>4, 文件&GIF=>5",
 )
 @click.option(
+    "--oss-url-mode",
+    type=click.Choice(["public", "signed"], case_sensitive=False),
+    default=None,
+    help="覆盖 OSS 外链模式: public 或 signed（默认从配置读取）",
+)
+@click.option(
+    "--signed-url-expires",
+    type=int,
+    default=None,
+    help="覆盖 signed URL 有效期（秒），例如 300（默认从配置读取）",
+)
+@click.option(
     "--json-only",
     "-j",
     is_flag=True,
@@ -108,6 +120,8 @@ def send_file(
     to_username: str,
     file_path: Path,
     file_type: int,
+    oss_url_mode: str | None,
+    signed_url_expires: int | None,
     json_only: bool,
 ) -> None:
     """发送文件消息（OSS 外链 -> /cloud/upload -> /msg/send_file）"""
@@ -137,8 +151,11 @@ def send_file(
         click.secho("☁️  正在上传到 OSS...", fg="blue")
 
     try:
+        if signed_url_expires is not None:
+            wechat_config.oss.signed_url_expires = signed_url_expires
+
         uploader = OSSUploader(wechat_config.oss)
-        object_key, public_url = uploader.upload_file_public(file_path)
+        object_key, public_url = uploader.upload_file(file_path, url_mode=oss_url_mode)
 
         if not json_only:
             click.secho("✅ OSS 上传完成", fg="green")
