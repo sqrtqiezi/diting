@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 import secrets
 from pathlib import Path
 
@@ -12,7 +13,15 @@ from diting.endpoints.wechat.config import OSSConfig
 class OSSUploader:
     def __init__(self, config: OSSConfig):
         self.config = config
-        auth = oss2.Auth(config.access_key_id, config.access_key_secret)
+        ak = (config.access_key_id or "").strip() or os.environ.get("ALIYUN_ACCESS_KEY_ID", "").strip()
+        sk = (config.access_key_secret or "").strip() or os.environ.get("ALIYUN_ACCESS_KEY_SECRET", "").strip()
+        if not ak or not sk:
+            raise ValueError(
+                "未配置阿里云 AccessKey。请在 config/wechat.yaml 的 oss.access_key_id/oss.access_key_secret 配置，"
+                "或设置环境变量 ALIYUN_ACCESS_KEY_ID/ALIYUN_ACCESS_KEY_SECRET。"
+            )
+
+        auth = oss2.Auth(ak, sk)
         self.bucket = oss2.Bucket(auth, config.endpoint, config.bucket)
 
         if config.public_base_url:
