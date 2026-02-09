@@ -4,6 +4,7 @@
 """
 
 import time
+from json import JSONDecodeError
 from typing import Any
 
 import httpx
@@ -61,14 +62,14 @@ class WeChatHTTPClient:
         self._client.close()
         logger.info("http_client_closed")
 
-    def send_request(self, request: APIRequest) -> dict[str, Any]:
+    def send_request(self, request: APIRequest) -> Any:
         """发送标准 API 请求
 
         Args:
             request: API 请求对象
 
         Returns:
-            dict[str, Any]: 响应 JSON 数据
+            Any: 响应 JSON 数据（可能是 dict / list / str / None）
 
         Raises:
             WeChatAPIError: HTTP 请求失败
@@ -92,7 +93,12 @@ class WeChatHTTPClient:
                 self._log_error(request, response_time_ms, str(error))
                 raise error
 
-            response_data: dict[str, Any] = response.json()
+            try:
+                response_data: Any = response.json()
+            except JSONDecodeError:
+                # 部分接口会返回空 body（或非 JSON 文本）；这里做兼容处理。
+                text = response.text.strip()
+                response_data = text if text else None
             self._log_response(request, response.status_code, response_data, response_time_ms)
 
             return response_data
@@ -106,7 +112,7 @@ class WeChatHTTPClient:
             self._log_error(request, response_time_ms, str(e))
             raise error from e
 
-    def send_cloud_request(self, path: str, data: dict[str, Any]) -> dict[str, Any]:
+    def send_cloud_request(self, path: str, data: dict[str, Any]) -> Any:
         """发送 Cloud API 请求
 
         Cloud API 使用不同的调用方式：直接 POST JSON body
@@ -116,7 +122,7 @@ class WeChatHTTPClient:
             data: 请求数据
 
         Returns:
-            dict[str, Any]: 响应 JSON 数据
+            Any: 响应 JSON 数据（可能是 dict / list / str / None）
 
         Raises:
             WeChatAPIError: HTTP 请求失败
@@ -147,7 +153,11 @@ class WeChatHTTPClient:
                     status_code=response.status_code,
                 )
 
-            response_data: dict[str, Any] = response.json()
+            try:
+                response_data: Any = response.json()
+            except JSONDecodeError:
+                text = response.text.strip()
+                response_data = text if text else None
 
             logger.info(
                 "cloud_api_response_received",
@@ -188,15 +198,23 @@ class WeChatHTTPClient:
         self,
         request: APIRequest,
         status_code: int,
-        response_data: dict[str, Any],
+        response_data: Any,
         response_time_ms: int,
     ) -> None:
         """记录响应日志"""
+        # 一些接口会返回 `null` 或 `"string"`，不能假设一定是 dict。
+        if isinstance(response_data, dict):
+            safe_response: dict[str, Any] = sanitize_dict(
+                response_data, pii_fields={"wechat_id", "nickname"}
+            )
+        else:
+            safe_response = {"_raw": response_data}
+
         request_log = RequestLog(
             endpoint=request.path,
             request_params=sanitize_dict(request.to_json()),
             response_status=status_code,
-            response_data=sanitize_dict(response_data, pii_fields={"wechat_id", "nickname"}),
+            response_data=safe_response,
             response_time_ms=response_time_ms,
         )
 

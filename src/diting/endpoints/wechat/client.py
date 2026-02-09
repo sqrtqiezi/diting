@@ -200,6 +200,93 @@ class WeChatAPIClient(EndpointAdapter):
         result: dict[str, Any] = self._http_client.send_request(request)
         return result
 
+    def send_text(self, guid: str, to_username: str, content: str) -> Any:
+        """发送文本消息
+
+        Args:
+            guid: 设备 GUID
+            to_username: 接收方 username（好友或群）
+            content: 文本内容
+        """
+        request = self._build_request(
+            path="/msg/send_text",
+            data={"guid": guid, "to_username": to_username, "content": content},
+        )
+        return self._http_client.send_request(request)
+
+    def cloud_cdn_upload(self, guid: str, file_type: int, url: str) -> Any:
+        """上传图片/视频/文件到微信 CDN（Cloud API）
+
+        对应接口: POST /cloud/cdn_upload
+
+        Args:
+            guid: 设备 GUID
+            file_type: 小程序封面图=>1, 图片=>2, 视频=>4, 文件&GIF=>5
+            url: 外链 URL
+        """
+        return self._http_client.send_cloud_request(
+            path="/cloud/cdn_upload",
+            data={"guid": guid, "file_type": file_type, "url": url},
+        )
+
+    def cloud_upload(self, guid: str, file_type: int, url: str) -> Any:
+        """文件上传（Cloud API）
+
+        对应接口: POST /cloud/upload
+        需要先调用 /cdn/get_cdn_info 获取 base_request。
+
+        Args:
+            guid: 设备 GUID
+            file_type: 文件类型（参考协议文档）
+            url: 外链 URL
+        """
+        base_request = self._get_cloud_base_request(guid)
+        return self._http_client.send_cloud_request(
+            path="/cloud/upload",
+            data={"base_request": base_request, "file_type": file_type, "url": url},
+        )
+
+    def send_file(
+        self,
+        guid: str,
+        to_username: str,
+        file_id: str,
+        aes_key: str,
+        file_size: int,
+        file_md5: str,
+        file_name: str,
+        file_crc: int,
+        file_key: str = "",
+    ) -> Any:
+        """发送文件消息
+
+        Args:
+            guid: 设备 GUID
+            to_username: 接收方 username（好友或群）
+            file_id: 文件 ID（由上传接口返回）
+            aes_key: AES Key（由上传接口返回）
+            file_size: 文件大小（字节）
+            file_md5: 文件 MD5（hex）
+            file_name: 文件名
+            file_crc: 文件 CRC32（无符号 int）
+            file_key: file_key（部分上传场景可能返回；无则传空串）
+        """
+        request = self._build_request(
+            path="/msg/send_file",
+            data={
+                "guid": guid,
+                "to_username": to_username,
+                "file_id": file_id,
+                "aes_key": aes_key,
+                "file_size": file_size,
+                "file_md5": file_md5,
+                "file_name": file_name,
+                "file_crc": file_crc,
+                "file_key": file_key,
+            },
+        )
+        return self._http_client.send_request(request)
+
     def download(
         self,
         guid: str,
@@ -225,20 +312,7 @@ class WeChatAPIClient(EndpointAdapter):
         Raises:
             WeChatAPIError: API 调用失败
         """
-        cdn_info_response = self.get_cdn_info(guid)
-        if cdn_info_response.get("errcode") != 0:
-            raise BusinessError(
-                message=cdn_info_response.get("errmsg") or "获取 CDN 信息失败",
-                error_code=cdn_info_response.get("errcode", -1),
-            )
-
-        cdn_data = cdn_info_response.get("data", {})
-        base_request = {
-            "cdn_info": cdn_data.get("cdn_info", ""),
-            "client_version": cdn_data.get("client_version", 0),
-            "device_type": cdn_data.get("device_type", ""),
-            "username": cdn_data.get("username", ""),
-        }
+        base_request = self._get_cloud_base_request(guid)
 
         result: dict[str, Any] = self._http_client.send_cloud_request(
             path="/cloud/download",
@@ -251,6 +325,22 @@ class WeChatAPIClient(EndpointAdapter):
             },
         )
         return result
+
+    def _get_cloud_base_request(self, guid: str) -> dict[str, Any]:
+        cdn_info_response = self.get_cdn_info(guid)
+        if cdn_info_response.get("errcode") != 0:
+            raise BusinessError(
+                message=cdn_info_response.get("errmsg") or "获取 CDN 信息失败",
+                error_code=cdn_info_response.get("errcode", -1),
+            )
+
+        cdn_data = cdn_info_response.get("data", {})
+        return {
+            "cdn_info": cdn_data.get("cdn_info", ""),
+            "client_version": cdn_data.get("client_version", 0),
+            "device_type": cdn_data.get("device_type", ""),
+            "username": cdn_data.get("username", ""),
+        }
 
     # ========== 向后兼容的内部方法 ==========
 
