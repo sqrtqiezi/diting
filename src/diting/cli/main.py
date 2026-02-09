@@ -20,6 +20,7 @@ import structlog
 import uvicorn
 
 from diting.cli.storage import storage
+from diting.cli.send import send
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.webhook_config import WebhookConfig
@@ -46,6 +47,8 @@ def cli():
 
 # 注册 storage 子命令组
 cli.add_command(storage)
+# 注册 send 子命令组
+cli.add_command(send)
 
 
 @cli.command(name="get-profile")

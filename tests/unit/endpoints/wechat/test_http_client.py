@@ -44,7 +44,7 @@ def sample_request() -> APIRequest:
         app_key="test_app_key_12345",
         app_secret="test_app_secret_1234567890",
         path="/user/get_profile",
-        data={"guid": "12345678-1234-1234-1234-123456789abc"},
+        data={"guid": "test_guid_123"},
     )
 
 
@@ -64,6 +64,19 @@ class TestSendRequest:
 
         assert response["err_code"] == 0
         assert response["data"]["user"] == "test"
+
+    def test_send_request_null_json_does_not_crash(
+        self,
+        http_client: WeChatHTTPClient,
+        sample_request: APIRequest,
+        httpx_mock: HTTPXMock,
+    ):
+        """部分接口可能返回 JSON null，日志与返回都不应崩溃"""
+        httpx_mock.add_response(json=None)
+
+        response = http_client.send_request(sample_request)
+
+        assert response is None
 
     def test_send_request_401_raises_authentication_error(
         self,
@@ -137,6 +150,22 @@ class TestSendCloudRequest:
 
         assert response["errcode"] == 0
         assert "url" in response["data"]
+
+    def test_send_cloud_request_string_json_does_not_crash(
+        self, http_client: WeChatHTTPClient, httpx_mock: HTTPXMock
+    ):
+        """cloud 接口可能返回 JSON 字符串"""
+        httpx_mock.add_response(
+            url="https://cloud.example.com/cloud/download",
+            json="ok",
+        )
+
+        response = http_client.send_cloud_request(
+            path="/cloud/download",
+            data={"file_id": "abc123"},
+        )
+
+        assert response == "ok"
 
     def test_send_cloud_request_error_raises_wechat_api_error(
         self, http_client: WeChatHTTPClient, httpx_mock: HTTPXMock

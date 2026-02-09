@@ -19,10 +19,11 @@ def test_config():
     return WeChatConfig(
         api=APIConfig(
             base_url="https://chat-api.juhebot.com/open/GuidRequest",
+            cloud_base_url="https://cloud.example.com",
             app_key="test_app_key_12345",
             app_secret="test_app_secret_1234567890",
         ),
-        devices=[{"guid": "12345678-1234-1234-1234-123456789abc", "name": "测试设备"}],
+        devices=[{"guid": "test_guid_123", "name": "测试设备"}],
     )
 
 
@@ -45,12 +46,12 @@ class TestWeChatAPIClient:
     def test_build_request(self, client):
         """测试构建请求"""
         request = client._build_request(
-            path="/user/get_info", data={"guid": "12345678-1234-1234-1234-123456789abc"}
+            path="/user/get_info", data={"guid": "test_guid_123"}
         )
 
         assert isinstance(request, APIRequest)
         assert request.path == "/user/get_info"
-        assert request.data["guid"] == "12345678-1234-1234-1234-123456789abc"
+        assert request.data["guid"] == "test_guid_123"
         assert request.app_key == "test_app_key_12345"
 
     def test_parse_success_response(self, client):
@@ -95,11 +96,54 @@ class TestWeChatAPIClient:
             }
         )
 
-        user_info = client.get_user_info("12345678-1234-1234-1234-123456789abc")
+        user_info = client.get_user_info("test_guid_123")
 
         assert isinstance(user_info, UserInfo)
         assert user_info.wechat_id == "test_user_123"
         assert user_info.nickname == "测试用户"
+
+    def test_send_text_builds_expected_request(self, client, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(json=None)
+
+        res = client.send_text(
+            guid="test_guid_123",
+            to_username="wxid_test",
+            content="hello",
+        )
+
+        assert res is None
+
+    def test_cloud_cdn_upload(self, client, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(
+            url="https://cloud.example.com/cloud/cdn_upload",
+            json={"file_id": "fid", "aes_key": "key", "file_key": "fkey"},
+        )
+
+        res = client.cloud_cdn_upload(
+            guid="test_guid_123",
+            file_type=5,
+            url="https://example.com/a.txt",
+        )
+
+        assert isinstance(res, dict)
+        assert res["file_id"] == "fid"
+
+    def test_send_file_builds_expected_request(self, client, httpx_mock: HTTPXMock):
+        httpx_mock.add_response(json=None)
+
+        res = client.send_file(
+            guid="test_guid_123",
+            to_username="wxid_test",
+            file_id="fid",
+            aes_key="akey",
+            file_size=123,
+            file_md5="d41d8cd98f00b204e9800998ecf8427e",
+            file_name="a.txt",
+            file_crc=0,
+            file_key="",
+        )
+
+        assert res is None
 
     def test_get_user_info_business_error(self, client, httpx_mock: HTTPXMock):
         """测试获取用户信息业务错误"""
