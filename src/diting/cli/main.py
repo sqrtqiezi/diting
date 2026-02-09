@@ -544,6 +544,11 @@ def download(
     help="分析日期 (YYYY-MM-DD)",
 )
 @click.option(
+    "--title",
+    default=None,
+    help="分析报告标题 (支持 emoji, 默认: 群聊消息分析报告)",
+)
+@click.option(
     "--parquet-root",
     default=None,
     help="Parquet 根目录 (默认从配置读取)",
@@ -588,6 +593,7 @@ def download(
 )
 def analyze_chatrooms(
     date: str,
+    title: str | None,
     parquet_root: str | None,
     config: Path | None,
     output: Path | None,
@@ -649,7 +655,7 @@ def analyze_chatrooms(
         chatrooms_count=len(results),
         total_topics=total_topics,
     )
-    report = _render_markdown_report(results, date)
+    report = _render_markdown_report(results, date, title=title)
     log.info(
         "report_render_completed",
         report_length=len(report),
@@ -683,9 +689,15 @@ def _topic_popularity(topic) -> float:
     return float(math.log(1 + u_count) ** 1.2 * math.log(1 + m_count) ** 0.8 * (1 / (penalty**0.4)))
 
 
-def _render_markdown_report(results, date: str) -> str:
+def _render_markdown_report(results, date: str, title: str | None = None) -> str:
+    if title is None:
+        title = "群聊消息分析报告"
+    else:
+        # Keep emoji/unicode; prevent accidental newlines from breaking Markdown layout.
+        title = " ".join(str(title).splitlines()).strip() or "群聊消息分析报告"
+
     lines = [
-        "# 群聊消息分析报告",
+        f"# {title}",
         "",
         f"- 日期: {date}",
         "",
