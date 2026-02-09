@@ -1200,6 +1200,14 @@ def download_images(
 
 @cli.command(name="process-ocr")
 @click.option(
+    "--config",
+    "-c",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("config/wechat.yaml"),
+    show_default=True,
+    help="微信配置文件路径（用于读取 aliyun.access_key_*；未提供或文件不存在则回退环境变量）",
+)
+@click.option(
     "--db-path",
     type=click.Path(dir_okay=False, path_type=Path),
     default=Path("data/metadata/images.duckdb"),
@@ -1211,15 +1219,18 @@ def download_images(
     default=30,
     help="每分钟最大处理次数 (默认: 30)",
 )
-def process_ocr(db_path: Path, rate_limit: int):
+def process_ocr(config: Path, db_path: Path, rate_limit: int):
     """处理图片 OCR 识别
 
     从 images 表读取已下载但未 OCR 处理的图片，
     调用阿里云 OCR API 进行识别。
 
-    需要设置环境变量:
-        ALIYUN_ACCESS_KEY_ID
-        ALIYUN_ACCESS_KEY_SECRET
+    优先从配置文件读取:
+        aliyun.access_key_id
+        aliyun.access_key_secret
+
+    兼容回退到环境变量:
+        ALIYUN_ACCESS_KEY_ID / ALIYUN_ACCESS_KEY_SECRET
 
     示例:
         diting process-ocr
@@ -1229,16 +1240,34 @@ def process_ocr(db_path: Path, rate_limit: int):
     import signal
     import time
 
+    from diting.endpoints.wechat.config import WeChatConfig
     from diting.services.storage.duckdb_manager import DuckDBManager
     from diting.services.storage.image_ocr_processor import ImageOCRProcessor
 
-    # 检查环境变量
-    access_key_id = os.environ.get("ALIYUN_ACCESS_KEY_ID")
-    access_key_secret = os.environ.get("ALIYUN_ACCESS_KEY_SECRET")
+    access_key_id: str | None = None
+    access_key_secret: str | None = None
+
+    # 优先从 wechat.yaml 的 aliyun.* 读取（统一与 OSS 的 AK/SK 配置）
+    if config.exists():
+        try:
+            wechat_cfg = WeChatConfig.load_from_yaml(config)
+            if wechat_cfg.aliyun is not None:
+                access_key_id = wechat_cfg.aliyun.access_key_id
+                access_key_secret = wechat_cfg.aliyun.access_key_secret
+        except Exception:
+            # 配置文件存在但解析失败时，仍允许回退环境变量，避免影响旧使用方式
+            access_key_id = None
+            access_key_secret = None
+
+    if not access_key_id or not access_key_secret:
+        # 回退环境变量
+        access_key_id = os.environ.get("ALIYUN_ACCESS_KEY_ID")
+        access_key_secret = os.environ.get("ALIYUN_ACCESS_KEY_SECRET")
 
     if not access_key_id or not access_key_secret:
         click.secho(
-            "❌ 请设置环境变量 ALIYUN_ACCESS_KEY_ID 和 ALIYUN_ACCESS_KEY_SECRET",
+            "❌ 请在 wechat.yaml 中配置 aliyun.access_key_id/aliyun.access_key_secret，"
+            "或设置环境变量 ALIYUN_ACCESS_KEY_ID/ALIYUN_ACCESS_KEY_SECRET",
             fg="red",
             err=True,
         )

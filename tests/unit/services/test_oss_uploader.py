@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from diting.endpoints.wechat.config import OSSConfig
+from diting.endpoints.wechat.config import AliyunConfig, OSSConfig
 from diting.services.oss.uploader import OSSUploader
 
 
@@ -51,13 +51,12 @@ def test_upload_file_public_builds_expected_url(monkeypatch: pytest.MonkeyPatch,
     cfg = OSSConfig(
         endpoint="oss-cn-test.aliyuncs.com",
         bucket="my-bucket",
-        access_key_id="ak_test",
-        access_key_secret="sk_test",
         prefix="pfx",
         public_base_url=None,
     )
 
-    uploader = OSSUploader(cfg)
+    aliyun = AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test")
+    uploader = OSSUploader(cfg, aliyun=aliyun)
     key, url = uploader.upload_file_public(p)
 
     assert key == "pfx/20990101/deadbeef_a.txt"
@@ -93,13 +92,12 @@ def test_public_base_url_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
     cfg = OSSConfig(
         endpoint="https://oss-cn-test.aliyuncs.com",
         bucket="my-bucket",
-        access_key_id="ak_test",
-        access_key_secret="sk_test",
         prefix="p",
         public_base_url="https://cdn.example.com/base/",
     )
 
-    uploader = OSSUploader(cfg)
+    aliyun = AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test")
+    uploader = OSSUploader(cfg, aliyun=aliyun)
     key, url = uploader.upload_file_public(p)
 
     assert key == "p/20990102/t_b.bin"
@@ -133,18 +131,53 @@ def test_upload_file_signed_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     cfg = OSSConfig(
         endpoint="oss-cn-test.aliyuncs.com",
         bucket="my-bucket",
-        access_key_id="ak_test",
-        access_key_secret="sk_test",
         prefix="p",
         url_mode="signed",
         signed_url_expires=300,
         public_base_url=None,
     )
 
-    uploader = OSSUploader(cfg)
+    aliyun = AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test")
+    uploader = OSSUploader(cfg, aliyun=aliyun)
     key, url = uploader.upload_file(p)
 
     assert key == "p/20990103/beef_c.pdf"
     assert url == "https://signed.example.com/p/20990103/beef_c.pdf?exp=300"
     assert fake_bucket.acl_calls == []  # signed 模式不应设置 public-read
     assert fake_bucket.sign_calls == [("GET", key, 300)]
+
+
+def test_access_key_falls_back_to_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    fake_bucket = _FakeBucket()
+
+    import diting.services.oss.uploader as uploader_mod
+
+    got_auth: dict[str, str] = {}
+
+    def _fake_auth(ak: str, sk: str):
+        got_auth["ak"] = ak
+        got_auth["sk"] = sk
+        return object()
+
+    monkeypatch.setattr(uploader_mod.oss2, "Auth", _fake_auth)
+    monkeypatch.setattr(uploader_mod.oss2, "Bucket", lambda _auth, _ep, _b: fake_bucket)
+
+    monkeypatch.setenv("ALIYUN_ACCESS_KEY_ID", "ak_env")
+    monkeypatch.setenv("ALIYUN_ACCESS_KEY_SECRET", "sk_env")
+
+    p = tmp_path / "x.txt"
+    p.write_bytes(b"x")
+
+    cfg = OSSConfig(
+        endpoint="oss-cn-test.aliyuncs.com",
+        bucket="my-bucket",
+        access_key_id=None,
+        access_key_secret=None,
+        prefix="p",
+        public_base_url=None,
+    )
+
+    uploader = OSSUploader(cfg)
+    uploader.upload_file_public(p)
+
+    assert got_auth == {"ak": "ak_env", "sk": "sk_env"}

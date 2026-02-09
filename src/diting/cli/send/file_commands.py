@@ -134,7 +134,7 @@ def send_file(
     if wechat_config.oss is None:
         msg = (
             "未配置 oss：请在 wechat.yaml 中添加 "
-            "oss.endpoint/bucket/access_key_id/access_key_secret"
+            "oss.endpoint/bucket，并在 aliyun.access_key_id/aliyun.access_key_secret 配置 AK/SK"
         )
         if json_only:
             echo_json({"success": False, "error": msg})
@@ -160,7 +160,7 @@ def send_file(
         if signed_url_expires is not None:
             wechat_config.oss.signed_url_expires = signed_url_expires
 
-        uploader = OSSUploader(wechat_config.oss)
+        uploader = OSSUploader(wechat_config.oss, aliyun=wechat_config.aliyun)
         object_key, public_url = uploader.upload_file(file_path, url_mode=oss_url_mode)
 
         if not json_only:
