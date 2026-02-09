@@ -129,7 +129,10 @@ def send_file(
     resolved_guid, device_name = resolve_guid(wechat_config, guid=guid, device_index=device_index)
 
     if wechat_config.oss is None:
-        msg = "未配置 oss：请在 wechat.yaml 中添加 oss.endpoint/bucket/access_key_id/access_key_secret"
+        msg = (
+            "未配置 oss：请在 wechat.yaml 中添加 "
+            "oss.endpoint/bucket/access_key_id/access_key_secret"
+        )
         if json_only:
             echo_json({"success": False, "error": msg})
         else:

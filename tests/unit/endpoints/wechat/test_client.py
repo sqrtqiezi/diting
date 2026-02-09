@@ -45,9 +45,7 @@ class TestWeChatAPIClient:
 
     def test_build_request(self, client):
         """测试构建请求"""
-        request = client._build_request(
-            path="/user/get_info", data={"guid": "test_guid_123"}
-        )
+        request = client._build_request(path="/user/get_info", data={"guid": "test_guid_123"})
 
         assert isinstance(request, APIRequest)
         assert request.path == "/user/get_info"

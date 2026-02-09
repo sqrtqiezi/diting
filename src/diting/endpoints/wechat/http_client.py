@@ -4,10 +4,10 @@
 """
 
 import time
+from json import JSONDecodeError
 from typing import Any
 
 import httpx
-from json import JSONDecodeError
 
 from diting.endpoints.wechat.config import APIConfig
 from diting.endpoints.wechat.error_handler import WeChatErrorHandler
@@ -98,7 +98,7 @@ class WeChatHTTPClient:
             except JSONDecodeError:
                 # 部分接口会返回空 body（或非 JSON 文本）；这里做兼容处理。
                 text = response.text.strip()
-                response_data = None if not text else text
+                response_data = text if text else None
             self._log_response(request, response.status_code, response_data, response_time_ms)
 
             return response_data
@@ -157,7 +157,7 @@ class WeChatHTTPClient:
                 response_data: Any = response.json()
             except JSONDecodeError:
                 text = response.text.strip()
-                response_data = None if not text else text
+                response_data = text if text else None
 
             logger.info(
                 "cloud_api_response_received",

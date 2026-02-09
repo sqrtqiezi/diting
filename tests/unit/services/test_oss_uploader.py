@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from diting.endpoints.wechat.config import OSSConfig
 from diting.services.oss.uploader import OSSUploader
 

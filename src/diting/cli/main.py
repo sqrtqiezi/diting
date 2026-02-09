@@ -19,8 +19,8 @@ import click
 import structlog
 import uvicorn
 
-from diting.cli.storage import storage
 from diting.cli.send import send
+from diting.cli.storage import storage
 from diting.endpoints.wechat.client import WeChatAPIClient
 from diting.endpoints.wechat.config import WeChatConfig
 from diting.endpoints.wechat.webhook_config import WebhookConfig
