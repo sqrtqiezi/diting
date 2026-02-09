@@ -26,19 +26,19 @@ def _file_md5_and_crc32(path: Path, *, chunk_size: int = 1024 * 1024) -> tuple[s
     return h.hexdigest(), crc & 0xFFFFFFFF
 
 
-def _parse_cdn_upload_response(resp: object) -> dict:
+def _parse_upload_response(resp: object) -> dict:
     # resp 可能是 dict / str / None
     if resp is None:
-        raise ValueError("cloud/cdn_upload 返回为空")
+        raise ValueError("cloud/upload 返回为空")
 
     if isinstance(resp, str):
         try:
             resp = json.loads(resp)
         except Exception as e:
-            raise ValueError(f"cloud/cdn_upload 返回非 JSON 字符串: {resp!r}") from e
+            raise ValueError(f"cloud/upload 返回非 JSON 字符串: {resp!r}") from e
 
     if not isinstance(resp, dict):
-        raise ValueError(f"cloud/cdn_upload 返回非对象: {type(resp).__name__}")
+        raise ValueError(f"cloud/upload 返回非对象: {type(resp).__name__}")
 
     # 常见结构: {errcode:0,data:{...}} 或直接 {...}
     payload = resp.get("data") if isinstance(resp.get("data"), dict) else resp
@@ -48,7 +48,7 @@ def _parse_cdn_upload_response(resp: object) -> dict:
     file_key = payload.get("file_key") or payload.get("fileKey") or ""
 
     if not file_id or not aes_key:
-        raise ValueError(f"cloud/cdn_upload 缺少 file_id/aes_key: {payload}")
+        raise ValueError(f"cloud/upload 缺少 file_id/aes_key: {payload}")
 
     return {"file_id": file_id, "aes_key": aes_key, "file_key": file_key}
 
@@ -110,7 +110,7 @@ def send_file(
     file_type: int,
     json_only: bool,
 ) -> None:
-    """发送文件消息（OSS 外链 -> /cloud/cdn_upload -> /msg/send_file）"""
+    """发送文件消息（OSS 外链 -> /cloud/upload -> /msg/send_file）"""
     wechat_config = load_wechat_config(config)
     resolved_guid, device_name = resolve_guid(wechat_config, guid=guid, device_index=device_index)
 
@@ -144,11 +144,11 @@ def send_file(
             click.secho("✅ OSS 上传完成", fg="green")
             click.echo(f"🔗 URL: {public_url}")
             click.echo()
-            click.secho("🔄 正在调用 cloud/cdn_upload...", fg="blue")
+            click.secho("🔄 正在调用 cloud/upload...", fg="blue")
 
         with WeChatAPIClient(wechat_config) as client:
-            upload_resp = client.cloud_cdn_upload(resolved_guid, file_type=file_type, url=public_url)
-            upload_info = _parse_cdn_upload_response(upload_resp)
+            upload_resp = client.cloud_upload(resolved_guid, file_type=file_type, url=public_url)
+            upload_info = _parse_upload_response(upload_resp)
 
             if not json_only:
                 click.secho("🔄 正在发送文件消息...", fg="blue")
@@ -170,7 +170,7 @@ def send_file(
                 {
                     "success": True,
                     "oss": {"object_key": object_key, "url": public_url},
-                    "cdn_upload": upload_resp,
+                    "cloud_upload": upload_resp,
                     "send": send_resp,
                 }
             )
@@ -188,4 +188,3 @@ def send_file(
         else:
             click.secho(f"❌ 发送失败: {e}", fg="red", err=True)
         raise SystemExit(1) from e
-

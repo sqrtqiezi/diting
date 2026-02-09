@@ -114,12 +114,41 @@ class TestWeChatAPIClient:
         assert res is None
 
     def test_cloud_cdn_upload(self, client, httpx_mock: HTTPXMock):
+        # 兼容旧接口方法仍然可用（不在此处断言请求体）
         httpx_mock.add_response(
             url="https://cloud.example.com/cloud/cdn_upload",
             json={"file_id": "fid", "aes_key": "key", "file_key": "fkey"},
         )
 
         res = client.cloud_cdn_upload(
+            guid="test_guid_123",
+            file_type=5,
+            url="https://example.com/a.txt",
+        )
+
+        assert isinstance(res, dict)
+        assert res["file_id"] == "fid"
+
+    def test_cloud_upload_builds_base_request(self, client, httpx_mock: HTTPXMock):
+        # 1) /cdn/get_cdn_info via base_url
+        httpx_mock.add_response(
+            json={
+                "errcode": 0,
+                "data": {
+                    "cdn_info": "c",
+                    "client_version": 1,
+                    "device_type": "d",
+                    "username": "u",
+                },
+            }
+        )
+        # 2) /cloud/upload via cloud_base_url
+        httpx_mock.add_response(
+            url="https://cloud.example.com/cloud/upload",
+            json={"file_id": "fid", "aes_key": "key", "file_key": "fkey"},
+        )
+
+        res = client.cloud_upload(
             guid="test_guid_123",
             file_type=5,
             url="https://example.com/a.txt",
