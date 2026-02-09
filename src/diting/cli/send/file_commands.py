@@ -26,7 +26,7 @@ def _file_md5_and_crc32(path: Path, *, chunk_size: int = 1024 * 1024) -> tuple[s
     return h.hexdigest(), crc & 0xFFFFFFFF
 
 
-def _parse_upload_response(resp: object) -> dict:
+def _parse_upload_response(resp: object) -> dict[str, str]:
     # resp 可能是 dict / str / None
     if resp is None:
         raise ValueError("cloud/upload 返回为空")
@@ -41,7 +41,10 @@ def _parse_upload_response(resp: object) -> dict:
         raise ValueError(f"cloud/upload 返回非对象: {type(resp).__name__}")
 
     # 常见结构: {errcode:0,data:{...}} 或直接 {...}
-    payload = resp.get("data") if isinstance(resp.get("data"), dict) else resp
+    data = resp.get("data")
+    payload = data if isinstance(data, dict) else resp
+    if not isinstance(payload, dict):
+        raise ValueError(f"cloud/upload 返回 data 非对象: {type(payload).__name__}")
 
     file_id = payload.get("file_id") or payload.get("fileId")
     aes_key = payload.get("aes_key") or payload.get("aesKey")
@@ -50,7 +53,7 @@ def _parse_upload_response(resp: object) -> dict:
     if not file_id or not aes_key:
         raise ValueError(f"cloud/upload 缺少 file_id/aes_key: {payload}")
 
-    return {"file_id": file_id, "aes_key": aes_key, "file_key": file_key}
+    return {"file_id": str(file_id), "aes_key": str(aes_key), "file_key": str(file_key)}
 
 
 @click.command()
