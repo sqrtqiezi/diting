@@ -57,13 +57,27 @@ class LoggingConfig(BaseModel):
     output: str = Field(default="logs/wechat_api.log", description="日志输出路径")
 
 
+class AliyunConfig(BaseModel):
+    """阿里云通用凭证配置（OSS / OCR 等共用）"""
+
+    access_key_id: str = Field(..., description="AccessKey ID")
+    access_key_secret: str = Field(..., description="AccessKey Secret")
+
+
 class OSSConfig(BaseModel):
     """阿里云 OSS 配置（用于发送文件前的外链存储）"""
 
-    endpoint: str = Field(..., description="OSS Endpoint (例如 oss-cn-hangzhou.aliyuncs.com)")
+    endpoint: str = Field(
+        ...,
+        description="OSS Endpoint (例如 oss-cn-hangzhou.aliyuncs.com)",
+    )
     bucket: str = Field(..., description="OSS Bucket 名称")
     # 允许从环境变量回退读取（与 process-ocr 复用同一套 AK/SK），避免配置重复。
-    access_key_id: str | None = Field(default=None, description="AccessKey ID（可选，未填则读环境变量）")
+    # 兼容旧配置：建议迁移到 wechat.yaml 的 aliyun.access_key_id/access_key_secret。
+    access_key_id: str | None = Field(
+        default=None,
+        description="AccessKey ID（可选，未填则读环境变量）",
+    )
     access_key_secret: str | None = Field(
         default=None, description="AccessKey Secret（可选，未填则读环境变量）"
     )
@@ -91,6 +105,7 @@ class WeChatConfig(BaseSettings):
     """
 
     api: APIConfig
+    aliyun: AliyunConfig | None = Field(default=None, description="阿里云通用凭证（可选）")
     devices: list[DeviceConfig] = Field(default_factory=list, description="设备列表")
     logging: LoggingConfig = Field(default_factory=LoggingConfig, description="日志配置")
     oss: OSSConfig | None = Field(default=None, description="OSS 配置（可选）")
