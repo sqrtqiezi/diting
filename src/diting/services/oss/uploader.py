@@ -13,7 +13,8 @@ from diting.endpoints.wechat.config import AliyunConfig, OSSConfig
 class OSSUploader:
     def __init__(self, config: OSSConfig, *, aliyun: AliyunConfig | None = None):
         self.config = config
-        # 优先使用 wechat.yaml 的 aliyun.* 作为统一 AK/SK 来源；兼容旧的 oss.access_key_* 与环境变量回退。
+        # 优先使用 wechat.yaml 的 aliyun.* 作为统一 AK/SK 来源；
+        # 兼容旧的 oss.access_key_* 与环境变量回退。
         ak = (
             (aliyun.access_key_id if aliyun else "").strip()
             or (config.access_key_id or "").strip()
@@ -26,8 +27,9 @@ class OSSUploader:
         )
         if not ak or not sk:
             raise ValueError(
-                "未配置阿里云 AccessKey。请在 config/wechat.yaml 的 oss.access_key_id/oss.access_key_secret 配置，"
-                "或在 aliyun.access_key_id/aliyun.access_key_secret 配置，"
+                "未配置阿里云 AccessKey。请在 config/wechat.yaml 配置 "
+                "oss.access_key_id/oss.access_key_secret，"
+                "或配置 aliyun.access_key_id/aliyun.access_key_secret，"
                 "或设置环境变量 ALIYUN_ACCESS_KEY_ID/ALIYUN_ACCESS_KEY_SECRET。"
             )
 

@@ -55,7 +55,8 @@ def test_upload_file_public_builds_expected_url(monkeypatch: pytest.MonkeyPatch,
         public_base_url=None,
     )
 
-    uploader = OSSUploader(cfg, aliyun=AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test"))
+    aliyun = AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test")
+    uploader = OSSUploader(cfg, aliyun=aliyun)
     key, url = uploader.upload_file_public(p)
 
     assert key == "pfx/20990101/deadbeef_a.txt"
@@ -95,7 +96,8 @@ def test_public_base_url_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
         public_base_url="https://cdn.example.com/base/",
     )
 
-    uploader = OSSUploader(cfg, aliyun=AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test"))
+    aliyun = AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test")
+    uploader = OSSUploader(cfg, aliyun=aliyun)
     key, url = uploader.upload_file_public(p)
 
     assert key == "p/20990102/t_b.bin"
@@ -135,7 +137,8 @@ def test_upload_file_signed_url(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
         public_base_url=None,
     )
 
-    uploader = OSSUploader(cfg, aliyun=AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test"))
+    aliyun = AliyunConfig(access_key_id="ak_test", access_key_secret="sk_test")
+    uploader = OSSUploader(cfg, aliyun=aliyun)
     key, url = uploader.upload_file(p)
 
     assert key == "p/20990103/beef_c.pdf"

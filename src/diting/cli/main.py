@@ -1240,9 +1240,9 @@ def process_ocr(config: Path, db_path: Path, rate_limit: int):
     import signal
     import time
 
+    from diting.endpoints.wechat.config import WeChatConfig
     from diting.services.storage.duckdb_manager import DuckDBManager
     from diting.services.storage.image_ocr_processor import ImageOCRProcessor
-    from diting.endpoints.wechat.config import WeChatConfig
 
     access_key_id: str | None = None
     access_key_secret: str | None = None

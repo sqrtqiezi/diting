@@ -67,11 +67,17 @@ class AliyunConfig(BaseModel):
 class OSSConfig(BaseModel):
     """阿里云 OSS 配置（用于发送文件前的外链存储）"""
 
-    endpoint: str = Field(..., description="OSS Endpoint (例如 oss-cn-hangzhou.aliyuncs.com)")
+    endpoint: str = Field(
+        ...,
+        description="OSS Endpoint (例如 oss-cn-hangzhou.aliyuncs.com)",
+    )
     bucket: str = Field(..., description="OSS Bucket 名称")
     # 允许从环境变量回退读取（与 process-ocr 复用同一套 AK/SK），避免配置重复。
     # 兼容旧配置：建议迁移到 wechat.yaml 的 aliyun.access_key_id/access_key_secret。
-    access_key_id: str | None = Field(default=None, description="AccessKey ID（可选，未填则读环境变量）")
+    access_key_id: str | None = Field(
+        default=None,
+        description="AccessKey ID（可选，未填则读环境变量）",
+    )
     access_key_secret: str | None = Field(
         default=None, description="AccessKey Secret（可选，未填则读环境变量）"
     )
