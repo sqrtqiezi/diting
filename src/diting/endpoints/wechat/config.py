@@ -62,8 +62,11 @@ class OSSConfig(BaseModel):
 
     endpoint: str = Field(..., description="OSS Endpoint (例如 oss-cn-hangzhou.aliyuncs.com)")
     bucket: str = Field(..., description="OSS Bucket 名称")
-    access_key_id: str = Field(..., description="AccessKey ID")
-    access_key_secret: str = Field(..., description="AccessKey Secret")
+    # 允许从环境变量回退读取（与 process-ocr 复用同一套 AK/SK），避免配置重复。
+    access_key_id: str | None = Field(default=None, description="AccessKey ID（可选，未填则读环境变量）")
+    access_key_secret: str | None = Field(
+        default=None, description="AccessKey Secret（可选，未填则读环境变量）"
+    )
     prefix: str = Field(default="diting/wechat-send", description="对象 Key 前缀")
     url_mode: Literal["public", "signed"] = Field(
         default="public",
