@@ -7,6 +7,7 @@
 
 import click
 
+from .file_commands import send_file
 from .text_commands import send_text
 
 
@@ -16,6 +17,6 @@ def send() -> None:
 
 
 send.add_command(send_text, name="text")
+send.add_command(send_file, name="file")
 
-__all__ = ["send", "send_text"]
-
+__all__ = ["send", "send_text", "send_file"]
